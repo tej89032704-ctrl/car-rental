@@ -1,10 +1,9 @@
 package com.carrental.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public class LoginRequest {
-    @NotBlank @Email
+    @NotBlank
     private String email;
 
     @NotBlank
