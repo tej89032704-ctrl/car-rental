@@ -6,8 +6,9 @@ A peer-to-peer car rental marketplace where users can:
 
 ## Tech Stack
 
-- Frontend: React + Tailwind CSS + Framer Motion
-- Backend: Node.js / Python (TBD)
+- Frontend: React + Vite + Tailwind CSS + Framer Motion
+- Backend: Java 21 + Spring Boot + Spring Data JPA + PostgreSQL
+- Build: Maven
 
 ## Team
 
@@ -26,10 +27,9 @@ cd frontend
 npm install
 npm run dev
 
-# Backend
+# Backend (requires Java 21+ and Maven)
 cd backend
-npm install
-npm start
+./mvnw spring-boot:run
 ```
 
 ## Git Workflow

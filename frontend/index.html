@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAR-ENT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sky-deep:#12152A;
+    --sky-mid:#332644;
+    --horizon:#CC5B2E;
+    --horizon-glow:#F0934D;
+    --headlight:#F6E9C9;
+    --asphalt:#1B1C20;
+    --asphalt-light:#2A2B31;
+    --lane:#E8B400;
+    --cream:#F5F1E6;
+    --muted:#B9AFA0;
+    --focus:#F0934D;
+    --building:#0d0e14;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    width:100vw; min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ================= AMBIENT BACKGROUND ================= */
+  .backdrop{
+    position:fixed; inset:0; z-index:0;
+    background:linear-gradient(180deg, var(--sky-deep) 0%, var(--sky-mid) 45%, var(--horizon) 100%);
+    overflow:hidden;
+  }
+  .stars{
+    position:absolute; inset:0 0 55% 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 10% 15%, #fff8 40%, transparent 60%),
+      radial-gradient(1px 1px at 25% 8%, #fff6 40%, transparent 60%),
+      radial-gradient(1.5px 1.5px at 60% 12%, #fff7 40%, transparent 60%),
+      radial-gradient(1px 1px at 80% 20%, #fff5 40%, transparent 60%),
+      radial-gradient(1.5px 1.5px at 92% 6%, #fff6 40%, transparent 60%),
+      radial-gradient(1px 1px at 45% 25%, #fff5 40%, transparent 60%);
+    opacity:.8;
+    animation: twinkle 5s ease-in-out infinite alternate;
+  }
+  @keyframes twinkle{ from{ opacity:.55; } to{ opacity:.9; } }
+
+  .skyline{
+    position:absolute; left:0; right:0; bottom:40%; height:16%;
+    display:flex; align-items:flex-end;
+    opacity:.6;
+  }
+  .skyline i{
+    display:block; background:var(--building); margin-right:3px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .skyline i em{
+    position:absolute; width:2px; height:2px; background:var(--headlight); opacity:.6;
+  }
+
+  .road{
+    position:absolute; left:0; right:0; bottom:0; height:40%;
+    background:linear-gradient(180deg, var(--asphalt-light) 0%, var(--asphalt) 100%);
+  }
+  .road::before{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,.55) 0%, transparent 45%);
+  }
+  .road{
+    position:absolute; left:0; right:0; bottom:0; height:40%;
+    background:linear-gradient(180deg, var(--asphalt-light) 0%, var(--asphalt) 100%);
+  }
+  .road::before{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,.55) 0%, transparent 45%);
+  }
+
+  /* two directional lane dividers — dashes scroll the same way the traffic in that lane moves */
+  .lane-divider{
+    position:absolute; left:4%; right:4%; height:5px;
+    background-image:repeating-linear-gradient(90deg, var(--lane) 0 26px, transparent 26px 54px);
+    opacity:.75; border-radius:3px;
+  }
+  .lane-divider.far{ top:30%; animation: dashLeft 1.8s linear infinite; }
+  .lane-divider.near{ top:66%; animation: dashRight 1.4s linear infinite; }
+  @keyframes dashRight{ from{ background-position-x:0; } to{ background-position-x:54px; } }
+  @keyframes dashLeft{ from{ background-position-x:0; } to{ background-position-x:-54px; } }
+
+  /* car unit = real photo (with silhouette fallback) + placard swinging on a thread above it */
+  .car{ position:absolute; width:150px; height:90px; }
+  .car .thread{
+    position:absolute; left:50%; top:0; width:1px; height:24px;
+    background:rgba(245,241,230,.55);
+    transform-origin:top center;
+  }
+  .car .placard{
+    position:absolute; left:50%; top:0; transform:translate(-50%,0);
+    background:var(--cream); color:#1a0f08;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:11px;
+    padding:4px 10px; border-radius:4px; white-space:nowrap;
+    box-shadow:0 3px 8px rgba(0,0,0,.35);
+    transform-origin:top center;
+  }
+  .car .swing{
+    position:absolute; left:50%; top:0; transform:translateX(-50%);
+    animation: placardSwing 2.6s ease-in-out infinite;
+    transform-origin: top center;
+    z-index:2;
+  }
+  @keyframes placardSwing{
+    0%,100%{ transform: translateX(-50%) rotate(-3deg); }
+    50%{ transform: translateX(-50%) rotate(3deg); }
+  }
+  .car .photo-wrap{
+    position:absolute; left:0; right:0; bottom:6px; height:64px;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .car .photo-wrap img{
+    max-width:100%; max-height:100%;
+    object-fit:contain;
+    filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));
+  }
+  /* fallback silhouette shown if the real photo fails to load */
+  .car .photo-wrap .fallback{ display:none; width:100%; height:100%; }
+  .car .photo-wrap img.broken{ display:none; }
+  .car .photo-wrap img.broken + .fallback{ display:block; }
+
+  .car.dir-left .photo-wrap img,
+  .car.dir-left .photo-wrap .fallback{ transform:scaleX(-1); }
+
+  /* near lane: bigger, lower, left-to-right — several cars cycle through, staggered */
+  .car-near{
+    bottom:2%; width:170px;
+    animation-name: driveRight;
+    animation-timing-function:linear;
+    animation-iteration-count:infinite;
+    animation-fill-mode: backwards; /* sit at the off-screen start position until its delay elapses */
+  }
+  .car-near.c1{ animation-duration:9s; animation-delay:0s; }
+  .car-near.c2{ animation-duration:9s; animation-delay:3s; }
+  .car-near.c3{ animation-duration:9s; animation-delay:6s; }
+  /* far lane: smaller, higher, right-to-left — several cars cycle through, staggered */
+  .car-far{
+    bottom:26%; width:110px;
+    animation-name: driveLeft;
+    animation-timing-function:linear;
+    animation-iteration-count:infinite;
+    animation-fill-mode: backwards;
+  }
+  .car-far.c1{ animation-duration:8s; animation-delay:1s; }
+  .car-far.c2{ animation-duration:8s; animation-delay:3.7s; }
+  .car-far.c3{ animation-duration:8s; animation-delay:6.4s; }
+  @keyframes driveRight{ from{ left:-16%; } to{ left:116%; } }
+  @keyframes driveLeft{ from{ right:-16%; } to{ right:116%; } }
+
+  /* soft vignette so the card reads clearly on top */
+  .vignette{
+    position:absolute; inset:0;
+    background: radial-gradient(900px 700px at 50% 45%, transparent 0%, rgba(8,9,16,.55) 100%);
+  }
+
+  /* ================= LOGIN PAGE ================= */
+  #login{
+    position:relative; z-index:1;
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:40px 16px;
+  }
+  .login-card{
+    width:min(400px, 90vw);
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:18px;
+    padding:32px 30px 28px;
+    backdrop-filter:blur(10px);
+    box-shadow:0 30px 70px -20px rgba(0,0,0,.7);
+  }
+  .login-mark{
+    text-align:center; font-family:'Oswald',sans-serif; font-weight:700;
+    letter-spacing:.06em; font-size:28px; color:var(--cream); margin-bottom:4px;
+  }
+  .login-mark span{ color:var(--lane); }
+  .login-sub{ text-align:center; color:var(--muted); font-size:13px; margin-bottom:22px; }
+
+  .role-tabs{
+    display:grid; grid-template-columns:1fr 1fr; gap:8px;
+    background:rgba(0,0,0,.28); border:1px solid rgba(255,255,255,.08);
+    border-radius:12px; padding:5px; margin-bottom:22px;
+  }
+  .role-tab{
+    border:none; background:transparent; color:var(--muted);
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:600;
+    padding:10px 8px; border-radius:9px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+    transition:background .2s ease, color .2s ease;
+  }
+  .role-tab svg{ width:15px; height:15px; flex:none; }
+  .role-tab.active{ background:var(--horizon); color:#1a0f08; }
+  .role-tab:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  .role-copy{ text-align:center; font-size:12.5px; color:var(--muted); margin:-10px 0 18px; min-height:16px; }
+
+  .field{ margin-bottom:15px; }
+  .field label{ display:block; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .field input{
+    width:100%; padding:11px 13px; border-radius:9px;
+    border:1px solid rgba(255,255,255,.14); background:rgba(0,0,0,.28);
+    color:var(--cream); font-family:'Inter',sans-serif; font-size:14px;
+  }
+  .field input:focus-visible{ outline:2px solid var(--focus); outline-offset:1px; }
+
+  .signin-btn{
+    width:100%; margin-top:4px; padding:12px; border:none; border-radius:9px;
+    background:var(--horizon); color:#1a0f08; font-weight:600; font-size:14px;
+    cursor:pointer; transition:background .2s ease;
+  }
+  .signin-btn:hover{ background:var(--horizon-glow); }
+  .signin-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+  .divider{
+    display:flex; align-items:center; gap:12px; margin:18px 0;
+    color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+  }
+  .divider::before, .divider::after{ content:""; flex:1; height:1px; background:rgba(255,255,255,.12); }
+
+  .google-btn{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+    padding:11px; border-radius:9px; border:1px solid rgba(255,255,255,.16);
+    background:#fff; color:#1f1f1f; font-family:'Inter',sans-serif; font-weight:600;
+    font-size:14px; cursor:pointer; transition:background .2s ease;
+  }
+  .google-btn:hover{ background:#f3f3f3; }
+  .google-btn:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+  .google-btn svg{ width:18px; height:18px; }
+
+  .login-foot{ text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+  .login-foot a{ color:var(--cream); text-decoration:none; border-bottom:1px solid var(--muted); }
+
+  @media (prefers-reduced-motion: reduce){
+    .stars, .car, .lane-divider, .swing, [class*="car-near"], [class*="car-far"]{ animation:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="backdrop">
+  <div class="stars"></div>
+  <div class="skyline" id="skyline"></div>
+  <div class="road">
+    <div class="lane-divider far"></div>
+    <div class="lane-divider near"></div>
+
+    <!-- NEAR LANE — left to right, 3 Indian cars cycling through -->
+    <div class="car dir-right car-near c1">
+      <div class="swing">
+        <div class="thread"></div>
+        <div class="placard">Tata Harrier</div>
+      </div>
+      <div class="photo-wrap">
+        <img src="cars/tata-harrier.jpg" alt="Tata Harrier"
+             onerror="this.classList.add('broken')">
+        <svg class="fallback" viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 34 Q4 24 16 22 L26 12 Q32 8 42 8 L64 8 Q72 8 76 13 L86 22 Q96 24 96 34 L96 36 L4 36 Z" fill="#3B5C7E"/>
+          <path d="M30 21 L36 13 Q39 11 44 11 L60 11 Q65 11 68 14 L74 21 Z" fill="#9FD1E8" opacity=".85"/>
+          <circle cx="24" cy="36" r="8" fill="#111"/><circle cx="24" cy="36" r="3" fill="#888"/>
+          <circle cx="76" cy="36" r="8" fill="#111"/><circle cx="76" cy="36" r="3" fill="#888"/>
+          <rect x="90" y="24" width="5" height="4" rx="1.5" fill="#F6E9C9"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="car dir-right car-near c2">
+      <div class="swing">
+        <div class="thread"></div>
+        <div class="placard">Maruti Suzuki Swift</div>
+      </div>
+      <div class="photo-wrap">
+        <img src="cars/maruti-swift.jpg" alt="Maruti Suzuki Swift"
+             onerror="this.classList.add('broken')">
+        <svg class="fallback" viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 34 Q4 24 16 22 L26 12 Q32 8 42 8 L64 8 Q72 8 76 13 L86 22 Q96 24 96 34 L96 36 L4 36 Z" fill="#8C3B3B"/>
+          <path d="M30 21 L36 13 Q39 11 44 11 L60 11 Q65 11 68 14 L74 21 Z" fill="#9FD1E8" opacity=".85"/>
+          <circle cx="24" cy="36" r="8" fill="#111"/><circle cx="24" cy="36" r="3" fill="#888"/>
+          <circle cx="76" cy="36" r="8" fill="#111"/><circle cx="76" cy="36" r="3" fill="#888"/>
+          <rect x="90" y="24" width="5" height="4" rx="1.5" fill="#F6E9C9"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="car dir-right car-near c3">
+      <div class="swing">
+        <div class="thread"></div>
+        <div class="placard">Hyundai Creta</div>
+      </div>
+      <div class="photo-wrap">
+        <img src="cars/hyundai-creta.jpg" alt="Hyundai Creta"
+             onerror="this.classList.add('broken')">
+        <svg class="fallback" viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 34 Q4 24 16 22 L26 12 Q32 8 42 8 L64 8 Q72 8 76 13 L86 22 Q96 24 96 34 L96 36 L4 36 Z" fill="#3B6E52"/>
+          <path d="M30 21 L36 13 Q39 11 44 11 L60 11 Q65 11 68 14 L74 21 Z" fill="#9FD1E8" opacity=".85"/>
+          <circle cx="24" cy="36" r="8" fill="#111"/><circle cx="24" cy="36" r="3" fill="#888"/>
+          <circle cx="76" cy="36" r="8" fill="#111"/><circle cx="76" cy="36" r="3" fill="#888"/>
+          <rect x="90" y="24" width="5" height="4" rx="1.5" fill="#F6E9C9"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- FAR LANE — right to left, 3 Indian cars cycling through -->
+    <div class="car dir-left car-far c1">
+      <div class="swing">
+        <div class="thread"></div>
+        <div class="placard">Mahindra Thar</div>
+      </div>
+      <div class="photo-wrap">
+        <img src="cars/mahindra-thar.jpg" alt="Mahindra Thar"
+             onerror="this.classList.add('broken')">
+        <svg class="fallback" viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 34 Q4 24 16 22 L26 12 Q32 8 42 8 L64 8 Q72 8 76 13 L86 22 Q96 24 96 34 L96 36 L4 36 Z" fill="#5B4A8C"/>
+          <path d="M30 21 L36 13 Q39 11 44 11 L60 11 Q65 11 68 14 L74 21 Z" fill="#9FD1E8" opacity=".85"/>
+          <circle cx="24" cy="36" r="8" fill="#111"/><circle cx="24" cy="36" r="3" fill="#888"/>
+          <circle cx="76" cy="36" r="8" fill="#111"/><circle cx="76" cy="36" r="3" fill="#888"/>
+          <rect x="90" y="24" width="5" height="4" rx="1.5" fill="#F6E9C9"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="car dir-left car-far c2">
+      <div class="swing">
+        <div class="thread"></div>
+        <div class="placard">Toyota Innova Crysta</div>
+      </div>
+      <div class="photo-wrap">
+        <img src="cars/toyota-innova.jpg" alt="Toyota Innova Crysta"
+             onerror="this.classList.add('broken')">
+        <svg class="fallback" viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 34 Q4 24 16 22 L26 12 Q32 8 42 8 L64 8 Q72 8 76 13 L86 22 Q96 24 96 34 L96 36 L4 36 Z" fill="#2E3A46"/>
+          <path d="M30 21 L36 13 Q39 11 44 11 L60 11 Q65 11 68 14 L74 21 Z" fill="#9FD1E8" opacity=".85"/>
+          <circle cx="24" cy="36" r="8" fill="#111"/><circle cx="24" cy="36" r="3" fill="#888"/>
+          <circle cx="76" cy="36" r="8" fill="#111"/><circle cx="76" cy="36" r="3" fill="#888"/>
+          <rect x="90" y="24" width="5" height="4" rx="1.5" fill="#F6E9C9"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="car dir-left car-far c3">
+      <div class="swing">
+        <div class="thread"></div>
+        <div class="placard">Honda City</div>
+      </div>
+      <div class="photo-wrap">
+        <img src="cars/honda-city.jpg" alt="Honda City"
+             onerror="this.classList.add('broken')">
+        <svg class="fallback" viewBox="0 0 100 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 34 Q4 24 16 22 L26 12 Q32 8 42 8 L64 8 Q72 8 76 13 L86 22 Q96 24 96 34 L96 36 L4 36 Z" fill="#A8763E"/>
+          <path d="M30 21 L36 13 Q39 11 44 11 L60 11 Q65 11 68 14 L74 21 Z" fill="#9FD1E8" opacity=".85"/>
+          <circle cx="24" cy="36" r="8" fill="#111"/><circle cx="24" cy="36" r="3" fill="#888"/>
+          <circle cx="76" cy="36" r="8" fill="#111"/><circle cx="76" cy="36" r="3" fill="#888"/>
+          <rect x="90" y="24" width="5" height="4" rx="1.5" fill="#F6E9C9"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vignette"></div>
+</div>
+
+<div id="login">
+  <div class="login-card">
+    <div class="login-mark">CAR<span>-</span>ENT</div>
+    <div class="login-sub" id="formTitle">Sign in to continue</div>
+
+    <div class="role-tabs" role="tablist" aria-label="Choose account type">
+      <button class="role-tab active" id="tabPick" role="tab" aria-selected="true" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="3" y="13" width="18" height="6" rx="1.5"/><circle cx="7.5" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/></svg>
+        Pick a car
+      </button>
+      <button class="role-tab" id="tabGive" role="tab" aria-selected="false" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
+        Give a car
+      </button>
+    </div>
+
+    <div class="role-copy" id="roleCopy">Find and rent a car near you in minutes</div>
+
+    <div class="field" id="nameField" style="display:none">
+      <label for="name">Name</label>
+      <input id="name" type="text" placeholder="Your full name">
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="••••••••">
+    </div>
+    <button class="signin-btn" id="signinBtn" type="button">Sign in to pick a car</button>
+
+    <div class="divider">or</div>
+
+    <button class="google-btn" id="googleBtn" type="button">
+      <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="login-foot" id="authToggle">New here? <a href="#" id="toggleLink">Create an account</a></div>
+    <div id="errorMsg" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;display:none"></div>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:8080/api/auth';
+  let isRegister = false;
+
+  const skyline = document.getElementById('skyline');
+  const buildingCount = 26;
+  for (let i = 0; i < buildingCount; i++){
+    const b = document.createElement('i');
+    const h = 30 + Math.random() * 70;
+    const w = 100 / buildingCount;
+    b.style.width = w + '%';
+    b.style.height = h + '%';
+    b.style.position = 'relative';
+    if (Math.random() > 0.5){
+      const dot = document.createElement('em');
+      dot.style.left = (20 + Math.random()*60) + '%';
+      dot.style.top = (20 + Math.random()*60) + '%';
+      b.appendChild(dot);
+    }
+    skyline.appendChild(b);
+  }
+
+  const tabPick = document.getElementById('tabPick');
+  const tabGive = document.getElementById('tabGive');
+  const roleCopy = document.getElementById('roleCopy');
+  const signinBtn = document.getElementById('signinBtn');
+  const nameInput = document.getElementById('name');
+  const nameField = document.getElementById('nameField');
+  const email = document.getElementById('email');
+  const password = document.getElementById('password');
+  const errorMsg = document.getElementById('errorMsg');
+  const formTitle = document.getElementById('formTitle');
+  const toggleLink = document.getElementById('toggleLink');
+
+  const copyByRole = {
+    pick: 'Find and rent a car near you in minutes',
+    give: 'List your car and start earning when you\'re not using it'
+  };
+
+  let currentRole = 'pick';
+  function setRole(role){
+    currentRole = role;
+    const isPick = role === 'pick';
+    tabPick.classList.toggle('active', isPick);
+    tabGive.classList.toggle('active', !isPick);
+    tabPick.setAttribute('aria-selected', String(isPick));
+    tabGive.setAttribute('aria-selected', String(!isPick));
+    roleCopy.textContent = copyByRole[role];
+    signinBtn.textContent = isPick ? (isRegister ? 'Register to pick a car' : 'Sign in to pick a car') : (isRegister ? 'Register to give a car' : 'Sign in to give a car');
+  }
+  tabPick.addEventListener('click', () => setRole('pick'));
+  tabGive.addEventListener('click', () => setRole('give'));
+
+  toggleLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    isRegister = !isRegister;
+    nameField.style.display = isRegister ? 'block' : 'none';
+    formTitle.textContent = isRegister ? 'Create your account' : 'Sign in to continue';
+    signinBtn.textContent = isRegister
+      ? (currentRole === 'pick' ? 'Register to pick a car' : 'Register to give a car')
+      : (currentRole === 'pick' ? 'Sign in to pick a car' : 'Sign in to give a car');
+    toggleLink.textContent = isRegister ? 'Sign in' : 'Create an account';
+    errorMsg.style.display = 'none';
+  });
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.style.display = 'block';
+  }
+
+  signinBtn.addEventListener('click', async () => {
+    errorMsg.style.display = 'none';
+    const nameVal = nameInput.value.trim();
+    const emailVal = email.value.trim();
+    const passVal = password.value.trim();
+
+    if (!emailVal || !passVal || (isRegister && !nameVal)) {
+      showError('Please fill in all fields');
+      return;
+    }
+    if (!emailVal.includes('@')) {
+      showError('Please enter a valid email');
+      return;
+    }
+    if (passVal.length < 6) {
+      showError('Password must be at least 6 characters');
+      return;
+    }
+
+    signinBtn.disabled = true;
+    signinBtn.textContent = 'Loading...';
+
+    try {
+      const endpoint = isRegister ? `${API}/register` : `${API}/login`;
+      const role = currentRole === 'pick' ? 'customer' : 'owner';
+      const body = isRegister
+        ? { name: nameVal, email: emailVal, password: passVal, role }
+        : { email: emailVal, password: passVal };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.message || 'Something went wrong');
+        signinBtn.disabled = false;
+        signinBtn.textContent = isRegister ? 'Register' : 'Sign in';
+        return;
+      }
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data));
+
+      window.location.href = '/dashboard.html';
+    } catch (err) {
+      showError('Cannot connect to server. Make sure the backend is running on port 8080.');
+      signinBtn.disabled = false;
+      signinBtn.textContent = isRegister ? 'Register' : 'Sign in';
+    }
+  });
+
+  document.getElementById('googleBtn').addEventListener('click', () => {
+    showError('Google sign-in coming soon');
+  });
+</script>
+
+</body>
+</html>
