@@ -413,7 +413,7 @@
 </div>
 
 <script>
-  const API = 'http://localhost:8080/api/auth';
+  const API = 'http://localhost:8081/api/auth';
   let isRegister = false;
 
   const skyline = document.getElementById('skyline');
@@ -531,7 +531,7 @@
 
       window.location.href = '/dashboard.html';
     } catch (err) {
-      showError('Cannot connect to server. Make sure the backend is running on port 8080.');
+      showError('Cannot connect to server. Make sure the backend is running on port 8081.');
       signinBtn.disabled = false;
       signinBtn.textContent = isRegister ? 'Register' : 'Sign in';
     }
