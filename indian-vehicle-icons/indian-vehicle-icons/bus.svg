@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <style>
+    .icon-primary { fill: var(--icon-primary, #1E293B); }
+    .icon-secondary { fill: var(--icon-secondary, #7DD3FC); }
+  </style>
+  <!-- body -->
+  <rect class="icon-primary" x="4" y="16" width="56" height="26" rx="4"/>
+  <!-- windows row -->
+  <rect class="icon-secondary" x="8" y="21" width="9" height="8" rx="1.5"/>
+  <rect class="icon-secondary" x="20" y="21" width="9" height="8" rx="1.5"/>
+  <rect class="icon-secondary" x="32" y="21" width="9" height="8" rx="1.5"/>
+  <rect class="icon-secondary" x="44" y="21" width="9" height="8" rx="1.5"/>
+  <!-- lower stripe -->
+  <rect class="icon-secondary" x="8" y="34" width="48" height="3" rx="1.5"/>
+  <!-- wheels -->
+  <circle class="icon-primary" cx="16" cy="46" r="7"/>
+  <circle class="icon-secondary" cx="16" cy="46" r="3"/>
+  <circle class="icon-primary" cx="48" cy="46" r="7"/>
+  <circle class="icon-secondary" cx="48" cy="46" r="3"/>
+</svg>
