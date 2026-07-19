@@ -164,7 +164,7 @@
     </div>
 
     <script>
-      const API = "http://localhost:8081/api/auth";
+      const API = window.location.port === "5173" ? "http://localhost:8081/api/auth" : "/api/auth";
       let isRegister = false;
       const tabPick   = document.getElementById("tabPick");
       const tabGive   = document.getElementById("tabGive");

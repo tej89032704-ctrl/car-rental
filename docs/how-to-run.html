@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Car Rental App - How to Run</title>
+<style>
+  @page { margin: 20mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1a1a1a; line-height: 1.6; padding: 40px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 28px; text-align: center; margin-bottom: 8px; color: #cc5b2e; }
+  .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 30px; }
+  h2 { font-size: 20px; color: #1a3a6e; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #e8e8e8; }
+  h3 { font-size: 16px; color: #cc5b2e; margin: 18px 0 8px; }
+  .section { margin-bottom: 24px; page-break-inside: avoid; }
+  .prereq { background: #f5f7fa; border-left: 4px solid #1a3a6e; padding: 14px 18px; margin: 16px 0; border-radius: 0 8px 8px 0; }
+  .prereq h3 { margin-top: 0; }
+  .prereq ul { margin-left: 20px; }
+  .prereq li { margin-bottom: 4px; }
+  .platform { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 20px; margin: 16px 0; page-break-inside: avoid; }
+  .platform-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .platform-header h3 { margin: 0; font-size: 18px; }
+  .badge { display: inline-block; background: #cc5b2e; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .badge.easy { background: #22a848; }
+  .badge.medium { background: #e8a020; }
+  .step { margin: 8px 0; padding-left: 8px; }
+  .step-num { display: inline-block; background: #1a3a6e; color: #fff; width: 22px; height: 22px; text-align: center; border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 22px; margin-right: 8px; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: "Consolas", monospace; font-size: 13px; }
+  pre { background: #1a1a2e; color: #e0e0e0; padding: 14px; border-radius: 8px; margin: 10px 0; overflow-x: auto; font-size: 13px; font-family: "Consolas", monospace; }
+  pre .comment { color: #6a9955; }
+  pre .cmd { color: #dcdcaa; }
+  .note { background: #fff8e1; border-left: 4px solid #e8a020; padding: 10px 14px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+  .error-box { background: #fff0f0; border-left: 4px solid #e53935; padding: 10px 14px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+  .ports { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .ports th, .ports td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; font-size: 13px; }
+  .ports th { background: #1a3a6e; color: #fff; }
+  .ports tr:nth-child(even) { background: #f9f9f9; }
+  .footer { text-align: center; margin-top: 30px; padding-top: 16px; border-top: 1px solid #e0e0e0; color: #999; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>CAR-ENT</h1>
+<p class="subtitle">Car Rental App &mdash; Project Setup &amp; Run Guide</p>
+
+<!-- ============ PREREQUISITES ============ -->
+<div class="section">
+  <h2>Prerequisites</h2>
+  <div class="prereq">
+    <h3>Required Software</h3>
+    <ul>
+      <li><strong>Java 26+</strong> (JDK) &mdash; <a href="https://adoptium.net">Download from Adoptium</a></li>
+      <li><strong>Node.js 18+</strong> &mdash; <a href="https://nodejs.org">Download from nodejs.org</a></li>
+      <li><strong>Maven 3.9+</strong> &mdash; <a href="https://maven.apache.org">Download from apache.org</a></li>
+      <li><strong>PostgreSQL 14+</strong> &mdash; running on <code>localhost:5432</code></li>
+    </ul>
+  </div>
+
+  <h3>Database Setup</h3>
+  <pre><span class="comment">-- Run in PostgreSQL (psql or pgAdmin)</span>
+<span class="cmd">CREATE DATABASE</span> car_rental;</pre>
+
+  <h3>Server Ports</h3>
+  <table class="ports">
+    <tr><th>Service</th><th>Port</th><th>URL</th></tr>
+    <tr><td>Backend (Spring Boot)</td><td>8081</td><td>http://localhost:8081</td></tr>
+    <tr><td>Frontend (Vite)</td><td>5173</td><td>http://localhost:5173</td></tr>
+    <tr><td>PostgreSQL</td><td>5432</td><td>localhost:5432</td></tr>
+  </table>
+</div>
+
+<!-- ============ RUN.BAT ============ -->
+<div class="section">
+  <h2>Method 1: run.bat (Windows - Easiest)</h2>
+  <div class="platform">
+    <div class="platform-header">
+      <h3>Double-Click run.bat</h3>
+      <span class="badge easy">Easiest</span>
+    </div>
+    <div class="step"><span class="step-num">1</span> Open the project folder in <strong>File Explorer</strong></div>
+    <div class="step"><span class="step-num">2</span> Double-click <code>run.bat</code></div>
+    <div class="step"><span class="step-num">3</span> Two terminal windows will open &mdash; one for backend, one for frontend</div>
+    <div class="step"><span class="step-num">4</span> Wait ~15 seconds for both to start</div>
+    <div class="step"><span class="step-num">5</span> Browser opens automatically to <code>http://localhost:5173</code></div>
+
+    <div class="note">
+      <strong>Note:</strong> Do NOT double-click <code>index.html</code> directly. Always use <code>run.bat</code> or <code>npm run dev</code> so the video background loads.
+    </div>
+  </div>
+</div>
+
+<!-- ============ VS CODE ============ -->
+<div class="section">
+  <h2>Method 2: VS Code</h2>
+  <div class="platform">
+    <div class="platform-header">
+      <h3>Visual Studio Code</h3>
+      <span class="badge easy">Easy</span>
+    </div>
+    <div class="step"><span class="step-num">1</span> Open the project folder in VS Code: <code>File &gt; Open Folder &gt; D:\cr</code></div>
+
+    <h3>Start Backend</h3>
+    <pre><span class="comment"># Open Terminal 1: Ctrl + ` (backtick)</span>
+<span class="cmd">cd</span> backend
+C:\apache-maven-3.9.9\bin\mvn.cmd clean spring-boot:run</pre>
+
+    <h3>Start Frontend</h3>
+    <pre><span class="comment"># Open Terminal 2: Click "+" in terminal panel</span>
+<span class="cmd">cd</span> frontend
+<span class="cmd">npm run</span> dev</pre>
+
+    <h3>Access the App</h3>
+    <pre>Open browser &rarr; <span class="cmd">http://localhost:5173</span></pre>
+
+    <div class="error-box">
+      <strong>Common Error:</strong> "Maven project configuration required" &mdash; This is just a VS Code Java extension warning. Ignore it. The backend still runs fine from the terminal.
+    </div>
+  </div>
+</div>
+
+<!-- ============ INTELLIJ IDEA ============ -->
+<div class="section">
+  <h2>Method 3: IntelliJ IDEA</h2>
+  <div class="platform">
+    <div class="platform-header">
+      <h3>IntelliJ IDEA</h3>
+      <span class="badge medium">Medium</span>
+    </div>
+
+    <h3>Backend</h3>
+    <div class="step"><span class="step-num">1</span> <code>File &gt; Open</code> &mdash; select <code>D:\cr\backend\pom.xml</code></div>
+    <div class="step"><span class="step-num">2</span> Click <strong>"Open as Project"</strong> when prompted</div>
+    <div class="step"><span class="step-num">3</span> Wait for Maven sync (bottom-right status bar)</div>
+    <div class="step"><span class="step-num">4</span> Navigate to <code>src/main/java/com/carrental/CarRentalApplication.java</code></div>
+    <div class="step"><span class="step-num">5</span> Right-click &rarr; <strong>Run 'CarRentalApplication'</strong></div>
+
+    <h3>Frontend (in IntelliJ Terminal)</h3>
+    <pre><span class="comment"># Open IntelliJ Terminal: View &gt; Tool Windows &gt; Terminal</span>
+<span class="cmd">cd</span> frontend
+<span class="cmd">npm run</span> dev</pre>
+
+    <div class="error-box">
+      <strong>Troubleshooting:</strong>
+      <ul style="margin-left:18px; margin-top:4px;">
+        <li>If "Run" button is greyed out: <code>File &gt; Invalidate Caches &gt; Invalidate and Restart</code></li>
+        <li>If JDK not found: <code>File &gt; Project Structure &gt; SDK &gt; Add JDK</code> &rarr; select your Java 26 install</li>
+        <li>Make sure IntelliJ uses the same Maven path: <code>Settings &gt; Build &gt; Build Tools &gt; Maven</code></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ECLIPSE ============ -->
+<div class="section">
+  <h2>Method 4: Eclipse</h2>
+  <div class="platform">
+    <div class="platform-header">
+      <h3>Eclipse IDE</h3>
+      <span class="badge medium">Medium</span>
+    </div>
+
+    <h3>Backend</h3>
+    <div class="step"><span class="step-num">1</span> <code>File &gt; Import &gt; Maven &gt; Existing Maven Projects</code></div>
+    <div class="step"><span class="step-num">2</span> Browse to <code>D:\cr\backend</code> &rarr; click <strong>Finish</strong></div>
+    <div class="step"><span class="step-num">3</span> Wait for Maven dependencies to download</div>
+    <div class="step"><span class="step-num">4</span> Find <code>CarRentalApplication.java</code> in <code>src/main/java/com/carrental/</code></div>
+    <div class="step"><span class="step-num">5</span> Right-click &rarr; <code>Run As &gt; Java Application</code></div>
+
+    <h3>Frontend (in Eclipse Terminal)</h3>
+    <pre><span class="comment"># Open Eclipse Terminal: Window &gt; Show View &gt; Terminal</span>
+<span class="cmd">cd</span> frontend
+<span class="cmd">npm run</span> dev</pre>
+
+    <div class="note">
+      <strong>Note:</strong> Eclipse requires the <em>M2Eclipse (m2e)</em> plugin for Maven support. Install it from <code>Help &gt; Eclipse Marketplace</code> if not already present.
+    </div>
+  </div>
+</div>
+
+<!-- ============ TERMINAL / CMD ============ -->
+<div class="section">
+  <h2>Method 5: Command Prompt / Terminal (Any OS)</h2>
+  <div class="platform">
+    <div class="platform-header">
+      <h3>Standalone Terminal</h3>
+      <span class="badge easy">Easy</span>
+    </div>
+    <pre><span class="comment">:: Terminal 1 &mdash; Backend</span>
+<span class="cmd">cd</span> /d D:\cr\backend
+<span class="cmd">mvn</span> clean spring-boot:run
+
+<span class="comment">:: Terminal 2 &mdash; Frontend</span>
+<span class="cmd">cd</span> /d D:\cr\frontend
+<span class="cmd">npm run</span> dev</pre>
+
+    <div class="note">
+      <strong>Linux/Mac:</strong> Replace <code>cd /d</code> with <code>cd</code>. If <code>mvn</code> is not in PATH, use the full path or <code>./mvnw spring-boot:run</code>.
+    </div>
+  </div>
+</div>
+
+<!-- ============ COMMON ISSUES ============ -->
+<div class="section">
+  <h2>Common Issues &amp; Fixes</h2>
+  <div class="platform">
+    <table class="ports">
+      <tr><th style="width:40%">Problem</th><th>Fix</th></tr>
+      <tr>
+        <td>"Cannot connect to server. Make sure the backend is running on port 8081."</td>
+        <td>Backend is not running. Start it with <code>mvn spring-boot:run</code> and wait 10-15 seconds.</td>
+      </tr>
+      <tr>
+        <td>"Unsupported class file major version 69"</td>
+        <td>Java version mismatch. Your system has Java 26. Make sure <code>pom.xml</code> uses Spring Boot 4.1.0+.</td>
+      </tr>
+      <tr>
+        <td>Background video not loading</td>
+        <td>You opened <code>index.html</code> directly. Use <code>npm run dev</code> and open <code>http://localhost:5173</code> instead.</td>
+      </tr>
+      <tr>
+        <td>PostgreSQL connection refused</td>
+        <td>Make sure PostgreSQL is running on port 5432 and the <code>car_rental</code> database exists.</td>
+      </tr>
+      <tr>
+        <td><code>mvnw.cmd</code> not found</td>
+        <td>The project uses a global Maven install. Use <code>mvn</code> directly or set the full path.</td>
+      </tr>
+      <tr>
+        <td>npm errors / node_modules missing</td>
+        <td>Run <code>npm install</code> in the <code>frontend</code> directory first.</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ============ QUICK REFERENCE ============ -->
+<div class="section">
+  <h2>Quick Reference</h2>
+  <div class="platform">
+    <table class="ports">
+      <tr><th>What</th><th>Command</th></tr>
+      <tr><td>Install frontend dependencies</td><td><code>cd frontend && npm install</code></td></tr>
+      <tr><td>Start frontend</td><td><code>cd frontend && npm run dev</code></td></tr>
+      <tr><td>Start backend</td><td><code>cd backend && mvn clean spring-boot:run</code></td></tr>
+      <tr><td>Start everything (Windows)</td><td>Double-click <code>run.bat</code></td></tr>
+      <tr><td>Open the app</td><td><code>http://localhost:5173</code></td></tr>
+      <tr><td>API base URL</td><td><code>http://localhost:8081/api/auth</code></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="footer">
+  CAR-ENT Project Guide &bull; Generated on July 19, 2026
+</div>
+
+</body>
+</html>

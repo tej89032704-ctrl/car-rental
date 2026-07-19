@@ -1,0 +1,11 @@
+target/
+node_modules/
+frontend/node_modules/
+.git/
+.vscode/
+*.md
+run.bat
+CR/
+generated-assets*/
+indian-vehicle-icons/
+car-ent-login.html
