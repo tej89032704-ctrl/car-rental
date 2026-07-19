@@ -1,13 +1,14 @@
 # Car Rental App
 
 A peer-to-peer car rental marketplace where users can:
+
 - **Give rent** – List your car for others to rent
 - **Take rent** – Browse and rent cars from owners
 
 ## Tech Stack
 
 - Frontend: React + Vite + Tailwind CSS + Framer Motion
-- Backend: Java 21 + Spring Boot + Spring Data JPA + PostgreSQL
+- Backend: Java 25 + Spring Boot + Spring Data JPA + PostgreSQL
 - Build: Maven
 
 ## Team
@@ -27,7 +28,7 @@ cd frontend
 npm install
 npm run dev
 
-# Backend (requires Java 21+ and Maven)
+# Backend (requires Java 25+ and Maven)
 cd backend
 ./mvnw spring-boot:run
 ```
