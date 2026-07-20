@@ -9,7 +9,7 @@
 
 :root {
   /* === COLOUR === */
-  --color-paper:     oklch(14% 0.008 40);
+  --color-paper:     oklch(18% 0.008 40);
   --color-paper-2:   oklch(18% 0.010 40);
   --color-paper-3:   oklch(22% 0.010 40);
   --color-rule:      oklch(28% 0.008 40);
@@ -25,12 +25,12 @@
   --color-success:   oklch(65% 0.18 145);
 
   /* === ROLE BACKGROUNDS === */
-  --bg-pick-from:  oklch(12% 0.025 55);
-  --bg-pick-mid:   oklch(16% 0.030 45);
-  --bg-pick-to:    oklch(10% 0.020 35);
-  --bg-give-from:  oklch(12% 0.025 210);
-  --bg-give-mid:   oklch(16% 0.030 230);
-  --bg-give-to:    oklch(10% 0.020 195);
+  --bg-pick-from:  oklch(28% 0.06 55);
+  --bg-pick-mid:   oklch(22% 0.045 45);
+  --bg-pick-to:    oklch(18% 0.035 35);
+  --bg-give-from:  oklch(28% 0.06 210);
+  --bg-give-mid:   oklch(22% 0.045 230);
+  --bg-give-to:    oklch(18% 0.035 195);
 
   /* === FONT === */
   --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
