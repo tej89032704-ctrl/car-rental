@@ -8,5 +8,5 @@ RUN cd backend && \
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/backend/target/*.jar app.jar
-EXPOSE ${PORT:8080}
+EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
