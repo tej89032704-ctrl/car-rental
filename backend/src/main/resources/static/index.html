@@ -601,7 +601,7 @@
       <div class="owner-card" id="ownerCard">
         <h3 id="ownerCardTitle">For Car Owners</h3>
         <p id="ownerCardDesc">Register your car and start earning with CAR-ENT.</p>
-        <div class="owner-price">
+        <div class="owner-price" id="ownerPrice">
           <span class="amount">₹100<span class="period">/month</span></span>
         </div>
         <div class="owner-badges">
@@ -802,15 +802,21 @@
         desc: 'Find and rent a car near you in minutes',
         heading: 'Rent the perfect car<br/>for <span class="hl">every journey</span>.',
         sub: 'Book verified self-drive cars across India.<br/>Affordable. Fast. Reliable.',
-        cardTitle: 'For Car Owners',
-        cardDesc: 'Register your car and start earning with CAR-ENT.'
+        cardTitle: 'Zero platform fees',
+        cardDesc: 'No markup. No booking fees. Pay only what the owner charges.',
+        cardPrice: 'Free',
+        cardPeriod: 'for renters',
+        cardBadges: ['No booking fees.', 'No hidden charges.']
       },
       give: {
         desc: 'List your car and start earning with CAR-ENT',
         heading: 'Turn your car into<br/><span class="hl">steady income</span>.',
         sub: 'List your car on CAR-ENT and earn on your schedule.<br/>We handle bookings, payments & support.',
         cardTitle: 'Why CAR-ENT?',
-        cardDesc: 'Only ₹100/month. We handle everything else.'
+        cardDesc: 'Only ₹100/month. We handle everything else.',
+        cardPrice: '₹100',
+        cardPeriod: '/month',
+        cardBadges: ['No other fees.', 'No hidden charges.']
       }
     };
 
@@ -826,6 +832,9 @@
       document.getElementById('heroSub').innerHTML = c.sub;
       document.getElementById('ownerCardTitle').textContent = c.cardTitle;
       document.getElementById('ownerCardDesc').textContent = c.cardDesc;
+      document.getElementById('ownerPrice').innerHTML = '<span class="amount">' + c.cardPrice + '<span class="period">' + c.cardPeriod + '</span>';
+      const badges = document.querySelectorAll('.owner-badges .badge');
+      if (badges.length >= 2) { badges[0].textContent = c.cardBadges[0]; badges[1].textContent = c.cardBadges[1]; }
 
       document.querySelectorAll('.feature-card[data-role="pick"]').forEach(el => el.style.display = isPick ? '' : 'none');
       document.querySelectorAll('.feature-card[data-role="give"]').forEach(el => el.style.display = isPick ? 'none' : '');
