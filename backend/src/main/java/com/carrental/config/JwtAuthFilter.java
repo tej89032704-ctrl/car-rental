@@ -1,6 +1,5 @@
 package com.carrental.config;
 
-import com.carrental.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,11 +16,9 @@ import java.util.Collections;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
 
-    public JwtAuthFilter(JwtUtil jwtUtil, UserRepository userRepository) {
+    public JwtAuthFilter(JwtUtil jwtUtil) {
         this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
     }
 
     @Override
