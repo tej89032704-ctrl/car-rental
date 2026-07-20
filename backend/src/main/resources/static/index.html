@@ -594,8 +594,8 @@
   </style>
 </head>
 <body>
-  <div class="suv-cursor" id="suvCursor" style="background:red; border:2px solid yellow; width:30px; height:30px;">
-    <!-- TEST: red square -->
+  <div class="suv-cursor" id="suvCursor">
+    <img src="/cursor/mini-suv.png" alt="">
   </div>
 
   <div class="bg-layer">
@@ -796,7 +796,6 @@
     let lastScrollY = window.scrollY;
     let isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
     let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    console.log('isTouch:', isTouch, 'reducedMotion:', reducedMotion);
 
     // Spring physics constants (stiffness: 320, damping: 28, mass: 0.6)
     const STIFFNESS = 320;
@@ -804,21 +803,13 @@
     const MASS = 0.6;
     const DELAY_MS = 50; // 40-60ms trailing delay
 
-    function showSuv() {
-      if (!isTouch && !reducedMotion) {
-        suv.classList.add('is-visible');
-        console.log('SUV shown, classes:', suv.className);
-      } else {
-        console.log('SUV hidden. isTouch:', isTouch, 'reducedMotion:', reducedMotion);
-      }
-    }
+    function showSuv() { if (!isTouch && !reducedMotion) suv.classList.add('is-visible'); }
     function hideSuv() { suv.classList.remove('is-visible'); }
 
     // Track mouse
     document.addEventListener('mousemove', e => {
       mouseX = e.clientX;
       mouseY = e.clientY;
-      console.log('mousemove', mouseX, mouseY, 'isTouch:', isTouch);
       showSuv();
       isIdle = false;
       suv.classList.remove('idle');
