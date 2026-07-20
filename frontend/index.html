@@ -27,47 +27,117 @@
       color: var(--text);
       overflow-x: hidden;
       min-height: 100vh;
-      cursor: none;
     }
 
-    /* ===== CUSTOM CURSOR ===== */
-    .cursor-dot {
+    /* ===== SUV CURSOR ===== */
+    .suv-cursor {
       position: fixed;
-      width: 6px;
-      height: 6px;
-      background: #fff;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 10000;
-      transition: transform 0.12s ease;
-    }
-    .cursor-ring {
-      position: fixed;
+      top: 0;
+      left: 0;
       width: 32px;
       height: 32px;
-      border: 1.5px solid rgba(220,38,38,.4);
-      border-radius: 50%;
       pointer-events: none;
-      z-index: 10000;
-      transition: width 0.35s cubic-bezier(.16,1,.3,1), height 0.35s cubic-bezier(.16,1,.3,1), border-color 0.3s, background 0.3s, box-shadow 0.3s;
+      z-index: 999999;
+      will-change: transform;
+      opacity: 0;
+      transition: opacity 0.3s;
     }
-    .cursor-ring.hover-btn {
-      width: 52px;
-      height: 52px;
-      border-color: var(--red);
-      background: rgba(220,38,38,.08);
-      box-shadow: 0 0 20px rgba(220,38,38,.2);
+    .suv-cursor.is-visible { opacity: 1; }
+    .suv-cursor img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(220,38,38,.3)) drop-shadow(0 0 20px rgba(220,38,38,.1));
     }
-    .cursor-ring.hover-card {
-      width: 48px;
-      height: 48px;
-      border-color: rgba(255,255,255,.3);
-      box-shadow: 0 0 16px rgba(255,255,255,.06);
+    /* Idle: suspension bounce */
+    .suv-cursor.idle img { animation: suvBounce 2s ease-in-out infinite; }
+    @keyframes suvBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
     }
-    .cursor-ring.hover-link {
-      width: 44px;
-      height: 44px;
-      border-color: #fff;
+    /* Idle: headlight pulse */
+    .suv-cursor.idle::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 6px;
+      background: radial-gradient(ellipse, rgba(220,38,38,.4) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: suvGlowPulse 3s ease-in-out infinite;
+    }
+    @keyframes suvGlowPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.7; }
+    }
+    /* Hover on buttons/links: accelerate + brighten */
+    .suv-cursor.hover-btn img {
+      transform: scale(1.1);
+      filter: drop-shadow(0 2px 12px rgba(220,38,38,.5)) drop-shadow(0 0 30px rgba(220,38,38,.2));
+    }
+    .suv-cursor.hover-btn::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 28px;
+      height: 8px;
+      background: radial-gradient(ellipse, rgba(220,38,38,.6) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    /* Hover on cards: glow increase */
+    .suv-cursor.hover-card img {
+      filter: drop-shadow(0 4px 16px rgba(220,38,38,.4)) drop-shadow(0 0 24px rgba(220,38,38,.15));
+    }
+    /* Hover on inputs: soft blink */
+    .suv-cursor.hover-input img {
+      animation: suvBlink 0.4s ease-in-out;
+    }
+    @keyframes suvBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    /* Click: suspension compression + forward nudge */
+    .suv-cursor.clicked img { animation: suvClick 0.15s ease-out; }
+    @keyframes suvClick {
+      0% { transform: scale(1); }
+      30% { transform: scale(0.92) translateY(2px); }
+      60% { transform: scale(1.05) translateY(-1px); }
+      100% { transform: scale(1) translateY(0); }
+    }
+    .suv-cursor.clicked::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 32px;
+      height: 10px;
+      background: radial-gradient(ellipse, rgba(220,38,38,.8) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: suvClickGlow 0.3s ease-out;
+    }
+    @keyframes suvClickGlow {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    /* Scroll tilt */
+    .suv-cursor.tilt-down { transition: transform 0.3s; }
+    .suv-cursor.tilt-up { transition: transform 0.3s; }
+
+    /* Hide on mobile/touch */
+    @media (hover: none), (pointer: coarse) {
+      .suv-cursor { display: none; }
+    }
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .suv-cursor, .suv-cursor img, .suv-cursor::after {
+        animation: none !important;
+        transition: none !important;
+      }
     }
 
     /* ===== BACKGROUND ===== */
@@ -165,7 +235,7 @@
       padding-bottom: 2px;
       width: fit-content;
       transition: border-color 0.3s, gap 0.3s;
-      cursor: none;
+      cursor: pointer;
       animation: fadeUp 0.8s 0.3s cubic-bezier(.16,1,.3,1) both;
     }
     .explore-link:hover {
@@ -256,7 +326,7 @@
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       transition: transform 0.35s cubic-bezier(.16,1,.3,1), box-shadow 0.35s;
-      cursor: none;
+      cursor: pointer;
     }
     .feature-card:hover {
       transform: translateY(-5px);
@@ -356,7 +426,7 @@
       font-weight: 600;
       padding: 0.65rem 0.5rem;
       border-radius: 11px;
-      cursor: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -441,7 +511,7 @@
       font-family: var(--font);
       font-size: 0.92rem;
       font-weight: 700;
-      cursor: none;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -501,7 +571,7 @@
       font-family: var(--font);
       font-weight: 600;
       font-size: 0.88rem;
-      cursor: none;
+      cursor: pointer;
       transition: background 0.2s, box-shadow 0.3s, transform 0.3s;
     }
     .google-btn:hover {
@@ -524,7 +594,7 @@
       font-weight: 600;
       border-bottom: 1px solid transparent;
       transition: border-color 0.2s;
-      cursor: none;
+      cursor: pointer;
     }
     .login-foot a:hover { border-color: var(--text); }
 
@@ -562,14 +632,15 @@
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
       }
-      .cursor-dot, .cursor-ring { display: none; }
+      .suv-cursor { display: none; }
       body { cursor: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="cursor-dot" id="cursorDot"></div>
-  <div class="cursor-ring" id="cursorRing"></div>
+  <div class="suv-cursor" id="suvCursor">
+    <img src="cursor/mini-suv.webp" alt="" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkZGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNCAxMmwtMS00aDE4bC0xIDQiLz48cmVjdCB4PSI0IiB5PSIxMiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjYiIHJ4PSIxIi8+PGNpcmNsZSBjeD0iNyIgeT0iMTkiIHI9IjEuNSIvPjxjaXJjbGUgY3g9IjE3IiB5PSIxOSIgcj0iMS41Ii8+PC9zdmc+'">
+  </div>
 
   <div class="bg-layer">
     <img class="bg-layer__img is-active" id="bgCustomer" src="images/customer.png" alt="" loading="lazy" />
@@ -757,29 +828,109 @@
   </div>
 
   <script>
-    // ===== CUSTOM CURSOR =====
-    const dot = document.getElementById('cursorDot');
-    const ring = document.getElementById('cursorRing');
-    let mx = 0, my = 0, rx = 0, ry = 0;
-    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-    (function animCursor() {
-      rx += (mx - rx) * 0.12;
-      ry += (my - ry) * 0.12;
-      dot.style.left = mx - 3 + 'px';
-      dot.style.top = my - 3 + 'px';
-      ring.style.left = rx + 'px';
-      ring.style.top = ry + 'px';
-      ring.style.transform = 'translate(-50%,-50%)';
-      requestAnimationFrame(animCursor);
-    })();
+    // ===== SUV CURSOR =====
+    const suv = document.getElementById('suvCursor');
+    const suvImg = suv.querySelector('img');
+    let mouseX = 0, mouseY = 0;
+    let posX = 0, posY = 0;
+    let velX = 0, velY = 0;
+    let idleTimer = null;
+    let isIdle = false;
+    let scrollTimer = null;
+    let lastScrollY = window.scrollY;
+    let isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+    let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Spring physics constants (stiffness: 320, damping: 28, mass: 0.6)
+    const STIFFNESS = 320;
+    const DAMPING = 28;
+    const MASS = 0.6;
+    const DELAY_MS = 50; // 40-60ms trailing delay
+
+    function showSuv() { if (!isTouch && !reducedMotion) suv.classList.add('is-visible'); }
+    function hideSuv() { suv.classList.remove('is-visible'); }
+
+    // Track mouse
+    document.addEventListener('mousemove', e => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      showSuv();
+      isIdle = false;
+      suv.classList.remove('idle');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        isIdle = true;
+        suv.classList.add('idle');
+      }, 2000);
+    });
+
+    // Spring animation loop (60fps via rAF)
+    let lastTime = performance.now();
+    let tiltDeg = 0;
+    function animateSuv(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      const targetX = mouseX;
+      const targetY = mouseY;
+
+      const forceX = -STIFFNESS * (posX - targetX) - DAMPING * velX;
+      const forceY = -STIFFNESS * (posY - targetY) - DAMPING * velY;
+      velX += (forceX / MASS) * dt;
+      velY += (forceY / MASS) * dt;
+      posX += velX * dt;
+      posY += velY * dt;
+
+      // Use translate3d + rotate for GPU compositing (60fps)
+      suv.style.transform = `translate3d(${posX - 16}px, ${posY - 16}px, 0) rotate(${tiltDeg}deg)`;
+
+      requestAnimationFrame(animateSuv);
+    }
+    requestAnimationFrame(animateSuv);
+
+    // Hover states
     document.querySelectorAll('button, a').forEach(el => {
-      el.addEventListener('mouseenter', () => ring.classList.add('hover-btn'));
-      el.addEventListener('mouseleave', () => ring.classList.remove('hover-btn'));
+      el.addEventListener('mouseenter', () => {
+        suv.classList.remove('hover-card', 'hover-input');
+        suv.classList.add('hover-btn');
+      });
+      el.addEventListener('mouseleave', () => suv.classList.remove('hover-btn'));
     });
     document.querySelectorAll('.feature-card, .trust-item, .owner-card').forEach(el => {
-      el.addEventListener('mouseenter', () => ring.classList.add('hover-card'));
-      el.addEventListener('mouseleave', () => ring.classList.remove('hover-card'));
+      el.addEventListener('mouseenter', () => {
+        suv.classList.remove('hover-btn', 'hover-input');
+        suv.classList.add('hover-card');
+      });
+      el.addEventListener('mouseleave', () => suv.classList.remove('hover-card'));
     });
+    document.querySelectorAll('input').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        suv.classList.remove('hover-btn', 'hover-card');
+        suv.classList.add('hover-input');
+      });
+      el.addEventListener('mouseleave', () => suv.classList.remove('hover-input'));
+    });
+
+    // Click animation
+    document.addEventListener('mousedown', () => {
+      if (reducedMotion) return;
+      suv.classList.add('clicked');
+      setTimeout(() => suv.classList.remove('clicked'), 150);
+    });
+
+    // Scroll tilt
+    window.addEventListener('scroll', () => {
+      if (reducedMotion || isTouch) return;
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY) {
+        tiltDeg = 6;
+      } else if (currentY < lastScrollY) {
+        tiltDeg = -6;
+      }
+      lastScrollY = currentY;
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => { tiltDeg = 0; }, 150);
+    }, { passive: true });
 
     // ===== AUTH LOGIC =====
     const API = window.location.port === '5173' ? 'http://localhost:8081/api/auth' : '/api/auth';
