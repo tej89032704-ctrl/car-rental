@@ -34,8 +34,8 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 52px;
-      height: 52px;
+      width: 96px;
+      height: 96px;
       pointer-events: none;
       z-index: 999999;
       will-change: transform;
@@ -838,7 +838,7 @@
       posY += velY * dt;
 
       // Use translate3d + rotate for GPU compositing (60fps)
-      suv.style.transform = `translate3d(${posX - 26}px, ${posY - 26}px, 0) rotate(${tiltDeg}deg)`;
+      suv.style.transform = `translate3d(${posX - 48}px, ${posY - 48}px, 0) rotate(${tiltDeg}deg)`;
 
       requestAnimationFrame(animateSuv);
     }
