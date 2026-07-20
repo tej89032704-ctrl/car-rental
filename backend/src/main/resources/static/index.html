@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Geist:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="tokens.css" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
       /* Hallmark · macrostructure: Manifesto · tone: utilitarian · anchor hue: warm-orange
        * theme: Cobalt (dark paper · geometric-sans · warm accent)
@@ -532,8 +533,35 @@
       });
 
       document.getElementById("googleBtn").addEventListener("click", () => {
-        showError("Google sign-in coming soon");
+        const role = currentRole === "pick" ? "customer" : "owner";
+        google.accounts.id.initialize({
+          client_id: "968585560679-k9f6mnvmd9lkb1s74lbikilotnvb5tgg.apps.googleusercontent.com",
+          callback: (response) => handleGoogleCredential(response, role)
+        });
+        google.accounts.id.prompt();
       });
+
+      async function handleGoogleCredential(response, role) {
+        errorMsg.textContent = "";
+        signinBtn.disabled = true;
+        signinBtn.textContent = "Signing in with Google\u2026";
+        try {
+          const res = await fetch(`${API}/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ credential: response.credential, role })
+          });
+          const data = await res.json();
+          if (!res.ok) { showError(data.message || "Google sign-in failed"); signinBtn.disabled = false; signinBtn.textContent = "Sign in"; return; }
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("user", JSON.stringify(data));
+          window.location.href = "dashboard.html";
+        } catch (err) {
+          showError("Cannot connect to server. Make sure the backend is running on port 8081.");
+          signinBtn.disabled = false;
+          signinBtn.textContent = "Sign in";
+        }
+      }
     </script>
   </body>
 </html>
