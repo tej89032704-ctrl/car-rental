@@ -118,7 +118,13 @@ public class AuthService {
         String email = payload.getEmail();
         String name = (String) payload.get("name");
 
+        boolean existsAsCustomer = customerRepository.existsByEmail(email);
+        boolean existsAsOwner = ownerRepository.existsByEmail(email);
+
         if ("customer".equals(role)) {
+            if (existsAsOwner) {
+                throw new RuntimeException("This Google account is already registered as an owner. Please sign in as owner.");
+            }
             Customer c = customerRepository.findByEmail(email).orElseGet(() -> {
                 Customer newC = new Customer();
                 newC.setName(name);
@@ -129,6 +135,9 @@ public class AuthService {
             String token = jwtUtil.generateToken(c.getEmail(), c.getId(), "customer");
             return new AuthResponse(token, c.getName(), c.getEmail(), "customer", c.getId());
         } else {
+            if (existsAsCustomer) {
+                throw new RuntimeException("This Google account is already registered as a customer. Please sign in as customer.");
+            }
             Owner o = ownerRepository.findByEmail(email).orElseGet(() -> {
                 Owner newO = new Owner();
                 newO.setName(name);
