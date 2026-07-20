@@ -12,11 +12,7 @@
       /* Hallmark · macrostructure: Manifesto · tone: utilitarian · anchor hue: warm-orange
        * theme: Cobalt (dark paper · geometric-sans · warm accent)
        * fonts: Space Grotesk (display) + Geist (body)
-       * enrichment: video background (E8)
-       * contrast: pass (40–41) · nav: none · footer: none
-       * slop: pass (42–45) · honest: pass (46) · chrome: pass (47)
-       * tokens: pass (48) · responsive: pass (49) · icons: pass (30)
-       * mobile: pass (34, 49, 50–57)
+       * enrichment: role-based gradient backgrounds
        */
 
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,32 +30,33 @@
         overflow-x: clip;
       }
 
-      /* ===== VIDEO BACKDROP ===== */
+      /* ===== ROLE BACKDROP ===== */
       .backdrop {
         position: fixed;
         inset: 0;
         z-index: 0;
         overflow: hidden;
       }
-      .backdrop video {
+      .backdrop__layer {
         position: absolute;
         inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        opacity: 0;
+        transition: opacity 0.8s var(--ease-out);
       }
-      .backdrop::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(
-          135deg,
-          var(--color-backdrop-heavy) 0%,
-          var(--color-backdrop-mid) 50%,
-          var(--color-backdrop-light) 100%
-        );
-        z-index: 1;
+      .backdrop__layer--pick {
+        background:
+          radial-gradient(ellipse 80% 60% at 20% 30%, var(--bg-pick-from), transparent 70%),
+          radial-gradient(ellipse 60% 80% at 80% 70%, var(--bg-pick-to), transparent 70%),
+          linear-gradient(160deg, var(--bg-pick-from) 0%, var(--bg-pick-mid) 40%, var(--bg-pick-to) 100%);
       }
+      .backdrop__layer--give {
+        background:
+          radial-gradient(ellipse 80% 60% at 80% 25%, var(--bg-give-from), transparent 70%),
+          radial-gradient(ellipse 60% 80% at 20% 75%, var(--bg-give-to), transparent 70%),
+          linear-gradient(200deg, var(--bg-give-from) 0%, var(--bg-give-mid) 40%, var(--bg-give-to) 100%);
+      }
+      .backdrop.is-pick .backdrop__layer--pick { opacity: 1; }
+      .backdrop.is-give .backdrop__layer--give { opacity: 1; }
 
       /* ===== PAGE LAYOUT ===== */
       .page {
@@ -105,6 +102,7 @@
       }
       .brand__mark .accent {
         color: var(--color-accent);
+        transition: color 0.6s var(--ease-out);
       }
       .brand__tagline {
         font-family: var(--font-body);
@@ -113,6 +111,7 @@
         line-height: 1.5;
         color: var(--color-muted);
         max-width: 28ch;
+        transition: color 0.6s var(--ease-out);
       }
       @media (min-width: 60rem) {
         .brand__tagline {
@@ -375,14 +374,16 @@
           transition-duration: 0.01ms !important;
           animation-duration: 0.01ms !important;
         }
+        .backdrop__layer {
+          transition: none;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="backdrop">
-      <video autoplay muted loop playsinline>
-        <source src="/bg-video.mp4" type="video/mp4" />
-      </video>
+    <div class="backdrop is-pick">
+      <div class="backdrop__layer backdrop__layer--pick"></div>
+      <div class="backdrop__layer backdrop__layer--give"></div>
     </div>
 
     <div class="page">
@@ -461,6 +462,7 @@
       const password  = document.getElementById("password");
       const errorMsg  = document.getElementById("errorMsg");
       const toggleLink= document.getElementById("toggleLink");
+      const backdrop  = document.querySelector(".backdrop");
 
       const copyByRole = {
         pick: "Find and rent a car near you in minutes",
@@ -479,6 +481,8 @@
         signinBtn.textContent = isPick
           ? (isRegister ? "Register to pick a car" : "Sign in to pick a car")
           : (isRegister ? "Register to give a car"  : "Sign in to give a car");
+        backdrop.classList.toggle("is-pick", isPick);
+        backdrop.classList.toggle("is-give", !isPick);
       }
       tabPick.addEventListener("click", () => setRole("pick"));
       tabGive.addEventListener("click", () => setRole("give"));
@@ -505,13 +509,13 @@
         if (!emailVal.includes("@")) { showError("Please enter a valid email"); return; }
         if (passVal.length < 6) { showError("Password must be at least 6 characters"); return; }
         signinBtn.disabled = true;
-        signinBtn.textContent = "Signing in\u2026";
+        signinBtn.textContent = isRegister ? "Registering\u2026" : "Signing in\u2026";
         try {
           const endpoint = isRegister ? `${API}/register` : `${API}/login`;
           const role = currentRole === "pick" ? "customer" : "owner";
           const body = isRegister
             ? { name: nameVal, email: emailVal, password: passVal, role }
-            : { email: emailVal, password: passVal };
+            : { email: emailVal, password: passVal, role };
           const res  = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
           const data = await res.json();
           if (!res.ok) { showError(data.message || "Something went wrong"); signinBtn.disabled = false; signinBtn.textContent = isRegister ? "Register" : "Sign in"; return; }

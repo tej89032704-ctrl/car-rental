@@ -20,24 +20,32 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.getEmail())) {
-            throw new RuntimeException("Email already registered");
+        String role = req.getRole() != null ? req.getRole() : "customer";
+        String section = "customer".equals(role) ? "Pick a car" : "Give a car";
+
+        if (userRepository.existsByEmailAndRole(req.getEmail(), role)) {
+            throw new RuntimeException("This email is already registered in " + section);
         }
+
         User user = new User();
         user.setName(req.getName());
         user.setEmail(req.getEmail());
         user.setPassword(passwordEncoder.encode(req.getPassword()));
-        user.setRole(req.getRole() != null ? req.getRole() : "customer");
+        user.setRole(role);
         user = userRepository.save(user);
         String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole());
         return new AuthResponse(token, user.getName(), user.getEmail(), user.getRole(), user.getId());
     }
 
     public AuthResponse login(LoginRequest req) {
-        User user = userRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+        String role = req.getRole() != null ? req.getRole() : "customer";
+        String section = "customer".equals(role) ? "Pick a car" : "Give a car";
+
+        User user = userRepository.findByEmailAndRole(req.getEmail(), role)
+                .orElseThrow(() -> new RuntimeException("No account found for " + section + " with this email"));
+
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new RuntimeException("Incorrect password");
         }
         String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole());
         return new AuthResponse(token, user.getName(), user.getEmail(), user.getRole(), user.getId());
