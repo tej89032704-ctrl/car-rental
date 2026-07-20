@@ -47,7 +47,7 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 2px 8px rgba(220,38,38,.3)) drop-shadow(0 0 20px rgba(220,38,38,.1));
+      filter: drop-shadow(0 1px 3px rgba(0,0,0,.3));
     }
     /* Idle: suspension bounce */
     .suv-cursor.idle img { animation: suvBounce 2s ease-in-out infinite; }
@@ -55,42 +55,14 @@
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-2px); }
     }
-    /* Idle: headlight pulse */
-    .suv-cursor.idle::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 24px;
-      height: 6px;
-      background: radial-gradient(ellipse, rgba(220,38,38,.4) 0%, transparent 70%);
-      border-radius: 50%;
-      animation: suvGlowPulse 3s ease-in-out infinite;
-    }
-    @keyframes suvGlowPulse {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 0.7; }
-    }
     /* Hover on buttons/links: accelerate + brighten */
     .suv-cursor.hover-btn img {
       transform: scale(1.1);
-      filter: drop-shadow(0 2px 12px rgba(220,38,38,.5)) drop-shadow(0 0 30px rgba(220,38,38,.2));
-    }
-    .suv-cursor.hover-btn::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 28px;
-      height: 8px;
-      background: radial-gradient(ellipse, rgba(220,38,38,.6) 0%, transparent 70%);
-      border-radius: 50%;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)) brightness(1.05);
     }
     /* Hover on cards: glow increase */
     .suv-cursor.hover-card img {
-      filter: drop-shadow(0 4px 16px rgba(220,38,38,.4)) drop-shadow(0 0 24px rgba(220,38,38,.15));
+      filter: drop-shadow(0 3px 10px rgba(0,0,0,.35));
     }
     /* Hover on inputs: soft blink */
     .suv-cursor.hover-input img {
@@ -107,22 +79,6 @@
       30% { transform: scale(0.92) translateY(2px); }
       60% { transform: scale(1.05) translateY(-1px); }
       100% { transform: scale(1) translateY(0); }
-    }
-    .suv-cursor.clicked::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 32px;
-      height: 10px;
-      background: radial-gradient(ellipse, rgba(220,38,38,.8) 0%, transparent 70%);
-      border-radius: 50%;
-      animation: suvClickGlow 0.3s ease-out;
-    }
-    @keyframes suvClickGlow {
-      0% { opacity: 1; }
-      100% { opacity: 0; }
     }
     /* Scroll tilt */
     .suv-cursor.tilt-down { transition: transform 0.3s; }
@@ -639,7 +595,7 @@
 </head>
 <body>
   <div class="suv-cursor" id="suvCursor">
-    <img src="cursor/mini-suv.webp" alt="" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkZGIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNCAxMmwtMS00aDE4bC0xIDQiLz48cmVjdCB4PSI0IiB5PSIxMiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjYiIHJ4PSIxIi8+PGNpcmNsZSBjeD0iNyIgeT0iMTkiIHI9IjEuNSIvPjxjaXJjbGUgY3g9IjE3IiB5PSIxOSIgcj0iMS41Ii8+PC9zdmc+'">
+    <img src="cursor/mini-suv.png" alt="">
   </div>
 
   <div class="bg-layer">
