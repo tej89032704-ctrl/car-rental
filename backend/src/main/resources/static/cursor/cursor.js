@@ -16,7 +16,7 @@
   // and leave the native cursor exactly as it was.
   if (isTouch || reducedMotion) return;
 
-  var CURSOR_SIZE = 96;
+  var CURSOR_SIZE = 140;
 
   function init() {
     document.documentElement.classList.add('has-suv-cursor');
