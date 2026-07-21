@@ -966,123 +966,402 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     (function() {
+      if (typeof THREE === 'undefined') return;
       var canvas = document.getElementById('three-canvas');
       if (!canvas) return;
+
       var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x0a0a0a, 1);
+      renderer.setClearColor(0x080808, 1);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
       var scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
+      scene.fog = new THREE.FogExp2(0x080808, 0.012);
 
-      var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
-      camera.position.set(0, 6, 16);
-      camera.lookAt(0, 0, 0);
+      var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+
+      var camPos = new THREE.Vector3(0, 8, 22);
+      var camLook = new THREE.Vector3(0, 0, 2);
+      var tgtPos = camPos.clone();
+      var tgtLook = camLook.clone();
+      camera.position.copy(camPos);
+      camera.lookAt(camLook);
 
       var mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+      var raycaster = new THREE.Raycaster();
+      var clickVec = new THREE.Vector2();
+      var isZoomed = false;
+      var selIdx = -1;
+      var hoveredIdx = -1;
 
-      scene.add(new THREE.AmbientLight(0x444444, 1));
+      scene.add(new THREE.AmbientLight(0x666666, 1));
 
-      var pl1 = new THREE.PointLight(0xff0000, 3, 80);
-      pl1.position.set(8, 10, 8);
+      var dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+      dirLight.position.set(12, 18, 10);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.set(2048, 2048);
+      dirLight.shadow.camera.near = 1;
+      dirLight.shadow.camera.far = 50;
+      dirLight.shadow.camera.left = -20;
+      dirLight.shadow.camera.right = 20;
+      dirLight.shadow.camera.top = 20;
+      dirLight.shadow.camera.bottom = -20;
+      scene.add(dirLight);
+
+      var pl1 = new THREE.PointLight(0xff3333, 2.5, 70);
+      pl1.position.set(8, 12, 8);
       scene.add(pl1);
-      var pl2 = new THREE.PointLight(0xDC2626, 2.5, 60);
-      pl2.position.set(-8, 8, -8);
+      var pl2 = new THREE.PointLight(0xDC2626, 2, 60);
+      pl2.position.set(-8, 10, -8);
       scene.add(pl2);
-      var pl3 = new THREE.PointLight(0xff4444, 2, 50);
-      pl3.position.set(0, -4, 12);
+      var pl3 = new THREE.PointLight(0xff6644, 1.5, 50);
+      pl3.position.set(0, 5, 15);
       scene.add(pl3);
 
-      var gridGeo = new THREE.PlaneGeometry(80, 80, 50, 50);
+      var gridGeo = new THREE.PlaneGeometry(100, 100, 60, 60);
       gridGeo.rotateX(-Math.PI / 2);
-      var gridMat = new THREE.MeshBasicMaterial({ color: 0xDC2626, wireframe: true, transparent: true, opacity: 0.25 });
+      var gridMat = new THREE.MeshBasicMaterial({ color: 0xDC2626, wireframe: true, transparent: true, opacity: 0.15 });
       var grid = new THREE.Mesh(gridGeo, gridMat);
-      grid.position.y = -4;
+      grid.position.y = -0.02;
       scene.add(grid);
 
-      var shapes = [];
-      var shapeConfigs = [
-        { geo: new THREE.IcosahedronGeometry(1.2, 0), solid: true },
-        { geo: new THREE.OctahedronGeometry(1.0, 0), solid: true },
-        { geo: new THREE.TetrahedronGeometry(1.0, 0), solid: false },
-        { geo: new THREE.TorusGeometry(0.8, 0.3, 12, 24), solid: false },
-        { geo: new THREE.DodecahedronGeometry(0.9, 0), solid: true },
-        { geo: new THREE.BoxGeometry(0.9, 0.9, 0.9), solid: true },
-        { geo: new THREE.TorusKnotGeometry(0.6, 0.2, 64, 8), solid: false }
+      var groundGeo = new THREE.PlaneGeometry(120, 120);
+      groundGeo.rotateX(-Math.PI / 2);
+      var groundMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+      var ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      var carMeshes = [];
+
+      function makeWheel(r, w) {
+        var g = new THREE.Group();
+        var tire = new THREE.Mesh(
+          new THREE.CylinderGeometry(r, r, w, 20),
+          new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 })
+        );
+        tire.rotation.x = Math.PI / 2;
+        g.add(tire);
+        var rim = new THREE.Mesh(
+          new THREE.CylinderGeometry(r * 0.55, r * 0.55, w * 1.02, 10),
+          new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.95, roughness: 0.05 })
+        );
+        rim.rotation.x = Math.PI / 2;
+        g.add(rim);
+        for (var i = 0; i < 5; i++) {
+          var spoke = new THREE.Mesh(
+            new THREE.BoxGeometry(r * 0.45, 0.025, w * 0.4),
+            rim.material
+          );
+          spoke.rotation.z = (Math.PI * 2 / 5) * i;
+          g.add(spoke);
+        }
+        return g;
+      }
+
+      function addWheels(grp, pts, r, w) {
+        pts.forEach(function(p) {
+          var wh = makeWheel(r, w);
+          wh.position.set(p[0], p[1], p[2]);
+          grp.add(wh);
+        });
+      }
+
+      function createSedan(color) {
+        var g = new THREE.Group();
+        var bm = new THREE.MeshStandardMaterial({ color: color, metalness: 0.85, roughness: 0.12 });
+        var gm = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.55 });
+        var dk = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 });
+
+        var body = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.7, 1.8), bm);
+        body.position.y = 0.55; body.castShadow = true; g.add(body);
+
+        var hood = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 1.76), bm);
+        hood.position.set(1.8, 0.92, 0); hood.castShadow = true; g.add(hood);
+
+        var cabin = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.65, 1.72), bm);
+        cabin.position.set(-0.1, 1.22, 0); cabin.castShadow = true; g.add(cabin);
+
+        var trunk = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.2, 1.7), bm);
+        trunk.position.set(-1.7, 1.0, 0); g.add(trunk);
+
+        var ws = new THREE.Mesh(new THREE.PlaneGeometry(1.68, 0.6), gm);
+        ws.position.set(1.05, 1.2, 0); ws.rotation.y = Math.PI/2; ws.rotation.x = 0.18; g.add(ws);
+
+        var rw = new THREE.Mesh(new THREE.PlaneGeometry(1.65, 0.5), gm);
+        rw.position.set(-1.25, 1.18, 0); rw.rotation.y = -Math.PI/2; rw.rotation.x = -0.12; g.add(rw);
+
+        var sl = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.42), gm);
+        sl.position.set(-0.05, 1.27, 0.87); g.add(sl);
+        var sr = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.42), gm);
+        sr.position.set(-0.05, 1.27, -0.87); sr.rotation.y = Math.PI; g.add(sr);
+
+        var hlm = new THREE.MeshStandardMaterial({ color: 0xffffdd, emissive: 0xffffaa, emissiveIntensity: 1.0 });
+        var hlG = new THREE.BoxGeometry(0.06, 0.18, 0.45);
+        var hl1 = new THREE.Mesh(hlG, hlm); hl1.position.set(2.31, 0.6, 0.5); g.add(hl1);
+        var hl2 = new THREE.Mesh(hlG, hlm); hl2.position.set(2.31, 0.6, -0.5); g.add(hl2);
+
+        var tlm = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.7 });
+        var tl1 = new THREE.Mesh(hlG, tlm); tl1.position.set(-2.31, 0.55, 0.5); g.add(tl1);
+        var tl2 = new THREE.Mesh(hlG, tlm); tl2.position.set(-2.31, 0.55, -0.5); g.add(tl2);
+
+        var grille = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.28, 1.1), dk);
+        grille.position.set(2.32, 0.5, 0); g.add(grille);
+
+        var numPlate = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.12, 0.5), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        numPlate.position.set(2.33, 0.38, 0); g.add(numPlate);
+
+        addWheels(g, [[-1.5, 0.3, 0.88],[1.5, 0.3, 0.88],[-1.5, 0.3, -0.88],[1.5, 0.3, -0.88]], 0.3, 0.2);
+        return g;
+      }
+
+      function createSUV(color) {
+        var g = new THREE.Group();
+        var bm = new THREE.MeshStandardMaterial({ color: color, metalness: 0.85, roughness: 0.12 });
+        var gm = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.55 });
+        var dk = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 });
+
+        var body = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.9, 1.9), bm);
+        body.position.y = 0.75; body.castShadow = true; g.add(body);
+
+        var hood = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.2, 1.86), bm);
+        hood.position.set(1.7, 1.2, 0); hood.castShadow = true; g.add(hood);
+
+        var cabin = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.78, 1.82), bm);
+        cabin.position.set(0, 1.62, 0); cabin.castShadow = true; g.add(cabin);
+
+        var ws = new THREE.Mesh(new THREE.PlaneGeometry(1.78, 0.72), gm);
+        ws.position.set(1.45, 1.6, 0); ws.rotation.y = Math.PI/2; ws.rotation.x = 0.1; g.add(ws);
+
+        var rw = new THREE.Mesh(new THREE.PlaneGeometry(1.75, 0.6), gm);
+        rw.position.set(-1.45, 1.58, 0); rw.rotation.y = -Math.PI/2; g.add(rw);
+
+        var sl = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.5), gm);
+        sl.position.set(0, 1.65, 0.92); g.add(sl);
+        var sr = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.5), gm);
+        sr.position.set(0, 1.65, -0.92); sr.rotation.y = Math.PI; g.add(sr);
+
+        var rm = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.2 });
+        var rl1 = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 0.04), rm);
+        rl1.position.set(0, 2.03, 0.82); g.add(rl1);
+        var rl2 = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.04, 0.04), rm);
+        rl2.position.set(0, 2.03, -0.82); g.add(rl2);
+
+        var hlm = new THREE.MeshStandardMaterial({ color: 0xffffdd, emissive: 0xffffaa, emissiveIntensity: 1.0 });
+        var hlG = new THREE.BoxGeometry(0.06, 0.22, 0.5);
+        var hl1 = new THREE.Mesh(hlG, hlm); hl1.position.set(2.21, 0.8, 0.55); g.add(hl1);
+        var hl2 = new THREE.Mesh(hlG, hlm); hl2.position.set(2.21, 0.8, -0.55); g.add(hl2);
+
+        var tlm = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.7 });
+        var tl1 = new THREE.Mesh(hlG, tlm); tl1.position.set(-2.21, 0.8, 0.55); g.add(tl1);
+        var tl2 = new THREE.Mesh(hlG, tlm); tl2.position.set(-2.21, 0.8, -0.55); g.add(tl2);
+
+        var grille = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.35, 1.2), dk);
+        grille.position.set(2.22, 0.7, 0); g.add(grille);
+
+        var numPlate = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.12, 0.5), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        numPlate.position.set(2.23, 0.55, 0); g.add(numPlate);
+
+        addWheels(g, [[-1.4, 0.35, 0.95],[1.4, 0.35, 0.95],[-1.4, 0.35, -0.95],[1.4, 0.35, -0.95]], 0.35, 0.24);
+        return g;
+      }
+
+      function createHatchback(color) {
+        var g = new THREE.Group();
+        var bm = new THREE.MeshStandardMaterial({ color: color, metalness: 0.85, roughness: 0.12 });
+        var gm = new THREE.MeshStandardMaterial({ color: 0x111122, metalness: 0.9, roughness: 0.05, transparent: true, opacity: 0.55 });
+        var dk = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 });
+
+        var body = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.65, 1.7), bm);
+        body.position.y = 0.5; body.castShadow = true; g.add(body);
+
+        var cabin = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.6, 1.63), bm);
+        cabin.position.set(0.1, 1.12, 0); cabin.castShadow = true; g.add(cabin);
+
+        var hatch = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.35, 1.58), bm);
+        hatch.position.set(-1.2, 1.08, 0); hatch.rotation.z = 0.45; g.add(hatch);
+
+        var ws = new THREE.Mesh(new THREE.PlaneGeometry(1.58, 0.52), gm);
+        ws.position.set(1.15, 1.12, 0); ws.rotation.y = Math.PI/2; ws.rotation.x = 0.18; g.add(ws);
+
+        var rw = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.42), gm);
+        rw.position.set(-1.15, 1.12, 0); rw.rotation.y = -Math.PI/2; rw.rotation.x = -0.2; g.add(rw);
+
+        var sl = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.38), gm);
+        sl.position.set(0.1, 1.17, 0.86); g.add(sl);
+        var sr = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.38), gm);
+        sr.position.set(0.1, 1.17, -0.86); sr.rotation.y = Math.PI; g.add(sr);
+
+        var hlm = new THREE.MeshStandardMaterial({ color: 0xffffdd, emissive: 0xffffaa, emissiveIntensity: 1.0 });
+        var hlG = new THREE.BoxGeometry(0.06, 0.16, 0.42);
+        var hl1 = new THREE.Mesh(hlG, hlm); hl1.position.set(1.96, 0.55, 0.45); g.add(hl1);
+        var hl2 = new THREE.Mesh(hlG, hlm); hl2.position.set(1.96, 0.55, -0.45); g.add(hl2);
+
+        var tlm = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.7 });
+        var tl1 = new THREE.Mesh(hlG, tlm); tl1.position.set(-1.96, 0.55, 0.45); g.add(tl1);
+        var tl2 = new THREE.Mesh(hlG, tlm); tl2.position.set(-1.96, 0.55, -0.45); g.add(tl2);
+
+        var grille = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.85), dk);
+        grille.position.set(1.97, 0.45, 0); g.add(grille);
+
+        var numPlate = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.4), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        numPlate.position.set(1.98, 0.35, 0); g.add(numPlate);
+
+        addWheels(g, [[-1.25, 0.28, 0.83],[1.25, 0.28, 0.83],[-1.25, 0.28, -0.83],[1.25, 0.28, -0.83]], 0.28, 0.18);
+        return g;
+      }
+
+      var carDefs = [
+        { fn: createSedan, color: 0xE8E8E8, name: 'Maruti Suzuki Dzire', type: 'Sedan', price: '\u20B91,200/day', pos: [-8, 0, -3], rot: 0.4 },
+        { fn: createSUV, color: 0xFFFFFF, name: 'Hyundai Creta', type: 'SUV', price: '\u20B92,500/day', pos: [-2, 0, 4], rot: -0.3 },
+        { fn: createHatchback, color: 0xCC1111, name: 'Maruti Suzuki Swift', type: 'Hatchback', price: '\u20B91,500/day', pos: [5, 0, -1], rot: 0.2 },
+        { fn: createSUV, color: 0x1a1adb, name: 'Tata Nexon', type: 'Compact SUV', price: '\u20B92,000/day', pos: [11, 0, 3], rot: -0.5 },
+        { fn: createHatchback, color: 0x222222, name: 'Hyundai i20', type: 'Premium Hatchback', price: '\u20B91,800/day', pos: [0, 0, 9], rot: 0.15 }
       ];
 
-      for (var i = 0; i < 30; i++) {
-        var cfg = shapeConfigs[Math.floor(Math.random() * shapeConfigs.length)];
-        var isRed = Math.random() > 0.3;
-        var mat;
-        if (cfg.solid) {
-          mat = new THREE.MeshStandardMaterial({
-            color: isRed ? 0xDC2626 : 0x444444,
-            emissive: isRed ? 0x880000 : 0x222222,
-            emissiveIntensity: isRed ? 0.8 : 0.3,
-            metalness: 0.7,
-            roughness: 0.3,
-            transparent: true,
-            opacity: 0.85
-          });
-        } else {
-          mat = new THREE.MeshBasicMaterial({
-            color: isRed ? 0xff2222 : 0x666666,
-            wireframe: true,
-            transparent: true,
-            opacity: 0.7
-          });
-        }
-        var mesh = new THREE.Mesh(cfg.geo, mat);
-        mesh.position.set(
-          (Math.random() - 0.5) * 30,
-          (Math.random() - 0.5) * 12 + 3,
-          (Math.random() - 0.5) * 25 - 5
-        );
-        mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
-        var s = 0.8 + Math.random() * 0.6;
-        mesh.scale.set(s, s, s);
-        mesh.userData = {
-          rotSpeed: { x: (Math.random() - 0.5) * 0.02, y: (Math.random() - 0.5) * 0.02, z: (Math.random() - 0.5) * 0.015 },
-          floatSpeed: 0.2 + Math.random() * 0.5,
-          floatAmp: 0.3 + Math.random() * 0.8,
-          baseY: mesh.position.y
-        };
-        scene.add(mesh);
-        shapes.push(mesh);
-      }
+      var carGrps = [];
+      carDefs.forEach(function(d, idx) {
+        var car = d.fn(d.color);
+        car.position.set(d.pos[0], d.pos[1], d.pos[2]);
+        car.rotation.y = d.rot;
+        scene.add(car);
+        carGrps.push({ group: car, data: d, baseY: d.pos[1] });
+        car.traverse(function(ch) {
+          if (ch.isMesh) { ch.userData.carIdx = idx; carMeshes.push(ch); }
+        });
+      });
 
-      var pc = 800;
+      var pc = 600;
       var pGeo = new THREE.BufferGeometry();
-      var pos = new Float32Array(pc * 3);
-      var col = new Float32Array(pc * 3);
-      for (var j = 0; j < pc; j++) {
-        pos[j*3] = (Math.random()-0.5)*60;
-        pos[j*3+1] = (Math.random()-0.5)*40;
-        pos[j*3+2] = (Math.random()-0.5)*50;
-        var bright = Math.random() > 0.5;
-        col[j*3] = bright ? 1 : 0.3;
-        col[j*3+1] = bright ? 0.15 : 0.05;
-        col[j*3+2] = bright ? 0.15 : 0.05;
+      var pPos = new Float32Array(pc * 3);
+      var pCol = new Float32Array(pc * 3);
+      for (var i = 0; i < pc; i++) {
+        pPos[i*3] = (Math.random()-0.5)*80;
+        pPos[i*3+1] = Math.random()*30 + 3;
+        pPos[i*3+2] = (Math.random()-0.5)*70;
+        var br = Math.random() > 0.4;
+        pCol[i*3] = br ? 1 : 0.3; pCol[i*3+1] = br ? 0.15 : 0.05; pCol[i*3+2] = br ? 0.15 : 0.05;
       }
-      pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      var particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.12, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+      var particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.1, vertexColors: true, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }));
       scene.add(particles);
 
-      for (var k = 0; k < 4; k++) {
-        var rGeo = new THREE.RingGeometry(8 + k * 4, 8.15 + k * 4, 80);
-        rGeo.rotateX(-Math.PI/2);
-        var ring = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({ color: 0xDC2626, transparent: true, opacity: 0.12 + k * 0.04, side: THREE.DoubleSide }));
-        ring.position.y = -3;
+      for (var k = 0; k < 3; k++) {
+        var rr = new THREE.RingGeometry(14 + k * 6, 14.15 + k * 6, 80);
+        rr.rotateX(-Math.PI/2);
+        var ring = new THREE.Mesh(rr, new THREE.MeshBasicMaterial({ color: 0xDC2626, transparent: true, opacity: 0.06 + k * 0.02, side: THREE.DoubleSide }));
+        ring.position.y = 0.01;
         scene.add(ring);
+      }
+
+      var infoPanel = document.createElement('div');
+      infoPanel.id = 'carInfoPanel';
+      infoPanel.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(20px);z-index:100;background:rgba(10,10,10,0.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(220,38,38,0.35);border-radius:16px;padding:1.25rem 2rem;color:white;min-width:300px;text-align:center;opacity:0;pointer-events:none;transition:opacity 0.4s ease,transform 0.4s ease;font-family:system-ui,sans-serif;';
+      infoPanel.innerHTML = '<div style="font-size:1.4rem;font-weight:700;margin-bottom:0.2rem" id="ciName"></div><div style="font-size:0.85rem;color:#9CA3AF;margin-bottom:0.5rem" id="ciType"></div><div style="font-size:1.6rem;font-weight:800;color:#DC2626;margin-bottom:1rem" id="ciPrice"></div><button id="ciBack" style="background:#DC2626;color:white;border:none;padding:0.6rem 1.8rem;border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:background 0.2s">Back to Overview</button>';
+      document.body.appendChild(infoPanel);
+      document.getElementById('ciBack').addEventListener('click', function(e) { e.stopPropagation(); zoomOut(); });
+      document.getElementById('ciBack').addEventListener('mouseenter', function() { this.style.background = '#EF4444'; });
+      document.getElementById('ciBack').addEventListener('mouseleave', function() { this.style.background = '#DC2626'; });
+
+      function showInfo(d) {
+        document.getElementById('ciName').textContent = d.name;
+        document.getElementById('ciType').textContent = d.type;
+        document.getElementById('ciPrice').textContent = d.price;
+        infoPanel.style.opacity = '1';
+        infoPanel.style.pointerEvents = 'auto';
+        infoPanel.style.transform = 'translateX(-50%) translateY(0)';
+      }
+      function hideInfo() {
+        infoPanel.style.opacity = '0';
+        infoPanel.style.pointerEvents = 'none';
+        infoPanel.style.transform = 'translateX(-50%) translateY(20px)';
+      }
+
+      function zoomTo(idx) {
+        var p = carGrps[idx].group.position;
+        tgtPos.set(p.x + 4, 3.5, p.z + 5);
+        tgtLook.set(p.x, 0.8, p.z);
+        isZoomed = true; selIdx = idx;
+        showInfo(carGrps[idx].data);
+        canvas.style.cursor = 'default';
+      }
+      function zoomOut() {
+        tgtPos.set(0, 8, 22);
+        tgtLook.set(0, 0, 2);
+        isZoomed = false; selIdx = -1;
+        hideInfo();
+      }
+
+      function highlightCar(idx) {
+        carGrps[idx].group.traverse(function(ch) {
+          if (ch.isMesh && ch.material.emissive) {
+            ch.material._oe = ch.material.emissive.clone();
+            ch.material._oei = ch.material.emissiveIntensity || 0;
+            ch.material.emissiveIntensity = ch.material._oei + 0.4;
+          }
+        });
+      }
+      function resetHighlight(idx) {
+        if (idx < 0) return;
+        carGrps[idx].group.traverse(function(ch) {
+          if (ch.isMesh && ch.material._oe !== undefined) {
+            ch.material.emissive.copy(ch.material._oe);
+            ch.material.emissiveIntensity = ch.material._oei;
+            delete ch.material._oe;
+            delete ch.material._oei;
+          }
+        });
       }
 
       document.addEventListener('mousemove', function(e) {
         mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
         mouse.ty = -(e.clientY / window.innerHeight - 0.5) * 2;
+        if (!isZoomed) {
+          clickVec.x = (e.clientX / window.innerWidth) * 2 - 1;
+          clickVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
+          raycaster.setFromCamera(clickVec, camera);
+          var hits = raycaster.intersectObjects(carMeshes);
+          if (hits.length > 0) {
+            var ci = hits[0].object.userData.carIdx;
+            canvas.style.cursor = 'pointer';
+            if (hoveredIdx !== ci) { resetHighlight(hoveredIdx); hoveredIdx = ci; highlightCar(ci); }
+          } else {
+            if (hoveredIdx >= 0) { resetHighlight(hoveredIdx); hoveredIdx = -1; }
+            canvas.style.cursor = 'default';
+          }
+        }
       });
+
+      canvas.addEventListener('click', function(e) {
+        clickVec.x = (e.clientX / window.innerWidth) * 2 - 1;
+        clickVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(clickVec, camera);
+        var hits = raycaster.intersectObjects(carMeshes);
+        if (isZoomed) {
+          if (hits.length > 0) {
+            var ci = hits[0].object.userData.carIdx;
+            if (ci !== selIdx) { zoomTo(ci); } else { zoomOut(); }
+          } else { zoomOut(); }
+          return;
+        }
+        if (hits.length > 0) { zoomTo(hits[0].object.userData.carIdx); }
+      });
+
+      canvas.addEventListener('touchend', function(e) {
+        if (isZoomed) return;
+        if (e.changedTouches.length > 0) {
+          var t = e.changedTouches[0];
+          clickVec.x = (t.clientX / window.innerWidth) * 2 - 1;
+          clickVec.y = -(t.clientY / window.innerHeight) * 2 + 1;
+          raycaster.setFromCamera(clickVec, camera);
+          var hits = raycaster.intersectObjects(carMeshes);
+          if (hits.length > 0) zoomTo(hits[0].object.userData.carIdx);
+        }
+      });
+
       window.addEventListener('resize', function() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -1092,32 +1371,34 @@
       var time = 0;
       function animate() {
         requestAnimationFrame(animate);
-        time += 0.005;
-        mouse.x += (mouse.tx - mouse.x) * 0.04;
-        mouse.y += (mouse.ty - mouse.y) * 0.04;
-        camera.position.x = mouse.x * 3;
-        camera.position.y = 6 + mouse.y * 2;
-        camera.lookAt(0, 0, 0);
+        time += 0.004;
+
+        if (!isZoomed) {
+          mouse.x += (mouse.tx - mouse.x) * 0.03;
+          mouse.y += (mouse.ty - mouse.y) * 0.03;
+          tgtPos.x = mouse.x * 3;
+          tgtPos.y = 8 + mouse.y * 1.5;
+        }
+
+        var lf = isZoomed ? 0.055 : 0.035;
+        camPos.lerp(tgtPos, lf);
+        camLook.lerp(tgtLook, lf);
+        camera.position.copy(camPos);
+        camera.lookAt(camLook);
 
         var gp = gridGeo.attributes.position;
         for (var i = 0; i < gp.count; i++) {
-          gp.setY(i, Math.sin(gp.getX(i)*0.2+time*2)*0.8 + Math.cos(gp.getZ(i)*0.2+time*1.5)*0.6);
+          gp.setY(i, Math.sin(gp.getX(i)*0.15+time*2)*0.7 + Math.cos(gp.getZ(i)*0.15+time*1.3)*0.5);
         }
         gp.needsUpdate = true;
         gridGeo.computeVertexNormals();
 
-        shapes.forEach(function(s) {
-          s.rotation.x += s.userData.rotSpeed.x;
-          s.rotation.y += s.userData.rotSpeed.y;
-          s.rotation.z += s.userData.rotSpeed.z;
-          s.position.y = s.userData.baseY + Math.sin(time * s.userData.floatSpeed) * s.userData.floatAmp;
-        });
+        particles.rotation.y = time * 0.08;
+        pl1.position.x = Math.sin(time*1.2)*12;
+        pl1.position.z = Math.cos(time*1.2)*12;
+        pl2.position.x = Math.cos(time*0.8)*10;
+        pl2.position.z = Math.sin(time*0.8)*10;
 
-        particles.rotation.y = time * 0.15;
-        pl1.position.x = Math.sin(time*1.2)*10;
-        pl1.position.z = Math.cos(time*1.2)*10;
-        pl2.position.x = Math.cos(time*0.8)*8;
-        pl2.position.z = Math.sin(time*0.8)*8;
         renderer.render(scene, camera);
       }
       animate();
