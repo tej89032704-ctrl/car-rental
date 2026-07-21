@@ -31,8 +31,7 @@
   @keyframes dotPulse { 0%, 80%, 100% { transform: scale(0.6); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
 </style>
 </head>
-<body class="bg-transparent text-white min-h-screen">
-  <canvas id="three-canvas" style="position:fixed;inset:0;z-index:0;width:100%;height:100%;"></canvas>
+<body class="bg-gray-900 text-white min-h-screen">
   <!-- LOADING SCREEN -->
   <div class="loader-overlay" id="loader">
     <div class="loader-brand">CAR<span class="red">-</span>ENT</div>
@@ -55,11 +54,11 @@
     <div class="loader-text">Buckle up</div>
     <div class="loader-dots"><span></span><span></span><span></span></div>
   </div>
-  <nav class="flex items-center justify-between px-8 py-4 bg-gray-800" style="position:relative;z-index:2;">
+  <nav class="flex items-center justify-between px-8 py-4 bg-gray-800">
     <span class="font-bold text-xl text-yellow-400">CAR-ENT</span>
     <button onclick="logout()" class="bg-orange-500 px-4 py-2 rounded hover:bg-orange-400">Logout</button>
   </nav>
-  <div class="max-w-4xl mx-auto mt-12 px-4" style="position:relative;z-index:2;">
+  <div class="max-w-4xl mx-auto mt-12 px-4">
     <h1 class="text-3xl font-bold mb-2" id="welcome"></h1>
     <p class="text-gray-400 mb-8" id="roleDisplay"></p>
     <div class="grid grid-cols-2 gap-4">
@@ -83,150 +82,6 @@
     document.getElementById('welcome').textContent = 'Welcome, ' + user.name;
     document.getElementById('roleDisplay').textContent = 'You are here to ' + (user.role === 'owner' ? 'give cars for rent' : 'pick cars to rent');
     function logout() { localStorage.clear(); window.location.href = '/'; }
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-    (function() {
-      if (typeof THREE === 'undefined') return;
-      var canvas = document.getElementById('three-canvas');
-      if (!canvas) return;
-      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x080808, 1);
-      renderer.shadowMap.enabled = true;
-
-      var scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x080808, 0.012);
-
-      var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
-      camera.position.set(0, 8, 22);
-      camera.lookAt(0, 0, 2);
-
-      var mouse = { x: 0, y: 0, tx: 0, ty: 0 };
-
-      scene.add(new THREE.AmbientLight(0x666666, 1));
-      var dl = new THREE.DirectionalLight(0xffffff, 0.7);
-      dl.position.set(12, 18, 10); dl.castShadow = true;
-      dl.shadow.mapSize.set(1024, 1024);
-      scene.add(dl);
-
-      var pl1 = new THREE.PointLight(0xff3333, 2.5, 70);
-      pl1.position.set(8, 12, 8); scene.add(pl1);
-      var pl2 = new THREE.PointLight(0xDC2626, 2, 60);
-      pl2.position.set(-8, 10, -8); scene.add(pl2);
-
-      var gridGeo = new THREE.PlaneGeometry(100, 100, 60, 60);
-      gridGeo.rotateX(-Math.PI / 2);
-      var gridMat = new THREE.MeshBasicMaterial({ color: 0xDC2626, wireframe: true, transparent: true, opacity: 0.15 });
-      var grid = new THREE.Mesh(gridGeo, gridMat);
-      grid.position.y = -0.02; scene.add(grid);
-
-      var gnd = new THREE.Mesh(new THREE.PlaneGeometry(120, 120).rotateX(-Math.PI/2), new THREE.ShadowMaterial({ opacity: 0.35 }));
-      gnd.receiveShadow = true; scene.add(gnd);
-
-      function makeWheel(r, w) {
-        var g = new THREE.Group();
-        g.add(new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,20), new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.95})));
-        g.children[0].rotation.x = Math.PI/2;
-        var rim = new THREE.Mesh(new THREE.CylinderGeometry(r*0.55,r*0.55,w*1.02,10), new THREE.MeshStandardMaterial({color:0xdddddd,metalness:0.95,roughness:0.05}));
-        rim.rotation.x = Math.PI/2; g.add(rim);
-        for(var i=0;i<5;i++){var sp=new THREE.Mesh(new THREE.BoxGeometry(r*0.45,0.025,w*0.4),rim.material);sp.rotation.z=(Math.PI*2/5)*i;g.add(sp);}
-        return g;
-      }
-      function addW(g,pts,r,w){pts.forEach(function(p){var wh=makeWheel(r,w);wh.position.set(p[0],p[1],p[2]);g.add(wh);});}
-
-      function createSedan(c){var g=new THREE.Group();var bm=new THREE.MeshStandardMaterial({color:c,metalness:0.85,roughness:0.12});var gm=new THREE.MeshStandardMaterial({color:0x111122,metalness:0.9,roughness:0.05,transparent:true,opacity:0.55});var dk=new THREE.MeshStandardMaterial({color:0x111111,metalness:0.9,roughness:0.1});
-        var b=new THREE.Mesh(new THREE.BoxGeometry(4.6,0.7,1.8),bm);b.position.y=0.55;b.castShadow=true;g.add(b);
-        var h=new THREE.Mesh(new THREE.BoxGeometry(1.2,0.15,1.76),bm);h.position.set(1.8,0.92,0);h.castShadow=true;g.add(h);
-        var cb=new THREE.Mesh(new THREE.BoxGeometry(2.3,0.65,1.72),bm);cb.position.set(-0.1,1.22,0);cb.castShadow=true;g.add(cb);
-        var tr=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.2,1.7),bm);tr.position.set(-1.7,1.0,0);g.add(tr);
-        var ws=new THREE.Mesh(new THREE.PlaneGeometry(1.68,0.6),gm);ws.position.set(1.05,1.2,0);ws.rotation.y=Math.PI/2;ws.rotation.x=0.18;g.add(ws);
-        var rw=new THREE.Mesh(new THREE.PlaneGeometry(1.65,0.5),gm);rw.position.set(-1.25,1.18,0);rw.rotation.y=-Math.PI/2;rw.rotation.x=-0.12;g.add(rw);
-        var sl=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.42),gm);sl.position.set(-0.05,1.27,0.87);g.add(sl);
-        var sr=new THREE.Mesh(new THREE.PlaneGeometry(1.9,0.42),gm);sr.position.set(-0.05,1.27,-0.87);sr.rotation.y=Math.PI;g.add(sr);
-        var hlm=new THREE.MeshStandardMaterial({color:0xffffdd,emissive:0xffffaa,emissiveIntensity:1.0});var hG=new THREE.BoxGeometry(0.06,0.18,0.45);
-        g.add(Object.assign(new THREE.Mesh(hG,hlm),{position:new THREE.Vector3(2.31,0.6,0.5)}));
-        g.add(Object.assign(new THREE.Mesh(hG,hlm),{position:new THREE.Vector3(2.31,0.6,-0.5)}));
-        var tlm=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xff0000,emissiveIntensity:0.7});
-        g.add(Object.assign(new THREE.Mesh(hG,tlm),{position:new THREE.Vector3(-2.31,0.55,0.5)}));
-        g.add(Object.assign(new THREE.Mesh(hG,tlm),{position:new THREE.Vector3(-2.31,0.55,-0.5)}));
-        g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.05,0.28,1.1),dk),{position:new THREE.Vector3(2.32,0.5,0)}));
-        addW(g,[[-1.5,0.3,0.88],[1.5,0.3,0.88],[-1.5,0.3,-0.88],[1.5,0.3,-0.88]],0.3,0.2);
-        return g;}
-
-      function createSUV(c){var g=new THREE.Group();var bm=new THREE.MeshStandardMaterial({color:c,metalness:0.85,roughness:0.12});var gm=new THREE.MeshStandardMaterial({color:0x111122,metalness:0.9,roughness:0.05,transparent:true,opacity:0.55});var dk=new THREE.MeshStandardMaterial({color:0x111111,metalness:0.9,roughness:0.1});
-        var b=new THREE.Mesh(new THREE.BoxGeometry(4.4,0.9,1.9),bm);b.position.y=0.75;b.castShadow=true;g.add(b);
-        var h=new THREE.Mesh(new THREE.BoxGeometry(1.0,0.2,1.86),bm);h.position.set(1.7,1.2,0);h.castShadow=true;g.add(h);
-        var cb=new THREE.Mesh(new THREE.BoxGeometry(2.9,0.78,1.82),bm);cb.position.set(0,1.62,0);cb.castShadow=true;g.add(cb);
-        var ws=new THREE.Mesh(new THREE.PlaneGeometry(1.78,0.72),gm);ws.position.set(1.45,1.6,0);ws.rotation.y=Math.PI/2;ws.rotation.x=0.1;g.add(ws);
-        var rw=new THREE.Mesh(new THREE.PlaneGeometry(1.75,0.6),gm);rw.position.set(-1.45,1.58,0);rw.rotation.y=-Math.PI/2;g.add(rw);
-        var sl=new THREE.Mesh(new THREE.PlaneGeometry(2.3,0.5),gm);sl.position.set(0,1.65,0.92);g.add(sl);
-        var sr=new THREE.Mesh(new THREE.PlaneGeometry(2.3,0.5),gm);sr.position.set(0,1.65,-0.92);sr.rotation.y=Math.PI;g.add(sr);
-        var rm=new THREE.MeshStandardMaterial({color:0x888888,metalness:0.8,roughness:0.2});
-        g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(2.6,0.04,0.04),rm),{position:new THREE.Vector3(0,2.03,0.82)}));
-        g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(2.6,0.04,0.04),rm),{position:new THREE.Vector3(0,2.03,-0.82)}));
-        var hlm=new THREE.MeshStandardMaterial({color:0xffffdd,emissive:0xffffaa,emissiveIntensity:1.0});var hG=new THREE.BoxGeometry(0.06,0.22,0.5);
-        g.add(Object.assign(new THREE.Mesh(hG,hlm),{position:new THREE.Vector3(2.21,0.8,0.55)}));
-        g.add(Object.assign(new THREE.Mesh(hG,hlm),{position:new THREE.Vector3(2.21,0.8,-0.55)}));
-        var tlm=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xff0000,emissiveIntensity:0.7});
-        g.add(Object.assign(new THREE.Mesh(hG,tlm),{position:new THREE.Vector3(-2.21,0.8,0.55)}));
-        g.add(Object.assign(new THREE.Mesh(hG,tlm),{position:new THREE.Vector3(-2.21,0.8,-0.55)}));
-        g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.05,0.35,1.2),dk),{position:new THREE.Vector3(2.22,0.7,0)}));
-        addW(g,[[-1.4,0.35,0.95],[1.4,0.35,0.95],[-1.4,0.35,-0.95],[1.4,0.35,-0.95]],0.35,0.24);
-        return g;}
-
-      function createHatchback(c){var g=new THREE.Group();var bm=new THREE.MeshStandardMaterial({color:c,metalness:0.85,roughness:0.12});var gm=new THREE.MeshStandardMaterial({color:0x111122,metalness:0.9,roughness:0.05,transparent:true,opacity:0.55});var dk=new THREE.MeshStandardMaterial({color:0x111111,metalness:0.9,roughness:0.1});
-        var b=new THREE.Mesh(new THREE.BoxGeometry(3.9,0.65,1.7),bm);b.position.y=0.5;b.castShadow=true;g.add(b);
-        var cb=new THREE.Mesh(new THREE.BoxGeometry(2.1,0.6,1.63),bm);cb.position.set(0.1,1.12,0);cb.castShadow=true;g.add(cb);
-        var ht=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.35,1.58),bm);ht.position.set(-1.2,1.08,0);ht.rotation.z=0.45;g.add(ht);
-        var ws=new THREE.Mesh(new THREE.PlaneGeometry(1.58,0.52),gm);ws.position.set(1.15,1.12,0);ws.rotation.y=Math.PI/2;ws.rotation.x=0.18;g.add(ws);
-        var rw=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.42),gm);rw.position.set(-1.15,1.12,0);rw.rotation.y=-Math.PI/2;rw.rotation.x=-0.2;g.add(rw);
-        var sl=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.38),gm);sl.position.set(0.1,1.17,0.86);g.add(sl);
-        var sr=new THREE.Mesh(new THREE.PlaneGeometry(1.6,0.38),gm);sr.position.set(0.1,1.17,-0.86);sr.rotation.y=Math.PI;g.add(sr);
-        var hlm=new THREE.MeshStandardMaterial({color:0xffffdd,emissive:0xffffaa,emissiveIntensity:1.0});var hG=new THREE.BoxGeometry(0.06,0.16,0.42);
-        g.add(Object.assign(new THREE.Mesh(hG,hlm),{position:new THREE.Vector3(1.96,0.55,0.45)}));
-        g.add(Object.assign(new THREE.Mesh(hG,hlm),{position:new THREE.Vector3(1.96,0.55,-0.45)}));
-        var tlm=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xff0000,emissiveIntensity:0.7});
-        g.add(Object.assign(new THREE.Mesh(hG,tlm),{position:new THREE.Vector3(-1.96,0.55,0.45)}));
-        g.add(Object.assign(new THREE.Mesh(hG,tlm),{position:new THREE.Vector3(-1.96,0.55,-0.45)}));
-        g.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(0.05,0.22,0.85),dk),{position:new THREE.Vector3(1.97,0.45,0)}));
-        addW(g,[[-1.25,0.28,0.83],[1.25,0.28,0.83],[-1.25,0.28,-0.83],[1.25,0.28,-0.83]],0.28,0.18);
-        return g;}
-
-      var carDefs=[
-        {fn:createSedan,color:0xE8E8E8,pos:[-8,0,-3],rot:0.4},
-        {fn:createSUV,color:0xFFFFFF,pos:[-2,0,4],rot:-0.3},
-        {fn:createHatchback,color:0xCC1111,pos:[5,0,-1],rot:0.2},
-        {fn:createSUV,color:0x1a1adb,pos:[11,0,3],rot:-0.5},
-        {fn:createHatchback,color:0x222222,pos:[0,0,9],rot:0.15}
-      ];
-      carDefs.forEach(function(d){var car=d.fn(d.color);car.position.set(d.pos[0],d.pos[1],d.pos[2]);car.rotation.y=d.rot;scene.add(car);});
-
-      var pc=400;var pGeo=new THREE.BufferGeometry();var pP=new Float32Array(pc*3);var pC=new Float32Array(pc*3);
-      for(var i=0;i<pc;i++){pP[i*3]=(Math.random()-0.5)*80;pP[i*3+1]=Math.random()*30+3;pP[i*3+2]=(Math.random()-0.5)*70;var br=Math.random()>0.4;pC[i*3]=br?1:0.3;pC[i*3+1]=br?0.15:0.05;pC[i*3+2]=br?0.15:0.05;}
-      pGeo.setAttribute('position',new THREE.BufferAttribute(pP,3));pGeo.setAttribute('color',new THREE.BufferAttribute(pC,3));
-      var particles=new THREE.Points(pGeo,new THREE.PointsMaterial({size:0.1,vertexColors:true,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending}));
-      scene.add(particles);
-
-      document.addEventListener('mousemove',function(e){mouse.tx=(e.clientX/window.innerWidth-0.5)*2;mouse.ty=-(e.clientY/window.innerHeight-0.5)*2;});
-      window.addEventListener('resize',function(){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
-
-      var time=0;
-      function animate(){
-        requestAnimationFrame(animate);time+=0.004;
-        mouse.x+=(mouse.tx-mouse.x)*0.03;mouse.y+=(mouse.ty-mouse.y)*0.03;
-        camera.position.x=mouse.x*3;camera.position.y=8+mouse.y*1.5;camera.lookAt(0,0,2);
-        var gp=gridGeo.attributes.position;
-        for(var i=0;i<gp.count;i++){gp.setY(i,Math.sin(gp.getX(i)*0.15+time*2)*0.7+Math.cos(gp.getZ(i)*0.15+time*1.3)*0.5);}
-        gp.needsUpdate=true;gridGeo.computeVertexNormals();
-        particles.rotation.y=time*0.08;
-        pl1.position.x=Math.sin(time*1.2)*12;pl1.position.z=Math.cos(time*1.2)*12;
-        pl2.position.x=Math.cos(time*0.8)*10;pl2.position.z=Math.sin(time*0.8)*10;
-        renderer.render(scene,camera);
-      }
-      animate();
-    })();
   </script>
 </body>
 </html>
