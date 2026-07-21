@@ -1,0 +1,126 @@
+/* ===== CAR-ENT MINI-SUV CURSOR =====
+   Drop this file at: frontend/public/cursor/cursor.css
+   Pairs with:         frontend/public/cursor/cursor.js
+   Image used:         frontend/public/cursor/mini-suv.png (already in project)
+*/
+
+.suv-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 96px;
+  height: 96px;
+  pointer-events: none;
+  z-index: 999999;
+  will-change: transform;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.suv-cursor.is-visible { opacity: 1; }
+
+/* ---- base car image ---- */
+.suv-cursor__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.35));
+  transform: scale(1);
+  transition: transform .25s ease, filter .25s ease;
+}
+
+/* ---- ambient red glow (behind the car) - "Hover on Cards: Glow Effect" ---- */
+.suv-cursor__ambient {
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(220,38,38,.38) 0%, rgba(220,38,38,0) 70%);
+  opacity: 0;
+  transition: opacity .3s ease;
+  z-index: -1;
+}
+.suv-cursor.hover-card .suv-cursor__ambient { opacity: 1; }
+
+/* ---- headlight / fog-light glow ---- */
+.suv-cursor__headlight,
+.suv-cursor__foglight {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  filter: blur(1.5px);
+  transition: opacity .25s ease, transform .25s ease;
+  background: radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,90,60,.55) 45%, rgba(255,90,60,0) 75%);
+}
+.suv-cursor__headlight { width: 11px; height: 11px; left: 68.4%; top: 49.9%; opacity: .55; }
+.suv-cursor__foglight  { width: 7px;  height: 7px;  left: 70.9%; top: 56.4%; opacity: .4; }
+
+/* headlights brighten & flare when hovering a button/link (accelerate feel) */
+.suv-cursor.hover-btn .suv-cursor__headlight { opacity: 1; transform: translate(-50%,-50%) scale(1.4); }
+.suv-cursor.hover-btn .suv-cursor__foglight  { opacity: .9; transform: translate(-50%,-50%) scale(1.3); }
+
+/* soft breathing glow while idle */
+.suv-cursor.idle .suv-cursor__headlight { animation: suvHeadlightPulse 2.4s ease-in-out infinite; }
+@keyframes suvHeadlightPulse {
+  0%, 100% { opacity: .4; }
+  50%      { opacity: .8; }
+}
+
+/* ---- wheels (spinning spoke overlays positioned on the rims) ---- */
+.suv-cursor__wheel {
+  position: absolute;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(0,0,0,.6) 0deg 12deg, transparent 12deg 30deg);
+  opacity: .55;
+  mix-blend-mode: multiply;
+  transition: opacity .25s ease;
+}
+.suv-cursor__wheel--front { width: 13px; height: 13px; left: 39.1%; top: 60.6%; }
+.suv-cursor__wheel--rear  { width: 11px; height: 11px; left: 66.4%; top: 59.6%; }
+.suv-cursor.hover-btn .suv-cursor__wheel { opacity: .8; }
+
+/* ---- hover on buttons/links: scale 1.1x ---- */
+.suv-cursor.hover-btn .suv-cursor__img {
+  transform: scale(1.1);
+  filter: drop-shadow(0 3px 8px rgba(220,38,38,.5)) brightness(1.08);
+}
+
+/* ---- hover on cards: extra glow on the body paint ---- */
+.suv-cursor.hover-card .suv-cursor__img {
+  filter: drop-shadow(0 4px 12px rgba(220,38,38,.55));
+}
+
+/* ---- hover on input fields: soft blink ---- */
+.suv-cursor.hover-input .suv-cursor__img { animation: suvBlink .4s ease-in-out; }
+@keyframes suvBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .7; }
+}
+
+/* ---- click: suspension bounce ---- */
+.suv-cursor__img.clicked { animation: suvClick .15s ease-out; }
+@keyframes suvClick {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(.92) translateY(2px); }
+  60%  { transform: scale(1.05) translateY(-1px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* ---- idle: subtle pulse ---- */
+.suv-cursor.idle .suv-cursor__img { animation: suvIdlePulse 2.4s ease-in-out infinite; }
+@keyframes suvIdlePulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+/* Custom cursor replaces the native pointer everywhere except form fields.
+   The .has-suv-cursor class is added to <html> by cursor.js only when it
+   actually initializes (i.e. not on touch devices / reduced-motion),
+   so we never hide the native cursor without something to replace it. */
+html.has-suv-cursor,
+html.has-suv-cursor a,
+html.has-suv-cursor button,
+html.has-suv-cursor [role="button"] {
+  cursor: none;
+}

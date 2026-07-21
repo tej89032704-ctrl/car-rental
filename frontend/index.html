@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/cursor/cursor.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,73 +28,6 @@
       color: var(--text);
       overflow-x: hidden;
       min-height: 100vh;
-    }
-
-    /* ===== SUV CURSOR ===== */
-    .suv-cursor {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 96px;
-      height: 96px;
-      pointer-events: none;
-      z-index: 999999;
-      will-change: transform;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .suv-cursor.is-visible { opacity: 1; }
-    .suv-cursor img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      filter: drop-shadow(0 1px 3px rgba(0,0,0,.3));
-    }
-    /* Idle: suspension bounce */
-    .suv-cursor.idle img { animation: suvBounce 2s ease-in-out infinite; }
-    @keyframes suvBounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-2px); }
-    }
-    /* Hover on buttons/links: accelerate + brighten */
-    .suv-cursor.hover-btn img {
-      transform: scale(1.1);
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,.4)) brightness(1.05);
-    }
-    /* Hover on cards: glow increase */
-    .suv-cursor.hover-card img {
-      filter: drop-shadow(0 3px 10px rgba(0,0,0,.35));
-    }
-    /* Hover on inputs: soft blink */
-    .suv-cursor.hover-input img {
-      animation: suvBlink 0.4s ease-in-out;
-    }
-    @keyframes suvBlink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-    /* Click: suspension compression + forward nudge */
-    .suv-cursor.clicked img { animation: suvClick 0.15s ease-out; }
-    @keyframes suvClick {
-      0% { transform: scale(1); }
-      30% { transform: scale(0.92) translateY(2px); }
-      60% { transform: scale(1.05) translateY(-1px); }
-      100% { transform: scale(1) translateY(0); }
-    }
-    /* Scroll tilt */
-    .suv-cursor.tilt-down { transition: transform 0.3s; }
-    .suv-cursor.tilt-up { transition: transform 0.3s; }
-
-    /* Hide on mobile/touch */
-    @media (hover: none), (pointer: coarse) {
-      .suv-cursor { display: none; }
-    }
-    /* Reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      .suv-cursor, .suv-cursor img, .suv-cursor::after {
-        animation: none !important;
-        transition: none !important;
-      }
     }
 
     /* ===== BACKGROUND ===== */
@@ -594,10 +528,6 @@
   </style>
 </head>
 <body>
-  <div class="suv-cursor" id="suvCursor">
-    <img src="/cursor/mini-suv.png" alt="">
-  </div>
-
   <div class="bg-layer">
     <img class="bg-layer__img is-active" id="bgCustomer" src="images/customer.png" alt="" loading="lazy" />
     <img class="bg-layer__img" id="bgOwner" src="images/owner.png" alt="" loading="lazy" />
@@ -783,111 +713,8 @@
     </div>
   </div>
 
+  <script src="/cursor/cursor.js" defer></script>
   <script>
-    // ===== SUV CURSOR =====
-    const suv = document.getElementById('suvCursor');
-    const suvImg = suv.querySelector('img');
-    let mouseX = 0, mouseY = 0;
-    let posX = 0, posY = 0;
-    let velX = 0, velY = 0;
-    let idleTimer = null;
-    let isIdle = false;
-    let scrollTimer = null;
-    let lastScrollY = window.scrollY;
-    let isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
-    let reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // Spring physics constants (stiffness: 320, damping: 28, mass: 0.6)
-    const STIFFNESS = 320;
-    const DAMPING = 28;
-    const MASS = 0.6;
-    const DELAY_MS = 50; // 40-60ms trailing delay
-
-    function showSuv() { if (!isTouch && !reducedMotion) suv.classList.add('is-visible'); }
-    function hideSuv() { suv.classList.remove('is-visible'); }
-
-    // Track mouse
-    document.addEventListener('mousemove', e => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      showSuv();
-      isIdle = false;
-      suv.classList.remove('idle');
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => {
-        isIdle = true;
-        suv.classList.add('idle');
-      }, 2000);
-    });
-
-    // Spring animation loop (60fps via rAF)
-    let lastTime = performance.now();
-    let tiltDeg = 0;
-    function animateSuv(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.05);
-      lastTime = now;
-
-      const targetX = mouseX;
-      const targetY = mouseY;
-
-      const forceX = -STIFFNESS * (posX - targetX) - DAMPING * velX;
-      const forceY = -STIFFNESS * (posY - targetY) - DAMPING * velY;
-      velX += (forceX / MASS) * dt;
-      velY += (forceY / MASS) * dt;
-      posX += velX * dt;
-      posY += velY * dt;
-
-      // Use translate3d + rotate for GPU compositing (60fps)
-      suv.style.transform = `translate3d(${posX - 48}px, ${posY - 48}px, 0) rotate(${tiltDeg}deg)`;
-
-      requestAnimationFrame(animateSuv);
-    }
-    requestAnimationFrame(animateSuv);
-
-    // Hover states
-    document.querySelectorAll('button, a').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        suv.classList.remove('hover-card', 'hover-input');
-        suv.classList.add('hover-btn');
-      });
-      el.addEventListener('mouseleave', () => suv.classList.remove('hover-btn'));
-    });
-    document.querySelectorAll('.feature-card, .trust-item, .owner-card').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        suv.classList.remove('hover-btn', 'hover-input');
-        suv.classList.add('hover-card');
-      });
-      el.addEventListener('mouseleave', () => suv.classList.remove('hover-card'));
-    });
-    document.querySelectorAll('input').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        suv.classList.remove('hover-btn', 'hover-card');
-        suv.classList.add('hover-input');
-      });
-      el.addEventListener('mouseleave', () => suv.classList.remove('hover-input'));
-    });
-
-    // Click animation
-    document.addEventListener('mousedown', () => {
-      if (reducedMotion) return;
-      suv.classList.add('clicked');
-      setTimeout(() => suv.classList.remove('clicked'), 150);
-    });
-
-    // Scroll tilt
-    window.addEventListener('scroll', () => {
-      if (reducedMotion || isTouch) return;
-      const currentY = window.scrollY;
-      if (currentY > lastScrollY) {
-        tiltDeg = 6;
-      } else if (currentY < lastScrollY) {
-        tiltDeg = -6;
-      }
-      lastScrollY = currentY;
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => { tiltDeg = 0; }, 150);
-    }, { passive: true });
-
     // ===== AUTH LOGIC =====
     const API = window.location.port === '5173' ? 'http://localhost:8081/api/auth' : '/api/auth';
     let isRegister = false;

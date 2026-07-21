@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CAR-ENT Cursor — Live Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./cursor/cursor.css" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: #0B0B0B;
+    color: #fff;
+    margin: 0;
+    padding: 40px;
+  }
+  h1 { color: #DC2626; font-size: 20px; margin-bottom: 4px; }
+  p.sub { color: #9CA3AF; margin-bottom: 32px; }
+  h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: #DC2626; margin: 40px 0 16px; }
+  .row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .box { background: #141414; border: 1px solid #262626; border-radius: 12px; padding: 24px; flex: 1; min-width: 180px; text-align: center; }
+  .box b { display: block; margin-bottom: 4px; }
+  .box span { color: #9CA3AF; font-size: 13px; }
+
+  .cta {
+    background: #DC2626; color: #fff; border: none; padding: 14px 22px;
+    border-radius: 8px; font-weight: 700; font-size: 15px; margin-top: 10px;
+  }
+  .card {
+    background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+    padding: 18px; margin-top: 10px; text-align: left;
+  }
+  a.link { color: #fff; text-decoration: underline; font-weight: 600; }
+  input {
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
+    background: #1a1a1a; color: #fff; margin-top: 10px;
+  }
+  .path-area {
+    height: 200px; background: #141414; border: 1px solid #262626; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center; color: #666;
+  }
+</style>
+</head>
+<body>
+  <h1>CAR-ENT — Mini SUV Cursor, live test</h1>
+  <p class="sub">Move your mouse around this page. Everything below is a real element — nothing is a screenshot.</p>
+
+  <h2>Cursor states — hover / click each one</h2>
+  <div class="row">
+    <div class="box"><b>Default</b><span>Just move the mouse anywhere</span></div>
+    <div class="box"><b>Hover on Button/Link</b><span>Hover the button or link below</span></div>
+    <div class="box"><b>Hover on Card</b><span>Hover the card below</span></div>
+    <div class="box"><b>Click</b><span>Click anywhere on the page</span></div>
+    <div class="box"><b>Idle</b><span>Stop moving for 2 seconds</span></div>
+  </div>
+
+  <h2>Mouse movement experience</h2>
+  <div class="path-area">Wave your mouse fast, then stop — watch the wheels spin up and slow to a stop</div>
+
+  <h2>Cursor over interactions</h2>
+  <div class="row">
+    <div class="box">
+      <b>Over Button</b>
+      <button class="cta">Rent a Car →</button>
+    </div>
+    <div class="box">
+      <b>Over Link</b>
+      <div><a class="link" href="#">Explore more inside →</a></div>
+    </div>
+    <div class="box">
+      <b>Over Card</b>
+      <div class="card" data-cursor="card">
+        <b>Instant Booking</b>
+        <span>Reserve your car in minutes.</span>
+      </div>
+    </div>
+    <div class="box">
+      <b>Over Input Field</b>
+      <input type="email" placeholder="you@example.com" />
+    </div>
+  </div>
+
+  <h2>Cursor details</h2>
+  <p class="sub">Zoom in on the SUV as it follows your mouse — headlights glow, wheels spin, and the red glow from the source image sits underneath.</p>
+
+  <script src="./cursor/cursor.js" defer></script>
+</body>
+</html>
