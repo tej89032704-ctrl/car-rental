@@ -10,7 +10,7 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; background: #0B0B0B; }
 
     :root {
       --red: #DC2626;
@@ -23,7 +23,7 @@
 
     body {
       font-family: var(--font);
-      background: var(--dark);
+      background: transparent;
       color: var(--text);
       overflow-x: hidden;
       min-height: 100vh;
@@ -36,6 +36,7 @@
       z-index: 0;
       width: 100%;
       height: 100%;
+      display: block;
     }
 
     /* ===== BACKGROUND ===== */
@@ -43,6 +44,7 @@
       position: fixed;
       inset: 0;
       z-index: 1;
+      display: none;
     }
     .bg-layer__img {
       position: absolute;
@@ -964,109 +966,116 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
     (function() {
-      const canvas = document.getElementById('three-canvas');
-      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+      var canvas = document.getElementById('three-canvas');
+      if (!canvas) return;
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x0B0B0B, 1);
+      renderer.setClearColor(0x0a0a0a, 1);
 
-      const scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x0B0B0B, 0.035);
+      var scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
 
-      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.set(0, 5, 12);
+      var camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.set(0, 6, 16);
       camera.lookAt(0, 0, 0);
 
-      const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+      var mouse = { x: 0, y: 0, tx: 0, ty: 0 };
 
-      var ambientLight = new THREE.AmbientLight(0x222222, 0.5);
-      scene.add(ambientLight);
+      scene.add(new THREE.AmbientLight(0x444444, 1));
 
-      var pointLight1 = new THREE.PointLight(0xDC2626, 2, 50);
-      pointLight1.position.set(5, 8, 5);
-      scene.add(pointLight1);
+      var pl1 = new THREE.PointLight(0xff0000, 3, 80);
+      pl1.position.set(8, 10, 8);
+      scene.add(pl1);
+      var pl2 = new THREE.PointLight(0xDC2626, 2.5, 60);
+      pl2.position.set(-8, 8, -8);
+      scene.add(pl2);
+      var pl3 = new THREE.PointLight(0xff4444, 2, 50);
+      pl3.position.set(0, -4, 12);
+      scene.add(pl3);
 
-      var pointLight2 = new THREE.PointLight(0x991B1B, 1.5, 40);
-      pointLight2.position.set(-5, 6, -5);
-      scene.add(pointLight2);
-
-      var pointLight3 = new THREE.PointLight(0xDC2626, 1, 30);
-      pointLight3.position.set(0, -2, 8);
-      scene.add(pointLight3);
-
-      var gridGeo = new THREE.PlaneGeometry(60, 60, 40, 40);
+      var gridGeo = new THREE.PlaneGeometry(80, 80, 50, 50);
       gridGeo.rotateX(-Math.PI / 2);
-      var gridMat = new THREE.MeshBasicMaterial({ color: 0xDC2626, wireframe: true, transparent: true, opacity: 0.12 });
+      var gridMat = new THREE.MeshBasicMaterial({ color: 0xDC2626, wireframe: true, transparent: true, opacity: 0.25 });
       var grid = new THREE.Mesh(gridGeo, gridMat);
-      grid.position.y = -3;
+      grid.position.y = -4;
       scene.add(grid);
 
       var shapes = [];
-      var shapeGeos = [
-        new THREE.IcosahedronGeometry(0.6, 0),
-        new THREE.OctahedronGeometry(0.5, 0),
-        new THREE.TetrahedronGeometry(0.5, 0),
-        new THREE.TorusGeometry(0.4, 0.15, 8, 16),
-        new THREE.DodecahedronGeometry(0.45, 0),
-        new THREE.BoxGeometry(0.5, 0.5, 0.5)
+      var shapeConfigs = [
+        { geo: new THREE.IcosahedronGeometry(1.2, 0), solid: true },
+        { geo: new THREE.OctahedronGeometry(1.0, 0), solid: true },
+        { geo: new THREE.TetrahedronGeometry(1.0, 0), solid: false },
+        { geo: new THREE.TorusGeometry(0.8, 0.3, 12, 24), solid: false },
+        { geo: new THREE.DodecahedronGeometry(0.9, 0), solid: true },
+        { geo: new THREE.BoxGeometry(0.9, 0.9, 0.9), solid: true },
+        { geo: new THREE.TorusKnotGeometry(0.6, 0.2, 64, 8), solid: false }
       ];
 
-      for (var i = 0; i < 25; i++) {
-        var geo = shapeGeos[Math.floor(Math.random() * shapeGeos.length)];
-        var useRed = Math.random() > 0.4;
-        var mat = new THREE.MeshPhongMaterial({
-          color: useRed ? 0xDC2626 : 0x333333,
-          emissive: useRed ? 0x440000 : 0x111111,
-          wireframe: Math.random() > 0.3,
-          transparent: true,
-          opacity: 0.4 + Math.random() * 0.4
-        });
-        var mesh = new THREE.Mesh(geo, mat);
+      for (var i = 0; i < 30; i++) {
+        var cfg = shapeConfigs[Math.floor(Math.random() * shapeConfigs.length)];
+        var isRed = Math.random() > 0.3;
+        var mat;
+        if (cfg.solid) {
+          mat = new THREE.MeshStandardMaterial({
+            color: isRed ? 0xDC2626 : 0x444444,
+            emissive: isRed ? 0x880000 : 0x222222,
+            emissiveIntensity: isRed ? 0.8 : 0.3,
+            metalness: 0.7,
+            roughness: 0.3,
+            transparent: true,
+            opacity: 0.85
+          });
+        } else {
+          mat = new THREE.MeshBasicMaterial({
+            color: isRed ? 0xff2222 : 0x666666,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.7
+          });
+        }
+        var mesh = new THREE.Mesh(cfg.geo, mat);
         mesh.position.set(
-          (Math.random() - 0.5) * 25,
-          (Math.random() - 0.5) * 10 + 2,
-          (Math.random() - 0.5) * 20
+          (Math.random() - 0.5) * 30,
+          (Math.random() - 0.5) * 12 + 3,
+          (Math.random() - 0.5) * 25 - 5
         );
         mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+        var s = 0.8 + Math.random() * 0.6;
+        mesh.scale.set(s, s, s);
         mesh.userData = {
-          rotSpeed: { x: (Math.random() - 0.5) * 0.015, y: (Math.random() - 0.5) * 0.015, z: (Math.random() - 0.5) * 0.01 },
-          floatSpeed: 0.3 + Math.random() * 0.7,
-          floatAmp: 0.2 + Math.random() * 0.5,
+          rotSpeed: { x: (Math.random() - 0.5) * 0.02, y: (Math.random() - 0.5) * 0.02, z: (Math.random() - 0.5) * 0.015 },
+          floatSpeed: 0.2 + Math.random() * 0.5,
+          floatAmp: 0.3 + Math.random() * 0.8,
           baseY: mesh.position.y
         };
         scene.add(mesh);
         shapes.push(mesh);
       }
 
-      var particleCount = 500;
-      var particleGeo = new THREE.BufferGeometry();
-      var positions = new Float32Array(particleCount * 3);
-      var colors = new Float32Array(particleCount * 3);
-      var redColor = new THREE.Color(0xDC2626);
-      var darkColor = new THREE.Color(0x333333);
-
-      for (var j = 0; j < particleCount; j++) {
-        positions[j * 3] = (Math.random() - 0.5) * 50;
-        positions[j * 3 + 1] = (Math.random() - 0.5) * 30;
-        positions[j * 3 + 2] = (Math.random() - 0.5) * 40;
-        var c = Math.random() > 0.6 ? redColor : darkColor;
-        colors[j * 3] = c.r;
-        colors[j * 3 + 1] = c.g;
-        colors[j * 3 + 2] = c.b;
+      var pc = 800;
+      var pGeo = new THREE.BufferGeometry();
+      var pos = new Float32Array(pc * 3);
+      var col = new Float32Array(pc * 3);
+      for (var j = 0; j < pc; j++) {
+        pos[j*3] = (Math.random()-0.5)*60;
+        pos[j*3+1] = (Math.random()-0.5)*40;
+        pos[j*3+2] = (Math.random()-0.5)*50;
+        var bright = Math.random() > 0.5;
+        col[j*3] = bright ? 1 : 0.3;
+        col[j*3+1] = bright ? 0.15 : 0.05;
+        col[j*3+2] = bright ? 0.15 : 0.05;
       }
-      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-      var particleMat = new THREE.PointsMaterial({ size: 0.06, vertexColors: true, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending });
-      var particles = new THREE.Points(particleGeo, particleMat);
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      pGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+      var particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ size: 0.12, vertexColors: true, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
       scene.add(particles);
 
-      for (var k = 0; k < 3; k++) {
-        var ringGeo = new THREE.RingGeometry(6 + k * 3, 6.1 + k * 3, 64);
-        ringGeo.rotateX(-Math.PI / 2);
-        var ringMat = new THREE.MeshBasicMaterial({ color: 0xDC2626, transparent: true, opacity: 0.05 + k * 0.02, side: THREE.DoubleSide });
-        var ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.position.y = -2;
+      for (var k = 0; k < 4; k++) {
+        var rGeo = new THREE.RingGeometry(8 + k * 4, 8.15 + k * 4, 80);
+        rGeo.rotateX(-Math.PI/2);
+        var ring = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({ color: 0xDC2626, transparent: true, opacity: 0.12 + k * 0.04, side: THREE.DoubleSide }));
+        ring.position.y = -3;
         scene.add(ring);
       }
 
@@ -1074,7 +1083,6 @@
         mouse.tx = (e.clientX / window.innerWidth - 0.5) * 2;
         mouse.ty = -(e.clientY / window.innerHeight - 0.5) * 2;
       });
-
       window.addEventListener('resize', function() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -1085,19 +1093,17 @@
       function animate() {
         requestAnimationFrame(animate);
         time += 0.005;
-        mouse.x += (mouse.tx - mouse.x) * 0.03;
-        mouse.y += (mouse.ty - mouse.y) * 0.03;
-        camera.position.x = mouse.x * 2;
-        camera.position.y = 5 + mouse.y * 1;
+        mouse.x += (mouse.tx - mouse.x) * 0.04;
+        mouse.y += (mouse.ty - mouse.y) * 0.04;
+        camera.position.x = mouse.x * 3;
+        camera.position.y = 6 + mouse.y * 2;
         camera.lookAt(0, 0, 0);
 
-        var gridPos = gridGeo.attributes.position;
-        for (var i = 0; i < gridPos.count; i++) {
-          var x = gridPos.getX(i);
-          var z = gridPos.getZ(i);
-          gridPos.setY(i, Math.sin(x * 0.3 + time * 2) * 0.4 + Math.cos(z * 0.3 + time * 1.5) * 0.3);
+        var gp = gridGeo.attributes.position;
+        for (var i = 0; i < gp.count; i++) {
+          gp.setY(i, Math.sin(gp.getX(i)*0.2+time*2)*0.8 + Math.cos(gp.getZ(i)*0.2+time*1.5)*0.6);
         }
-        gridPos.needsUpdate = true;
+        gp.needsUpdate = true;
         gridGeo.computeVertexNormals();
 
         shapes.forEach(function(s) {
@@ -1107,11 +1113,11 @@
           s.position.y = s.userData.baseY + Math.sin(time * s.userData.floatSpeed) * s.userData.floatAmp;
         });
 
-        particles.rotation.y = time * 0.1;
-        pointLight1.position.x = Math.sin(time * 1.5) * 8;
-        pointLight1.position.z = Math.cos(time * 1.5) * 8;
-        pointLight2.position.x = Math.cos(time) * 6;
-        pointLight2.position.z = Math.sin(time) * 6;
+        particles.rotation.y = time * 0.15;
+        pl1.position.x = Math.sin(time*1.2)*10;
+        pl1.position.z = Math.cos(time*1.2)*10;
+        pl2.position.x = Math.cos(time*0.8)*8;
+        pl2.position.z = Math.sin(time*0.8)*8;
         renderer.render(scene, camera);
       }
       animate();
