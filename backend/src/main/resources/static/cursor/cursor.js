@@ -16,10 +16,11 @@
   // and leave the native cursor exactly as it was.
   if (isTouch || reducedMotion) return;
 
-  var CURSOR_SIZE = 140;
+  var CURSOR_SIZE = 500;
 
   function init() {
     document.documentElement.classList.add('has-suv-cursor');
+    /* Native cursor stays visible — car is a decorative follower */
 
     var cursor = document.createElement('div');
     cursor.className = 'suv-cursor';

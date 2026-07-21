@@ -8,8 +8,8 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 140px;
-  height: 140px;
+  width: 500px;
+  height: 500px;
   pointer-events: none;
   z-index: 999999;
   will-change: transform;
@@ -33,7 +33,7 @@
 /* ---- ambient red glow (behind the car) - "Hover on Cards: Glow Effect" ---- */
 .suv-cursor__ambient {
   position: absolute;
-  inset: -14px;
+  inset: -40px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(220,38,38,.38) 0%, rgba(220,38,38,0) 70%);
   opacity: 0;
@@ -53,8 +53,8 @@
   transition: opacity .25s ease, transform .25s ease;
   background: radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(255,90,60,.55) 45%, rgba(255,90,60,0) 75%);
 }
-.suv-cursor__headlight { width: 16px; height: 16px; left: 68.4%; top: 49.9%; opacity: .55; }
-.suv-cursor__foglight  { width: 10px;  height: 10px;  left: 70.9%; top: 56.4%; opacity: .4; }
+.suv-cursor__headlight { width: 50px; height: 50px; left: 68.4%; top: 49.9%; opacity: .55; }
+.suv-cursor__foglight  { width: 30px;  height: 30px;  left: 70.9%; top: 56.4%; opacity: .4; }
 
 /* headlights brighten & flare when hovering a button/link (accelerate feel) */
 .suv-cursor.hover-btn .suv-cursor__headlight { opacity: 1; transform: translate(-50%,-50%) scale(1.4); }
@@ -76,8 +76,8 @@
   mix-blend-mode: multiply;
   transition: opacity .25s ease;
 }
-.suv-cursor__wheel--front { width: 20px; height: 20px; left: 39.1%; top: 60.6%; }
-.suv-cursor__wheel--rear  { width: 17px; height: 17px; left: 66.4%; top: 59.6%; }
+.suv-cursor__wheel--front { width: 60px; height: 60px; left: 39.1%; top: 60.6%; }
+.suv-cursor__wheel--rear  { width: 50px; height: 50px; left: 66.4%; top: 59.6%; }
 .suv-cursor.hover-btn .suv-cursor__wheel { opacity: .8; }
 
 /* ---- hover on buttons/links: scale 1.1x ---- */
@@ -114,13 +114,5 @@
   50%      { transform: scale(1.03); }
 }
 
-/* Custom cursor replaces the native pointer everywhere except form fields.
-   The .has-suv-cursor class is added to <html> by cursor.js only when it
-   actually initializes (i.e. not on touch devices / reduced-motion),
-   so we never hide the native cursor without something to replace it. */
-html.has-suv-cursor,
-html.has-suv-cursor a,
-html.has-suv-cursor button,
-html.has-suv-cursor [role="button"] {
-  cursor: none;
-}
+/* Car image follows the mouse pointer as a decorative overlay.
+   The native cursor remains visible. */
