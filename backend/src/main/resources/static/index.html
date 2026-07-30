@@ -3,390 +3,441 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CAR-ENT — Unlock the road.</title>
+  <title>CAR-ENT</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/cursor/cursor.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Geist', system-ui, sans-serif;
-      overflow: hidden;
+      font-family: 'Geist', -apple-system, system-ui, sans-serif;
+      background: #fafafa;
+      color: #1d1d1f;
       min-height: 100vh;
-      background: #0a0a0a;
-      color: #fff;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    /* ===== FULL BACKGROUND ===== */
-    .bg {
-      position: fixed; inset: 0; z-index: 0;
-      background: #0a0a0a url('/images/customer.png') center/cover no-repeat;
+    /* ===== TOP NAV ===== */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 3rem;
+      height: 52px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      position: sticky;
+      top: 0;
+      background: rgba(250,250,250,0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 10;
     }
-    .bg::after {
-      content: ''; position: absolute; inset: 0;
-      background:
-        linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
+    .nav-logo {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
-    .bg-owner {
-      position: fixed; inset: 0; z-index: 0;
-      background: #0a0a0a url('/images/owner.png') center/cover no-repeat;
-      opacity: 0;
-      transition: opacity 0.6s ease;
+    .nav-logo span { color: #0071e3; }
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
     }
-    .bg-owner::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.65) 100%);
+    .nav-links a {
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: #6e6e73;
+      text-decoration: none;
+      transition: color 0.2s;
     }
-    .bg-owner.is-visible { opacity: 1; }
+    .nav-links a:hover { color: #1d1d1f; }
+    .nav-cta {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #fff !important;
+      background: #1d1d1f;
+      padding: 0.45rem 1rem;
+      border-radius: 980px;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: #333 !important; }
 
-    /* ===== GRAIN ===== */
-    .grain {
-      position: fixed; inset: 0; z-index: 1;
-      pointer-events: none;
+    /* ===== HERO ===== */
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 3rem;
     }
-    .grain::after {
-      content: ''; position: absolute; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-size: 200px 200px;
-      opacity: 0.04;
-      mix-blend-mode: overlay;
-    }
-
-    /* ===== PAGE ===== */
-    .page {
-      position: relative; z-index: 2;
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      padding: 2rem;
-    }
-
-    /* ===== TOP BAR ===== */
-    .top {
-      display: flex; align-items: center; justify-content: space-between;
-      padding-bottom: 2rem;
-    }
-    .logo {
-      display: flex; align-items: center; gap: 0.6rem;
-    }
-    .logo-icon {
-      width: 36px; height: 36px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #f97316, #ea580c);
-      display: grid; place-items: center;
-      font-family: 'Space Grotesk', sans-serif;
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
       font-weight: 700;
-      font-size: 1rem;
-      color: #fff;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 1rem;
     }
-    .logo-text {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.35rem;
+    .hero p {
+      font-size: 1.15rem;
+      color: #6e6e73;
+      max-width: 480px;
+      margin: 0 auto 2rem;
+      line-height: 1.5;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #0071e3;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .hero-cta:hover { opacity: 0.7; }
+    .hero-cta svg { width: 14px; height: 14px; transition: transform 0.2s; }
+    .hero-cta:hover svg { transform: translateX(3px); }
+
+    /* ===== PRICING ROW ===== */
+    .pricing {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      padding: 0 2rem 4rem;
+    }
+    .pricing-card {
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 20px;
+      padding: 2rem 2.5rem;
+      text-align: center;
+      width: 260px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .pricing-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.06);
+    }
+    .pricing-card .label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6e6e73;
+      margin-bottom: 0.75rem;
+    }
+    .pricing-card .amount {
+      font-size: 2.8rem;
       font-weight: 700;
       letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 0.25rem;
     }
-    .logo-text span { color: #f97316; }
-
-    .pricing-badge {
-      display: flex; gap: 0.4rem;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 100px;
-      padding: 0.35rem 0.75rem;
-      font-size: 0.72rem;
-      font-weight: 500;
-      color: rgba(255,255,255,0.6);
+    .pricing-card .period {
+      font-size: 0.85rem;
+      color: #6e6e73;
     }
-    .pricing-badge strong { color: #fff; font-weight: 600; }
-
-    /* ===== MIDDLE ===== */
-    .middle {
-      flex: 1;
-      display: flex; align-items: center; justify-content: center;
+    .pricing-card .note {
+      font-size: 0.78rem;
+      color: #86868b;
+      margin-top: 0.75rem;
+      line-height: 1.4;
     }
+    .pricing-card--accent .amount { color: #0071e3; }
+    .pricing-card--dark { background: #1d1d1f; color: #fff; border-color: transparent; }
+    .pricing-card--dark .label { color: #86868b; }
+    .pricing-card--dark .period { color: #86868b; }
+    .pricing-card--dark .note { color: #6e6e73; }
 
-    /* ===== CARD ===== */
-    .card {
-      width: 100%; max-width: 400px;
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 24px;
-      padding: 2rem;
-      box-shadow: 0 16px 64px rgba(0,0,0,0.4);
+    /* ===== DIVIDER ===== */
+    .divider-line {
+      width: 40px;
+      height: 1px;
+      background: rgba(0,0,0,0.1);
+      margin: 0 auto 3rem;
     }
 
-    .card-role {
-      display: flex; gap: 0.5rem;
+    /* ===== LOGIN SECTION ===== */
+    .login-section {
+      background: #fff;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      padding: 4rem 2rem;
+      display: flex;
+      justify-content: center;
+    }
+    .login-box {
+      width: 100%;
+      max-width: 360px;
+    }
+    .login-box h2 {
+      font-size: 1.7rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+    .login-box .sub {
+      font-size: 0.9rem;
+      color: #6e6e73;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .role-row {
+      display: flex;
+      gap: 0.5rem;
       margin-bottom: 1.5rem;
     }
-    .card-role-btn {
+    .role-btn {
       flex: 1;
-      padding: 0.7rem 0.5rem;
+      padding: 0.65rem;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(0,0,0,0.08);
       background: transparent;
-      color: rgba(255,255,255,0.4);
-      font-family: 'Geist', sans-serif;
+      color: #6e6e73;
+      font-family: inherit;
       font-size: 0.82rem;
       font-weight: 500;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
-      transition: all 0.25s ease;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
     }
-    .card-role-btn svg { width: 15px; height: 15px; }
-    .card-role-btn.is-active {
-      background: rgba(249,115,22,0.12);
-      border-color: rgba(249,115,22,0.3);
-      color: #f97316;
-    }
-
-    .card-heading {
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    .card-heading h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.3rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.2rem;
-    }
-    .card-heading p {
-      font-size: 0.85rem;
-      color: rgba(255,255,255,0.45);
-    }
-
-    .field { margin-bottom: 0.9rem; }
-    .field label {
-      display: block;
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.35);
-      margin-bottom: 0.3rem;
-    }
-    .field input {
-      width: 100%;
-      padding: 0.7rem 0.9rem;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.08);
-      outline: none;
-      background: rgba(255,255,255,0.04);
+    .role-btn svg { width: 14px; height: 14px; }
+    .role-btn.is-active {
+      background: #1d1d1f;
+      border-color: #1d1d1f;
       color: #fff;
-      font-family: 'Geist', sans-serif;
-      font-size: 0.88rem;
-      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
     }
-    .field input::placeholder { color: rgba(255,255,255,0.2); }
-    .field input:focus {
-      border-color: #f97316;
-      box-shadow: 0 0 0 3px rgba(249,115,22,0.08);
-      background: rgba(255,255,255,0.06);
+    .role-btn:hover:not(.is-active) {
+      border-color: rgba(0,0,0,0.15);
+      color: #1d1d1f;
     }
 
-    .cta {
+    .input-group {
+      margin-bottom: 0.75rem;
+    }
+    .input-group input {
       width: 100%;
-      margin-top: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      border: none;
+      padding: 0.75rem 1rem;
       border-radius: 12px;
-      background: linear-gradient(135deg, #f97316, #ea580c);
-      color: #fff;
-      font-family: 'Geist', sans-serif;
+      border: 1.5px solid rgba(0,0,0,0.08);
+      outline: none;
+      background: #fff;
+      font-family: inherit;
       font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      transition: transform 0.2s ease, box-shadow 0.25s ease;
+      color: #1d1d1f;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .cta:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(249,115,22,0.35);
+    .input-group input::placeholder { color: #c7c7cc; }
+    .input-group input:focus {
+      border-color: #0071e3;
+      box-shadow: 0 0 0 3px rgba(0,113,227,0.1);
     }
-    .cta:active { transform: scale(0.98); }
-    .cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .cta svg { width: 15px; height: 15px; }
 
-    .divider {
-      display: flex; align-items: center; gap: 0.75rem;
-      margin: 1rem 0;
-      color: rgba(255,255,255,0.2);
-      font-size: 0.7rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+    .submit-btn {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 12px;
+      border: none;
+      background: #0071e3;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      margin-top: 0.5rem;
     }
-    .divider::before, .divider::after {
-      content: ''; flex: 1;
+    .submit-btn:hover { background: #0077ed; }
+    .submit-btn:active { transform: scale(0.98); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+      color: #c7c7cc;
+      font-size: 0.75rem;
+    }
+    .or-divider::before, .or-divider::after {
+      content: '';
+      flex: 1;
       height: 1px;
-      background: rgba(255,255,255,0.06);
+      background: rgba(0,0,0,0.06);
     }
 
     .google-btn {
       width: 100%;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      padding: 0.7rem 1.5rem;
+      padding: 0.7rem;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.03);
-      color: #fff;
-      font-family: 'Geist', sans-serif;
-      font-weight: 500;
+      border: 1.5px solid rgba(0,0,0,0.08);
+      background: #fff;
+      color: #1d1d1f;
+      font-family: inherit;
       font-size: 0.88rem;
+      font-weight: 500;
       cursor: pointer;
-      transition: background 0.25s, border-color 0.25s, transform 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: background 0.2s, border-color 0.2s;
     }
     .google-btn:hover {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.12);
-      transform: translateY(-1px);
+      background: #f5f5f7;
+      border-color: rgba(0,0,0,0.12);
     }
-    .google-btn:active { transform: scale(0.98); }
     .google-btn svg { width: 18px; height: 18px; }
 
-    .card-foot {
+    .login-foot {
       text-align: center;
       margin-top: 1.25rem;
       font-size: 0.82rem;
-      color: rgba(255,255,255,0.35);
+      color: #6e6e73;
     }
-    .card-foot a {
-      color: #f97316;
+    .login-foot a {
+      color: #0071e3;
       text-decoration: none;
-      font-weight: 600;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.2s;
-      cursor: pointer;
+      font-weight: 500;
     }
-    .card-foot a:hover { border-color: #f97316; }
+    .login-foot a:hover { text-decoration: underline; }
 
     .error-msg {
-      color: #ef4444;
-      font-size: 0.8rem;
+      color: #ff3b30;
+      font-size: 0.82rem;
       text-align: center;
       margin-top: 0.75rem;
       min-height: 1.3em;
     }
 
-    /* ===== PRICING STRIP ===== */
-    .pricing-strip {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 2;
-      display: flex; align-items: center; justify-content: center; gap: 1.5rem;
-      padding: 0.75rem 1.5rem;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(255,255,255,0.04);
-      font-size: 0.78rem;
-      color: rgba(255,255,255,0.5);
+    /* ===== FOOTER ===== */
+    footer {
+      margin-top: auto;
+      padding: 1.5rem 3rem;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      color: #86868b;
     }
-    .pricing-strip span { display: flex; align-items: center; gap: 0.35rem; }
-    .pricing-strip .num {
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 700;
-      font-size: 0.9rem;
-      color: #fff;
-    }
-    .pricing-strip .accent { color: #f97316; }
-    .pricing-strip .sep { opacity: 0.2; }
+    footer a { color: #6e6e73; text-decoration: none; }
+    footer a:hover { color: #1d1d1f; }
+    .footer-links { display: flex; gap: 1.25rem; }
 
     @media (max-width: 600px) {
-      .pricing-strip { font-size: 0.65rem; gap: 0.75rem; padding: 0.6rem 1rem; flex-wrap: wrap; }
-      .top { padding-bottom: 1rem; }
-      .card { padding: 1.5rem; border-radius: 20px; }
-      .page { padding: 1rem; }
+      nav { padding: 0 1.25rem; }
+      .nav-links { display: none; }
+      .hero { padding: 4rem 1.5rem 2rem; }
+      .pricing { flex-direction: column; align-items: center; }
+      .pricing-card { width: 100%; max-width: 300px; }
+      .login-section { padding: 3rem 1.5rem; }
+      footer { padding: 1.25rem; flex-direction: column; gap: 0.75rem; text-align: center; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-      .suv-cursor { display: none; }
-      body { cursor: auto; }
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
 <body>
-  <div class="bg"></div>
-  <div class="bg-owner" id="bgOwner"></div>
-  <div class="grain" aria-hidden="true"></div>
-
-  <div class="page">
-    <div class="top">
-      <div class="logo">
-        <div class="logo-icon">C</div>
-        <div class="logo-text">CAR<span>-</span>ENT</div>
-      </div>
-      <div class="pricing-badge">
-        <span>Renters <strong>₹0</strong></span>
-        <span style="opacity:0.2">·</span>
-        <span>Owners <strong>₹100</strong><span style="opacity:0.5">/mo</span></span>
-      </div>
+  <nav>
+    <div class="nav-logo">CAR<span>-</span>ENT</div>
+    <div class="nav-links">
+      <a href="#">How it works</a>
+      <a href="#">Pricing</a>
+      <a href="#">Support</a>
+      <a href="#" class="nav-cta" id="navCta">Sign in</a>
     </div>
+  </nav>
 
-    <div class="middle">
-      <div class="card">
-        <div class="card-role" id="roleSwitcher">
-          <button class="card-role-btn is-active" id="btnPick">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-            Rent a Car
-          </button>
-          <button class="card-role-btn" id="btnGive">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
-            Give Your Car
-          </button>
-        </div>
+  <section class="hero">
+    <h1>Cars, on demand.</h1>
+    <p>Rent verified cars from real owners. Or list yours and earn. No middlemen. No markups.</p>
+    <a href="#login" class="hero-cta">
+      Get started
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    </a>
+  </section>
 
-        <div class="card-heading">
-          <h1 id="cardTitle">Drive anything you want</h1>
-          <p id="cardSub">No subscription. Pay only for what you drive.</p>
-        </div>
-
-        <div class="field" id="nameField" style="display:none">
-          <label for="name">Name</label>
-          <input id="name" type="text" placeholder="Your full name" autocomplete="name" />
-        </div>
-
-        <div class="field">
-          <label for="email">Email</label>
-          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
-        </div>
-
-        <div class="field">
-          <label for="password">Password</label>
-          <input id="password" type="password" placeholder="At least 6 characters" autocomplete="current-password" />
-        </div>
-
-        <button class="cta" id="signinBtn">
-          <span>Get started free</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
-
-        <div class="divider">or</div>
-
-        <button class="google-btn" id="googleBtn" type="button">
-          <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
-          Continue with Google
-        </button>
-
-        <div class="card-foot">
-          New here? <a href="#" id="toggleLink">Create an account</a>
-        </div>
-        <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
-      </div>
+  <section class="pricing">
+    <div class="pricing-card">
+      <div class="label">Renters</div>
+      <div class="amount">₹0</div>
+      <div class="period">Free, always</div>
+      <div class="note">Browse, book, and drive. No subscription. No hidden fees.</div>
     </div>
-  </div>
+    <div class="pricing-card pricing-card--dark">
+      <div class="label">Car Owners</div>
+      <div class="amount">₹100</div>
+      <div class="period">per month</div>
+      <div class="note">List your car, earn on your schedule. We handle bookings & payments.</div>
+    </div>
+  </section>
 
-  <div class="pricing-strip">
-    <span>🚗 Renters: <span class="num">₹0</span> <span class="accent">free forever</span></span>
-    <span class="sep">|</span>
-    <span>💰 Owners: <span class="num">₹100</span><span style="opacity:0.5">/month</span> <span class="accent">subscription</span></span>
-  </div>
+  <div class="divider-line"></div>
 
-  <script src="/cursor/cursor.js" defer></script>
+  <section class="login-section" id="login">
+    <div class="login-box">
+      <h2 id="loginTitle">Welcome back.</h2>
+      <p class="sub" id="loginSub">Sign in to continue.</p>
+
+      <div class="role-row">
+        <button class="role-btn is-active" id="btnPick">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+          Rent a car
+        </button>
+        <button class="role-btn" id="btnGive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
+          List your car
+        </button>
+      </div>
+
+      <div class="input-group" id="nameField" style="display:none">
+        <input id="name" type="text" placeholder="Full name" autocomplete="name" />
+      </div>
+      <div class="input-group">
+        <input id="email" type="email" placeholder="Email" autocomplete="email" />
+      </div>
+      <div class="input-group">
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+      </div>
+
+      <button class="submit-btn" id="signinBtn">
+        <span id="btnText">Continue</span>
+      </button>
+
+      <div class="or-divider">or</div>
+
+      <button class="google-btn" id="googleBtn" type="button">
+        <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="login-foot">
+        Don't have an account? <a href="#" id="toggleLink">Create one</a>
+      </div>
+      <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>Copyright © 2026 CAR-ENT. All rights reserved.</div>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Sitemap</a>
+    </div>
+  </footer>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     const API = window.location.port === '5173' ? 'http://localhost:8081/api/auth' : '/api/auth';
     let isRegister = false;
@@ -395,39 +446,34 @@
     const btnPick = document.getElementById('btnPick');
     const btnGive = document.getElementById('btnGive');
     const signinBtn = document.getElementById('signinBtn');
+    const btnText = document.getElementById('btnText');
     const nameField = document.getElementById('nameField');
     const nameInput = document.getElementById('name');
     const email = document.getElementById('email');
     const password = document.getElementById('password');
     const errorMsg = document.getElementById('errorMsg');
     const toggleLink = document.getElementById('toggleLink');
-    const cardTitle = document.getElementById('cardTitle');
-    const cardSub = document.getElementById('cardSub');
-    const bgOwner = document.getElementById('bgOwner');
-
-    const content = {
-      pick: { title: 'Drive anything you want', sub: 'No subscription. Pay only for what you drive.' },
-      give: { title: 'Turn your car into income', sub: '₹100/month. We handle bookings, payments & support.' }
-    };
+    const loginTitle = document.getElementById('loginTitle');
+    const loginSub = document.getElementById('loginSub');
 
     function setRole(role) {
       currentRole = role;
       const isPick = role === 'pick';
       btnPick.classList.toggle('is-active', isPick);
       btnGive.classList.toggle('is-active', !isPick);
-      bgOwner.classList.toggle('is-visible', !isPick);
-      const c = content[role];
-      cardTitle.textContent = c.title;
-      cardSub.textContent = c.sub;
-      updateBtnText();
+      updateUI();
     }
 
-    function updateBtnText() {
+    function updateUI() {
       const isPick = currentRole === 'pick';
       if (isRegister) {
-        signinBtn.querySelector('span').textContent = isPick ? 'Create free account' : 'Register as owner — ₹100/mo';
+        loginTitle.textContent = 'Create your account.';
+        loginSub.textContent = isPick ? 'Rent cars for free. No credit card needed.' : 'Start earning with your car.';
+        btnText.textContent = isPick ? 'Create account' : 'Register as owner';
       } else {
-        signinBtn.querySelector('span').textContent = isPick ? 'Get started free' : 'Sign in as owner';
+        loginTitle.textContent = 'Welcome back.';
+        loginSub.textContent = 'Sign in to continue.';
+        btnText.textContent = 'Continue';
       }
     }
 
@@ -438,9 +484,9 @@
       e.preventDefault();
       isRegister = !isRegister;
       nameField.style.display = isRegister ? 'block' : 'none';
-      updateBtnText();
-      toggleLink.textContent = isRegister ? 'Sign in' : 'Create an account';
+      toggleLink.textContent = isRegister ? 'Sign in' : 'Create one';
       errorMsg.textContent = '';
+      updateUI();
     });
 
     function showError(msg) { errorMsg.textContent = msg; }
@@ -450,11 +496,11 @@
       const nameVal = nameInput.value.trim();
       const emailVal = email.value.trim();
       const passVal = password.value.trim();
-      if (!emailVal || !passVal || (isRegister && !nameVal)) { showError('Please fill in all fields'); return; }
-      if (!emailVal.includes('@')) { showError('Please enter a valid email'); return; }
-      if (passVal.length < 6) { showError('Password must be at least 6 characters'); return; }
+      if (!emailVal || !passVal || (isRegister && !nameVal)) { showError('Please fill in all fields.'); return; }
+      if (!emailVal.includes('@')) { showError('Enter a valid email.'); return; }
+      if (passVal.length < 6) { showError('Password must be at least 6 characters.'); return; }
       signinBtn.disabled = true;
-      signinBtn.querySelector('span').textContent = isRegister ? 'Registering\u2026' : 'Signing in\u2026';
+      btnText.textContent = isRegister ? 'Creating account\u2026' : 'Signing in\u2026';
       try {
         const endpoint = isRegister ? `${API}/register` : `${API}/login`;
         const role = currentRole === 'pick' ? 'customer' : 'owner';
@@ -463,14 +509,14 @@
           : { email: emailVal, password: passVal, role };
         const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const data = await res.json();
-        if (!res.ok) { showError(data.message || 'Something went wrong'); signinBtn.disabled = false; updateBtnText(); return; }
+        if (!res.ok) { showError(data.message || 'Something went wrong.'); signinBtn.disabled = false; updateUI(); return; }
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data));
         window.location.href = data.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
       } catch (err) {
-        showError('Cannot connect to server. Make sure the backend is running on port 8081.');
+        showError('Cannot connect to server.');
         signinBtn.disabled = false;
-        updateBtnText();
+        updateUI();
       }
     });
 
@@ -486,7 +532,7 @@
     async function handleGoogleCredential(response, role) {
       errorMsg.textContent = '';
       signinBtn.disabled = true;
-      signinBtn.querySelector('span').textContent = 'Signing in with Google\u2026';
+      btnText.textContent = 'Signing in\u2026';
       try {
         const res = await fetch(`${API}/google`, {
           method: 'POST',
@@ -494,14 +540,14 @@
           body: JSON.stringify({ credential: response.credential, role })
         });
         const data = await res.json();
-        if (!res.ok) { showError(data.message || 'Google sign-in failed'); signinBtn.disabled = false; updateBtnText(); return; }
+        if (!res.ok) { showError(data.message || 'Google sign-in failed.'); signinBtn.disabled = false; updateUI(); return; }
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data));
         window.location.href = data.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
       } catch (err) {
-        showError('Cannot connect to server. Make sure the backend is running on port 8081.');
+        showError('Cannot connect to server.');
         signinBtn.disabled = false;
-        updateBtnText();
+        updateUI();
       }
     }
   </script>
