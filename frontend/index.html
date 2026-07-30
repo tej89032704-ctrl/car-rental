@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CAR-ENT — Rent. Drive. Return.</title>
+  <title>CAR-ENT — Unlock the road.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/tokens.css" />
   <link rel="stylesheet" href="/cursor/cursor.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -15,372 +14,292 @@
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: var(--font-body);
-      color: var(--color-ink);
+      font-family: 'Geist', system-ui, sans-serif;
       overflow: hidden;
       min-height: 100vh;
-      background: var(--color-paper);
+      background: #0a0a0a;
+      color: #fff;
     }
 
-    /* ===== FULLSCREEN ATMOSPHERE ===== */
+    /* ===== FULL BACKGROUND ===== */
     .bg {
       position: fixed; inset: 0; z-index: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in oklch, var(--color-accent) 25%, transparent) 0%, transparent 70%),
-                  radial-gradient(ellipse 60% 50% at 80% 100%, color-mix(in oklch, var(--color-accent-2) 12%, transparent) 0%, transparent 60%),
-                  var(--color-paper);
-      transition: background var(--dur-slow) var(--ease-out);
+      background: #0a0a0a url('/images/customer.png') center/cover no-repeat;
     }
-
-    /* ===== ANIMATED ORBS ===== */
-    .orb {
-      position: fixed; z-index: 1;
-      border-radius: 50%;
-      filter: blur(80px);
-      pointer-events: none;
-      animation: orbFloat 20s ease-in-out infinite;
+    .bg::after {
+      content: ''; position: absolute; inset: 0;
+      background:
+        linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.6) 100%);
     }
-    .orb--1 {
-      width: 50vmin; height: 50vmin;
-      background: color-mix(in oklch, var(--color-accent) 8%, transparent);
-      top: -10%; left: -5%;
-      animation-delay: 0s;
+    .bg-owner {
+      position: fixed; inset: 0; z-index: 0;
+      background: #0a0a0a url('/images/owner.png') center/cover no-repeat;
+      opacity: 0;
+      transition: opacity 0.6s ease;
     }
-    .orb--2 {
-      width: 40vmin; height: 40vmin;
-      background: color-mix(in oklch, var(--color-accent-2) 6%, transparent);
-      bottom: -5%; right: -5%;
-      animation-delay: -7s;
+    .bg-owner::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.65) 100%);
     }
-    .orb--3 {
-      width: 30vmin; height: 30vmin;
-      background: color-mix(in oklch, var(--color-accent) 5%, transparent);
-      top: 40%; right: 15%;
-      animation-delay: -14s;
-    }
-    @keyframes orbFloat {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -40px) scale(1.05); }
-      66% { transform: translate(-20px, 20px) scale(0.95); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .orb { animation: none; }
-    }
+    .bg-owner.is-visible { opacity: 1; }
 
     /* ===== GRAIN ===== */
     .grain {
-      position: fixed; inset: 0; z-index: 2;
+      position: fixed; inset: 0; z-index: 1;
       pointer-events: none;
     }
     .grain::after {
-      content: ""; position: absolute; inset: 0;
+      content: ''; position: absolute; inset: 0;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-size: 256px 256px;
-      opacity: 0.03;
+      background-size: 200px 200px;
+      opacity: 0.04;
       mix-blend-mode: overlay;
-    }
-
-    /* ===== GRID ===== */
-    .grid {
-      position: fixed; inset: 0; z-index: 1;
-      pointer-events: none;
-      background-image:
-        linear-gradient(color-mix(in oklch, var(--color-ink) 3%, transparent) 1px, transparent 1px),
-        linear-gradient(90deg, color-mix(in oklch, var(--color-ink) 3%, transparent) 1px, transparent 1px);
-      background-size: 60px 60px;
-      mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
-      -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
     }
 
     /* ===== PAGE ===== */
     .page {
-      position: relative; z-index: 3;
+      position: relative; z-index: 2;
       min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: var(--space-lg);
+      display: flex; flex-direction: column;
+      padding: 2rem;
     }
 
-    /* ===== BRAND HEADER ===== */
-    .brand {
-      display: flex; align-items: center; gap: var(--space-sm);
-      margin-bottom: var(--space-3xl);
+    /* ===== TOP BAR ===== */
+    .top {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 2rem;
     }
-    .brand-mark {
-      width: 44px; height: 44px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
+    .logo {
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
       display: grid; place-items: center;
-      font-family: var(--font-display);
+      font-family: 'Space Grotesk', sans-serif;
       font-weight: 700;
-      font-size: var(--text-lg);
+      font-size: 1rem;
       color: #fff;
     }
-    .brand-text {
-      font-family: var(--font-display);
-      font-size: var(--text-xl);
+    .logo-text {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.35rem;
       font-weight: 700;
       letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--color-ink), var(--color-muted));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
-    .brand-text .hl { color: var(--color-accent); -webkit-text-fill-color: var(--color-accent); }
+    .logo-text span { color: #f97316; }
 
-    /* ===== LOGIN CARD ===== */
+    .pricing-badge {
+      display: flex; gap: 0.4rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.6);
+    }
+    .pricing-badge strong { color: #fff; font-weight: 600; }
+
+    /* ===== MIDDLE ===== */
+    .middle {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ===== CARD ===== */
     .card {
       width: 100%; max-width: 400px;
-      background: var(--color-card);
-      border: 1px solid var(--color-rule);
-      border-radius: 20px;
-      padding: var(--space-xl) var(--space-lg);
+      background: rgba(255,255,255,0.04);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
-      box-shadow: 0 8px 48px rgba(0,0,0,0.3);
-      transition: border-color var(--dur-normal) var(--ease-out);
-    }
-    .card:focus-within {
-      border-color: color-mix(in oklch, var(--color-accent) 25%, var(--color-rule));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 16px 64px rgba(0,0,0,0.4);
     }
 
-    .card-header {
-      text-align: center;
-      margin-bottom: var(--space-lg);
+    .card-role {
+      display: flex; gap: 0.5rem;
+      margin-bottom: 1.5rem;
     }
-    .card-header h1 {
-      font-family: var(--font-display);
-      font-size: var(--text-lg);
+    .card-role-btn {
+      flex: 1;
+      padding: 0.7rem 0.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: transparent;
+      color: rgba(255,255,255,0.4);
+      font-family: 'Geist', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      transition: all 0.25s ease;
+    }
+    .card-role-btn svg { width: 15px; height: 15px; }
+    .card-role-btn.is-active {
+      background: rgba(249,115,22,0.12);
+      border-color: rgba(249,115,22,0.3);
+      color: #f97316;
+    }
+
+    .card-heading {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .card-heading h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
       font-weight: 600;
       letter-spacing: -0.02em;
-      margin-bottom: var(--space-3xs);
+      margin-bottom: 0.2rem;
     }
-    .card-header p {
-      font-size: var(--text-sm);
-      color: var(--color-muted);
-    }
-
-    /* ===== TABS ===== */
-    .tabs {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: var(--space-3xs);
-      background: var(--color-paper-2);
-      border: 1px solid var(--color-rule-2);
-      border-radius: 12px;
-      padding: var(--space-3xs);
-      margin-bottom: var(--space-lg);
-    }
-    .tab {
-      border: none; background: transparent;
-      color: var(--color-neutral);
-      font-family: var(--font-body);
-      font-size: var(--text-sm);
-      font-weight: 500;
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: 9px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-3xs);
-      transition: color var(--dur-fast) var(--ease-out),
-                  background var(--dur-normal) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out);
-    }
-    .tab svg { width: 14px; height: 14px; flex-shrink: 0; }
-    .tab[aria-selected="true"] {
-      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
-      color: #fff;
-      box-shadow: 0 2px 12px color-mix(in oklch, var(--color-accent) 30%, transparent);
-    }
-    .tab:hover:not([aria-selected="true"]) {
-      background: color-mix(in oklch, var(--color-ink) 6%, transparent);
-      color: var(--color-ink);
+    .card-heading p {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.45);
     }
 
-    /* ===== FIELDS ===== */
-    .field { margin-bottom: var(--space-md); }
+    .field { margin-bottom: 0.9rem; }
     .field label {
       display: block;
-      font-size: var(--text-xs);
+      font-size: 0.7rem;
       font-weight: 600;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      color: var(--color-muted);
-      margin-bottom: var(--space-3xs);
-    }
-    .input-wrap { position: relative; }
-    .input-wrap svg {
-      position: absolute;
-      left: var(--space-sm);
-      top: 50%;
-      transform: translateY(-50%);
-      width: 14px; height: 14px;
-      color: var(--color-neutral);
-      pointer-events: none;
-      transition: color var(--dur-fast) var(--ease-out);
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 0.3rem;
     }
     .field input {
       width: 100%;
-      padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-xl);
+      padding: 0.7rem 0.9rem;
       border-radius: 10px;
-      border: 1px solid var(--color-rule-2);
+      border: 1px solid rgba(255,255,255,0.08);
       outline: none;
-      background: var(--color-paper-2);
-      color: var(--color-ink);
-      font-family: var(--font-body);
-      font-size: var(--text-base);
-      transition: border-color var(--dur-normal) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out),
-                  background var(--dur-normal) var(--ease-out);
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+      font-family: 'Geist', sans-serif;
+      font-size: 0.88rem;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
     }
-    .field input::placeholder { color: var(--color-neutral); }
+    .field input::placeholder { color: rgba(255,255,255,0.2); }
     .field input:focus {
-      border-color: var(--color-accent);
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-accent) 12%, transparent);
-      background: var(--color-paper-3);
+      border-color: #f97316;
+      box-shadow: 0 0 0 3px rgba(249,115,22,0.08);
+      background: rgba(255,255,255,0.06);
     }
-    .input-wrap:focus-within svg { color: var(--color-accent); }
 
-    /* ===== CTA ===== */
     .cta {
       width: 100%;
-      padding: var(--space-sm) var(--space-lg);
+      margin-top: 0.5rem;
+      padding: 0.75rem 1.5rem;
       border: none;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f97316, #ea580c);
       color: #fff;
-      font-family: var(--font-body);
-      font-size: var(--text-base);
+      font-family: 'Geist', sans-serif;
+      font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-xs);
-      position: relative;
-      overflow: hidden;
-      transition: transform var(--dur-fast) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out);
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      transition: transform 0.2s ease, box-shadow 0.25s ease;
     }
     .cta:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 28px color-mix(in oklch, var(--color-accent) 40%, transparent);
+      box-shadow: 0 8px 28px rgba(249,115,22,0.35);
     }
-    .cta:active { transform: translateY(0) scale(0.98); }
+    .cta:active { transform: scale(0.98); }
     .cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .cta svg { width: 15px; height: 15px; }
 
-    /* ===== DIVIDER ===== */
     .divider {
-      display: flex; align-items: center; gap: var(--space-sm);
-      margin: var(--space-md) 0;
-      color: var(--color-neutral);
-      font-size: var(--text-xs);
+      display: flex; align-items: center; gap: 0.75rem;
+      margin: 1rem 0;
+      color: rgba(255,255,255,0.2);
+      font-size: 0.7rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
     .divider::before, .divider::after {
-      content: ""; flex: 1;
+      content: ''; flex: 1;
       height: 1px;
-      background: var(--color-rule);
+      background: rgba(255,255,255,0.06);
     }
 
-    /* ===== GOOGLE BTN ===== */
     .google-btn {
       width: 100%;
-      display: flex; align-items: center; justify-content: center;
-      gap: var(--space-xs);
-      padding: var(--space-sm) var(--space-lg);
-      border-radius: 10px;
-      border: 1px solid var(--color-rule);
-      background: color-mix(in oklch, var(--color-ink) 3%, transparent);
-      color: var(--color-ink);
-      font-family: var(--font-body);
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.7rem 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: #fff;
+      font-family: 'Geist', sans-serif;
       font-weight: 500;
-      font-size: var(--text-base);
+      font-size: 0.88rem;
       cursor: pointer;
-      transition: background var(--dur-normal) var(--ease-out),
-                  border-color var(--dur-normal) var(--ease-out),
-                  transform var(--dur-fast) var(--ease-out);
+      transition: background 0.25s, border-color 0.25s, transform 0.2s;
     }
     .google-btn:hover {
-      background: color-mix(in oklch, var(--color-ink) 6%, transparent);
-      border-color: var(--color-rule);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.12);
       transform: translateY(-1px);
     }
-    .google-btn:active { transform: translateY(0) scale(0.98); }
-    .google-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .google-btn:active { transform: scale(0.98); }
+    .google-btn svg { width: 18px; height: 18px; }
 
-    /* ===== FOOTER ===== */
     .card-foot {
       text-align: center;
-      margin-top: var(--space-lg);
-      font-size: var(--text-sm);
-      color: var(--color-muted);
+      margin-top: 1.25rem;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.35);
     }
     .card-foot a {
-      color: var(--color-accent);
+      color: #f97316;
       text-decoration: none;
       font-weight: 600;
       border-bottom: 1px solid transparent;
-      transition: border-color var(--dur-fast) var(--ease-out);
+      transition: border-color 0.2s;
       cursor: pointer;
     }
-    .card-foot a:hover { border-color: var(--color-accent); }
+    .card-foot a:hover { border-color: #f97316; }
 
     .error-msg {
-      color: oklch(65% 0.2 25);
-      font-size: var(--text-sm);
+      color: #ef4444;
+      font-size: 0.8rem;
       text-align: center;
-      margin-top: var(--space-sm);
+      margin-top: 0.75rem;
       min-height: 1.3em;
     }
 
-    /* ===== AVATAR SWITCH ===== */
-    .avatar-row {
-      display: flex; align-items: center; justify-content: center;
-      gap: var(--space-lg);
-      margin-bottom: var(--space-lg);
+    /* ===== PRICING STRIP ===== */
+    .pricing-strip {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 2;
+      display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+      padding: 0.75rem 1.5rem;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.5);
     }
-    .avatar {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 2px;
-      cursor: pointer;
-      transition: all var(--dur-normal) var(--ease-out);
-      position: relative;
-      background: var(--color-paper-2);
+    .pricing-strip span { display: flex; align-items: center; gap: 0.35rem; }
+    .pricing-strip .num {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #fff;
     }
-    .avatar svg {
-      width: 22px; height: 22px;
-      color: var(--color-neutral);
-      transition: color var(--dur-normal) var(--ease-out);
-    }
-    .avatar span {
-      font-size: 0.6rem;
-      font-weight: 600;
-      color: var(--color-neutral);
-      transition: color var(--dur-normal) var(--ease-out);
-    }
-    .avatar.is-active {
-      border-color: var(--color-accent);
-      background: color-mix(in oklch, var(--color-accent) 10%, var(--color-paper-2));
-    }
-    .avatar.is-active svg,
-    .avatar.is-active span { color: var(--color-accent); }
-    .avatar:hover:not(.is-active) {
-      background: var(--color-paper-3);
-    }
-    .avatar:hover:not(.is-active) svg { color: var(--color-ink); }
+    .pricing-strip .accent { color: #f97316; }
+    .pricing-strip .sep { opacity: 0.2; }
 
-    /* ===== ANIMATIONS ===== */
-    .brand { animation: reveal 0.8s var(--ease-out) both; }
-    .card { animation: reveal 0.8s 0.1s var(--ease-out) both; }
-    @keyframes reveal {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+    @media (max-width: 600px) {
+      .pricing-strip { font-size: 0.65rem; gap: 0.75rem; padding: 0.6rem 1rem; flex-wrap: wrap; }
+      .top { padding-bottom: 1rem; }
+      .card { padding: 1.5rem; border-radius: 20px; }
+      .page { padding: 1rem; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -392,76 +311,79 @@
 </head>
 <body>
   <div class="bg"></div>
-  <div class="grid" aria-hidden="true"></div>
-  <div class="orb orb--1" aria-hidden="true"></div>
-  <div class="orb orb--2" aria-hidden="true"></div>
-  <div class="orb orb--3" aria-hidden="true"></div>
+  <div class="bg-owner" id="bgOwner"></div>
   <div class="grain" aria-hidden="true"></div>
 
   <div class="page">
-    <div class="brand">
-      <div class="brand-mark">C</div>
-      <div class="brand-text">CAR<span class="hl">-</span>ENT</div>
+    <div class="top">
+      <div class="logo">
+        <div class="logo-icon">C</div>
+        <div class="logo-text">CAR<span>-</span>ENT</div>
+      </div>
+      <div class="pricing-badge">
+        <span>Renters <strong>₹0</strong></span>
+        <span style="opacity:0.2">·</span>
+        <span>Owners <strong>₹100</strong><span style="opacity:0.5">/mo</span></span>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h1>Welcome back</h1>
-        <p>Sign in to continue</p>
-      </div>
-
-      <div class="avatar-row" id="roleSwitcher">
-        <div class="avatar is-active" data-role="pick" id="avatarPick">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
-          <span>Renter</span>
+    <div class="middle">
+      <div class="card">
+        <div class="card-role" id="roleSwitcher">
+          <button class="card-role-btn is-active" id="btnPick">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+            Rent a Car
+          </button>
+          <button class="card-role-btn" id="btnGive">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
+            Give Your Car
+          </button>
         </div>
-        <div class="avatar" data-role="give" id="avatarGive">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
-          <span>Owner</span>
-        </div>
-      </div>
 
-      <div class="field" id="nameField" style="display:none">
-        <label for="name">Name</label>
-        <div class="input-wrap">
+        <div class="card-heading">
+          <h1 id="cardTitle">Drive anything you want</h1>
+          <p id="cardSub">No subscription. Pay only for what you drive.</p>
+        </div>
+
+        <div class="field" id="nameField" style="display:none">
+          <label for="name">Name</label>
           <input id="name" type="text" placeholder="Your full name" autocomplete="name" />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
-      </div>
 
-      <div class="field">
-        <label for="email">Email</label>
-        <div class="input-wrap">
+        <div class="field">
+          <label for="email">Email</label>
           <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         </div>
-      </div>
 
-      <div class="field">
-        <label for="password">Password</label>
-        <div class="input-wrap">
+        <div class="field">
+          <label for="password">Password</label>
           <input id="password" type="password" placeholder="At least 6 characters" autocomplete="current-password" />
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
+
+        <button class="cta" id="signinBtn">
+          <span>Get started free</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+
+        <div class="divider">or</div>
+
+        <button class="google-btn" id="googleBtn" type="button">
+          <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+          Continue with Google
+        </button>
+
+        <div class="card-foot">
+          New here? <a href="#" id="toggleLink">Create an account</a>
+        </div>
+        <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
       </div>
-
-      <button class="cta" id="signinBtn">
-        <span>Sign in to rent a car</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-      </button>
-
-      <div class="divider">or</div>
-
-      <button class="google-btn" id="googleBtn" type="button">
-        <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
-        Continue with Google
-      </button>
-
-      <div class="card-foot">
-        New here? <a href="#" id="toggleLink">Create an account</a>
-      </div>
-      <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
     </div>
+  </div>
+
+  <div class="pricing-strip">
+    <span>🚗 Renters: <span class="num">₹0</span> <span class="accent">free forever</span></span>
+    <span class="sep">|</span>
+    <span>💰 Owners: <span class="num">₹100</span><span style="opacity:0.5">/month</span> <span class="accent">subscription</span></span>
   </div>
 
   <script src="/cursor/cursor.js" defer></script>
@@ -470,8 +392,8 @@
     let isRegister = false;
     let currentRole = 'pick';
 
-    const avatarPick = document.getElementById('avatarPick');
-    const avatarGive = document.getElementById('avatarGive');
+    const btnPick = document.getElementById('btnPick');
+    const btnGive = document.getElementById('btnGive');
     const signinBtn = document.getElementById('signinBtn');
     const nameField = document.getElementById('nameField');
     const nameInput = document.getElementById('name');
@@ -479,40 +401,43 @@
     const password = document.getElementById('password');
     const errorMsg = document.getElementById('errorMsg');
     const toggleLink = document.getElementById('toggleLink');
+    const cardTitle = document.getElementById('cardTitle');
+    const cardSub = document.getElementById('cardSub');
+    const bgOwner = document.getElementById('bgOwner');
+
+    const content = {
+      pick: { title: 'Drive anything you want', sub: 'No subscription. Pay only for what you drive.' },
+      give: { title: 'Turn your car into income', sub: '₹100/month. We handle bookings, payments & support.' }
+    };
 
     function setRole(role) {
       currentRole = role;
       const isPick = role === 'pick';
-      avatarPick.classList.toggle('is-active', isPick);
-      avatarGive.classList.toggle('is-active', !isPick);
+      btnPick.classList.toggle('is-active', isPick);
+      btnGive.classList.toggle('is-active', !isPick);
+      bgOwner.classList.toggle('is-visible', !isPick);
+      const c = content[role];
+      cardTitle.textContent = c.title;
+      cardSub.textContent = c.sub;
       updateBtnText();
-
-      const page = document.querySelector('.page');
-      if (!isPick) {
-        page.style.setProperty('--color-accent', 'oklch(68% 0.15 220)');
-        page.style.setProperty('--color-accent-2', 'oklch(62% 0.15 220)');
-      } else {
-        page.style.removeProperty('--color-accent');
-        page.style.removeProperty('--color-accent-2');
-      }
     }
 
     function updateBtnText() {
       const isPick = currentRole === 'pick';
-      signinBtn.querySelector('span').textContent = isRegister
-        ? (isPick ? 'Register to rent a car' : 'Register to list your car')
-        : (isPick ? 'Sign in to rent a car' : 'Sign in to list your car');
+      if (isRegister) {
+        signinBtn.querySelector('span').textContent = isPick ? 'Create free account' : 'Register as owner — ₹100/mo';
+      } else {
+        signinBtn.querySelector('span').textContent = isPick ? 'Get started free' : 'Sign in as owner';
+      }
     }
 
-    avatarPick.addEventListener('click', () => setRole('pick'));
-    avatarGive.addEventListener('click', () => setRole('give'));
+    btnPick.addEventListener('click', () => setRole('pick'));
+    btnGive.addEventListener('click', () => setRole('give'));
 
     toggleLink.addEventListener('click', e => {
       e.preventDefault();
       isRegister = !isRegister;
       nameField.style.display = isRegister ? 'block' : 'none';
-      document.querySelector('.card-header h1').textContent = isRegister ? 'Create account' : 'Welcome back';
-      document.querySelector('.card-header p').textContent = isRegister ? 'Join CAR-ENT today' : 'Sign in to continue';
       updateBtnText();
       toggleLink.textContent = isRegister ? 'Sign in' : 'Create an account';
       errorMsg.textContent = '';
