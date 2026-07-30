@@ -6,7 +6,7 @@
   <title>CAR-ENT — Rent. Drive. Return.</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/tokens.css" />
   <link rel="stylesheet" href="/cursor/cursor.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -17,300 +17,154 @@
     body {
       font-family: var(--font-body);
       color: var(--color-ink);
-      overflow-x: hidden;
+      overflow: hidden;
       min-height: 100vh;
+      background: var(--color-paper);
     }
 
-    /* ===== PER-ROLE THEMING ===== */
-    .role-pick {
-      --role-bg-from:    var(--bg-pick-from);
-      --role-bg-mid:     var(--bg-pick-mid);
-      --role-bg-to:      var(--bg-pick-to);
-    }
-    .role-give {
-      --color-accent:    oklch(68% 0.15 220);
-      --color-accent-2:  oklch(62% 0.15 220);
-      --color-focus:     oklch(72% 0.18 225);
-      --role-bg-from:    var(--bg-give-from);
-      --role-bg-mid:     var(--bg-give-mid);
-      --role-bg-to:      var(--bg-give-to);
-    }
-
-    /* ===== AMBIENT BACKGROUND ===== */
-    .ambient {
+    /* ===== FULLSCREEN ATMOSPHERE ===== */
+    .bg {
       position: fixed; inset: 0; z-index: 0;
-      pointer-events: none;
-      background: linear-gradient(135deg, var(--role-bg-from) 0%, var(--role-bg-mid) 50%, var(--role-bg-to) 100%);
-      transition: background 600ms var(--ease-out);
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in oklch, var(--color-accent) 25%, transparent) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 50% at 80% 100%, color-mix(in oklch, var(--color-accent-2) 12%, transparent) 0%, transparent 60%),
+                  var(--color-paper);
+      transition: background var(--dur-slow) var(--ease-out);
     }
 
-    /* ===== GRAIN OVERLAY ===== */
+    /* ===== ANIMATED ORBS ===== */
+    .orb {
+      position: fixed; z-index: 1;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: orbFloat 20s ease-in-out infinite;
+    }
+    .orb--1 {
+      width: 50vmin; height: 50vmin;
+      background: color-mix(in oklch, var(--color-accent) 8%, transparent);
+      top: -10%; left: -5%;
+      animation-delay: 0s;
+    }
+    .orb--2 {
+      width: 40vmin; height: 40vmin;
+      background: color-mix(in oklch, var(--color-accent-2) 6%, transparent);
+      bottom: -5%; right: -5%;
+      animation-delay: -7s;
+    }
+    .orb--3 {
+      width: 30vmin; height: 30vmin;
+      background: color-mix(in oklch, var(--color-accent) 5%, transparent);
+      top: 40%; right: 15%;
+      animation-delay: -14s;
+    }
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -40px) scale(1.05); }
+      66% { transform: translate(-20px, 20px) scale(0.95); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .orb { animation: none; }
+    }
+
+    /* ===== GRAIN ===== */
     .grain {
-      position: fixed; inset: 0; z-index: 1;
+      position: fixed; inset: 0; z-index: 2;
       pointer-events: none;
     }
     .grain::after {
       content: ""; position: absolute; inset: 0;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
       background-size: 256px 256px;
-      opacity: 0.04;
+      opacity: 0.03;
       mix-blend-mode: overlay;
     }
 
-    /* ===== SPOTLIGHT ===== */
-    .spotlight {
-      position: fixed; inset: 0; z-index: 2;
+    /* ===== GRID ===== */
+    .grid {
+      position: fixed; inset: 0; z-index: 1;
       pointer-events: none;
-      background: radial-gradient(800px circle at var(--mx, 50%) var(--my, 30%),
-        color-mix(in oklch, var(--color-accent) 10%, transparent) 0%,
-        transparent 60%);
-      transition: background 400ms var(--ease-out);
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .spotlight { transition: none; --mx: 50%; --my: 30%; }
+      background-image:
+        linear-gradient(color-mix(in oklch, var(--color-ink) 3%, transparent) 1px, transparent 1px),
+        linear-gradient(90deg, color-mix(in oklch, var(--color-ink) 3%, transparent) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 70%);
     }
 
-    /* ===== PAGE LAYOUT ===== */
+    /* ===== PAGE ===== */
     .page {
-      position: relative; z-index: 2;
+      position: relative; z-index: 3;
       min-height: 100vh;
-      display: grid;
-      grid-template-columns: 1fr;
-      padding: var(--space-xl) var(--space-lg);
-    }
-    @media (min-width: 64rem) {
-      .page {
-        grid-template-columns: 1.1fr 0.9fr;
-        align-items: center;
-        padding: var(--space-2xl) var(--space-3xl);
-        gap: var(--space-2xl);
-      }
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: var(--space-lg);
     }
 
-    /* ===== HERO ===== */
-    .hero {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-lg);
-      padding-top: 5rem;
-    }
-    @media (min-width: 64rem) { .hero { padding-top: 0; } }
-
-    /* === BRAND === */
+    /* ===== BRAND HEADER ===== */
     .brand {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      animation: fadeSlide 0.8s var(--ease-out) both;
+      display: flex; align-items: center; gap: var(--space-sm);
+      margin-bottom: var(--space-3xl);
     }
     .brand-mark {
-      width: 40px; height: 40px;
-      border-radius: var(--radius-lg);
+      width: 44px; height: 44px;
+      border-radius: 14px;
       background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
       display: grid; place-items: center;
       font-family: var(--font-display);
       font-weight: 700;
       font-size: var(--text-lg);
       color: #fff;
-      box-shadow: 0 0 30px color-mix(in oklch, var(--color-accent) 30%, transparent);
     }
     .brand-text {
       font-family: var(--font-display);
       font-size: var(--text-xl);
       font-weight: 700;
       letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--color-ink), var(--color-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    .brand-text .hl { color: var(--color-accent); }
+    .brand-text .hl { color: var(--color-accent); -webkit-text-fill-color: var(--color-accent); }
 
-    /* === HERO HEADING === */
-    .hero-heading {
-      font-family: var(--font-display);
-      font-size: clamp(2.2rem, 5vw + 0.5rem, 3.8rem);
-      font-weight: 700;
-      line-height: 1.08;
-      letter-spacing: -0.03em;
-      animation: fadeSlide 0.8s 0.1s var(--ease-out) both;
-    }
-    .hero-heading .hl { color: var(--color-accent); }
-
-    .hero-sub {
-      font-size: var(--text-md);
-      color: var(--color-muted);
-      line-height: 1.7;
-      max-width: 40ch;
-      animation: fadeSlide 0.8s 0.15s var(--ease-out) both;
-    }
-
-    /* === EARNINGS CARD === */
-    .earnings-card {
+    /* ===== LOGIN CARD ===== */
+    .card {
+      width: 100%; max-width: 400px;
       background: var(--color-card);
       border: 1px solid var(--color-rule);
-      border-radius: var(--radius-lg);
-      padding: var(--space-lg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      max-width: 360px;
-      animation: fadeSlide 0.8s 0.2s var(--ease-out) both;
-      transition: transform var(--dur-normal) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out);
+      border-radius: 20px;
+      padding: var(--space-xl) var(--space-lg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 8px 48px rgba(0,0,0,0.3);
+      transition: border-color var(--dur-normal) var(--ease-out);
     }
-    .earnings-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 48px rgba(0,0,0,0.3);
-    }
-    .earnings-card h3 {
-      font-family: var(--font-display);
-      font-size: var(--text-base);
-      font-weight: 600;
-      margin-bottom: var(--space-3xs);
-    }
-    .earnings-card p {
-      font-size: var(--text-sm);
-      color: var(--color-muted);
-      margin-bottom: var(--space-sm);
-      line-height: 1.5;
-    }
-    .earnings-amount {
-      display: flex; align-items: baseline; gap: var(--space-3xs);
-      margin-bottom: var(--space-3xs);
-    }
-    .earnings-amount .num {
-      font-family: var(--font-display);
-      font-size: var(--text-2xl);
-      font-weight: 700;
-      color: var(--color-accent);
-    }
-    .earnings-amount .period {
-      font-size: var(--text-sm);
-      color: var(--color-muted);
-    }
-    .badge-group { display: flex; gap: var(--space-3xs); flex-wrap: wrap; }
-    .badge {
-      font-size: var(--text-xs);
-      padding: var(--space-3xs) var(--space-xs);
-      border-radius: 999px;
-      background: color-mix(in oklch, var(--color-accent) 12%, transparent);
-      color: var(--color-accent);
-      font-weight: 500;
-    }
-
-    /* === FEATURES === */
-    .features {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-xs);
-      max-width: 400px;
-      animation: fadeSlide 0.8s 0.25s var(--ease-out) both;
-    }
-    .feature-card {
-      background: var(--color-card);
-      border: 1px solid var(--color-rule-2);
-      border-radius: var(--radius-md);
-      padding: var(--space-sm);
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      transition: transform var(--dur-normal) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out),
-                  border-color var(--dur-normal) var(--ease-out);
-      cursor: default;
-    }
-    .feature-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 28px color-mix(in oklch, var(--color-accent) 10%, transparent);
+    .card:focus-within {
       border-color: color-mix(in oklch, var(--color-accent) 25%, var(--color-rule));
     }
-    .feature-icon {
-      width: 28px; height: 28px; flex-shrink: 0;
-      color: var(--color-accent);
-      transition: transform var(--dur-normal) var(--ease-out);
-    }
-    .feature-card:hover .feature-icon { transform: scale(1.12); }
-    .feature-card span {
-      font-size: var(--text-sm);
-      font-weight: 500;
-      line-height: 1.2;
-    }
 
-    /* === TRUST BAR === */
-    .trust-bar {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-3xs);
-      animation: fadeSlide 0.8s 0.3s var(--ease-out) both;
-    }
-    @media (max-width: 63.999rem) { .trust-bar { grid-template-columns: 1fr 1fr; } }
-
-    .trust-item {
-      background: var(--color-card);
-      border: 1px solid var(--color-rule-2);
-      border-radius: var(--radius-md);
-      padding: var(--space-sm) var(--space-xs);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+    .card-header {
       text-align: center;
-      transition: transform var(--dur-normal) var(--ease-out),
-                  border-color var(--dur-normal) var(--ease-out);
+      margin-bottom: var(--space-lg);
     }
-    .trust-item:hover {
-      transform: translateY(-2px);
-      border-color: color-mix(in oklch, var(--color-accent) 20%, var(--color-rule));
-    }
-    .trust-item svg {
-      width: 18px; height: 18px;
-      color: var(--color-accent);
-      margin-bottom: var(--space-3xs);
-    }
-    .trust-item h4 {
+    .card-header h1 {
       font-family: var(--font-display);
-      font-size: var(--text-xs);
+      font-size: var(--text-lg);
       font-weight: 600;
+      letter-spacing: -0.02em;
       margin-bottom: var(--space-3xs);
     }
-    .trust-item p {
-      font-size: 0.6rem;
+    .card-header p {
+      font-size: var(--text-sm);
       color: var(--color-muted);
-      line-height: 1.2;
     }
 
-    /* ===== LOGIN PANEL ===== */
-    .login-wrap {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-top: var(--space-xl);
-      animation: fadeSlide 0.8s 0.15s var(--ease-out) both;
-    }
-
-    .login-card {
-      width: 100%;
-      max-width: 420px;
-      background: var(--color-card);
-      border: 1px solid var(--color-rule);
-      border-radius: 24px;
-      padding: var(--space-xl) var(--space-lg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
-      transition: border-color var(--dur-normal) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out);
-    }
-    .login-card:focus-within {
-      border-color: color-mix(in oklch, var(--color-accent) 30%, var(--color-rule));
-      box-shadow: 0 8px 48px color-mix(in oklch, var(--color-accent) 8%, transparent),
-                  0 0 0 1px color-mix(in oklch, var(--color-accent) 15%, transparent);
-    }
-
-    /* === TABS === */
+    /* ===== TABS ===== */
     .tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: grid; grid-template-columns: 1fr 1fr;
       gap: var(--space-3xs);
       background: var(--color-paper-2);
       border: 1px solid var(--color-rule-2);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: var(--space-3xs);
       margin-bottom: var(--space-lg);
     }
@@ -321,7 +175,7 @@
       font-size: var(--text-sm);
       font-weight: 500;
       padding: var(--space-xs) var(--space-sm);
-      border-radius: 11px;
+      border-radius: 9px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -329,33 +183,23 @@
       gap: var(--space-3xs);
       transition: color var(--dur-fast) var(--ease-out),
                   background var(--dur-normal) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out),
-                  transform var(--dur-fast) var(--ease-out);
+                  box-shadow var(--dur-normal) var(--ease-out);
     }
     .tab svg { width: 14px; height: 14px; flex-shrink: 0; }
     .tab[aria-selected="true"] {
       background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
       color: #fff;
-      box-shadow: 0 2px 16px color-mix(in oklch, var(--color-accent) 35%, transparent);
+      box-shadow: 0 2px 12px color-mix(in oklch, var(--color-accent) 30%, transparent);
     }
     .tab:hover:not([aria-selected="true"]) {
       background: color-mix(in oklch, var(--color-ink) 6%, transparent);
       color: var(--color-ink);
     }
-    .tab:active { transform: scale(0.97); }
-    .tab-desc {
-      font-size: var(--text-sm);
-      color: var(--color-muted);
-      margin-top: calc(var(--space-sm) * -1);
-      margin-bottom: var(--space-lg);
-      min-height: 1.3em;
-    }
 
-    /* === FIELDS === */
+    /* ===== FIELDS ===== */
     .field { margin-bottom: var(--space-md); }
     .field label {
       display: block;
-      font-family: var(--font-display);
       font-size: var(--text-xs);
       font-weight: 600;
       letter-spacing: 0.06em;
@@ -391,19 +235,17 @@
     .field input::placeholder { color: var(--color-neutral); }
     .field input:focus {
       border-color: var(--color-accent);
-      box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-accent) 12%, transparent),
-                  0 0 24px color-mix(in oklch, var(--color-accent) 6%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-accent) 12%, transparent);
       background: var(--color-paper-3);
     }
     .input-wrap:focus-within svg { color: var(--color-accent); }
 
-    /* === CTA === */
+    /* ===== CTA ===== */
     .cta {
       width: 100%;
-      margin-top: var(--space-sm);
       padding: var(--space-sm) var(--space-lg);
       border: none;
-      border-radius: 12px;
+      border-radius: 10px;
       background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
       color: #fff;
       font-family: var(--font-body);
@@ -419,26 +261,18 @@
       transition: transform var(--dur-fast) var(--ease-out),
                   box-shadow var(--dur-normal) var(--ease-out);
     }
-    .cta::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, color-mix(in oklch, var(--color-ink) 8%, transparent) 0%, transparent 100%);
-      opacity: 0;
-      transition: opacity var(--dur-normal) var(--ease-out);
-    }
-    .cta:hover::after { opacity: 1; }
     .cta:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 28px color-mix(in oklch, var(--color-accent) 40%, transparent);
     }
     .cta:active { transform: translateY(0) scale(0.98); }
     .cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .cta span, .cta svg { position: relative; z-index: 1; }
-    .cta svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .cta svg { width: 15px; height: 15px; }
 
-    /* === DIVIDER === */
+    /* ===== DIVIDER ===== */
     .divider {
       display: flex; align-items: center; gap: var(--space-sm);
-      margin: var(--space-lg) 0;
+      margin: var(--space-md) 0;
       color: var(--color-neutral);
       font-size: var(--text-xs);
       letter-spacing: 0.08em;
@@ -450,15 +284,13 @@
       background: var(--color-rule);
     }
 
-    /* === GOOGLE BTN === */
+    /* ===== GOOGLE BTN ===== */
     .google-btn {
       width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       gap: var(--space-xs);
       padding: var(--space-sm) var(--space-lg);
-      border-radius: 12px;
+      border-radius: 10px;
       border: 1px solid var(--color-rule);
       background: color-mix(in oklch, var(--color-ink) 3%, transparent);
       color: var(--color-ink);
@@ -468,251 +300,167 @@
       cursor: pointer;
       transition: background var(--dur-normal) var(--ease-out),
                   border-color var(--dur-normal) var(--ease-out),
-                  transform var(--dur-fast) var(--ease-out),
-                  box-shadow var(--dur-normal) var(--ease-out);
+                  transform var(--dur-fast) var(--ease-out);
     }
     .google-btn:hover {
       background: color-mix(in oklch, var(--color-ink) 6%, transparent);
       border-color: var(--color-rule);
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
       transform: translateY(-1px);
     }
     .google-btn:active { transform: translateY(0) scale(0.98); }
     .google-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
 
-    /* === FOOTER === */
-    .login-foot {
+    /* ===== FOOTER ===== */
+    .card-foot {
       text-align: center;
       margin-top: var(--space-lg);
       font-size: var(--text-sm);
       color: var(--color-muted);
     }
-    .login-foot a {
+    .card-foot a {
       color: var(--color-accent);
       text-decoration: none;
       font-weight: 600;
       border-bottom: 1px solid transparent;
-      transition: border-color var(--dur-fast) var(--ease-out),
-                  color var(--dur-fast) var(--ease-out);
+      transition: border-color var(--dur-fast) var(--ease-out);
       cursor: pointer;
     }
-    .login-foot a:hover { border-color: var(--color-accent); }
+    .card-foot a:hover { border-color: var(--color-accent); }
 
-    /* === ERROR === */
     .error-msg {
-      color: var(--color-error);
+      color: oklch(65% 0.2 25);
       font-size: var(--text-sm);
       text-align: center;
       margin-top: var(--space-sm);
       min-height: 1.3em;
     }
 
-    /* === ANIMATIONS === */
-    @keyframes fadeSlide {
-      from { opacity: 0; transform: translateY(16px); }
+    /* ===== AVATAR SWITCH ===== */
+    .avatar-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: var(--space-lg);
+      margin-bottom: var(--space-lg);
+    }
+    .avatar {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      transition: all var(--dur-normal) var(--ease-out);
+      position: relative;
+      background: var(--color-paper-2);
+    }
+    .avatar svg {
+      width: 22px; height: 22px;
+      color: var(--color-neutral);
+      transition: color var(--dur-normal) var(--ease-out);
+    }
+    .avatar span {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: var(--color-neutral);
+      transition: color var(--dur-normal) var(--ease-out);
+    }
+    .avatar.is-active {
+      border-color: var(--color-accent);
+      background: color-mix(in oklch, var(--color-accent) 10%, var(--color-paper-2));
+    }
+    .avatar.is-active svg,
+    .avatar.is-active span { color: var(--color-accent); }
+    .avatar:hover:not(.is-active) {
+      background: var(--color-paper-3);
+    }
+    .avatar:hover:not(.is-active) svg { color: var(--color-ink); }
+
+    /* ===== ANIMATIONS ===== */
+    .brand { animation: reveal 0.8s var(--ease-out) both; }
+    .card { animation: reveal 0.8s 0.1s var(--ease-out) both; }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* === MOBILE === */
-    @media (max-width: 63.999rem) {
-      .page { padding: var(--space-lg) var(--space-md); }
-      .hero { padding-top: 4rem; gap: var(--space-md); }
-      .login-card { max-width: 100%; }
-      .features { max-width: 100%; }
-      .trust-bar { max-width: 100%; }
-    }
-
-    /* === ROLE INDICATOR === */
-    .role-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-3xs);
-      font-family: var(--font-display);
-      font-size: var(--text-xs);
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: var(--space-3xs) var(--space-sm);
-      border-radius: 999px;
-      border: 1px solid color-mix(in oklch, var(--color-accent) 20%, var(--color-rule));
-      color: var(--color-accent);
-      width: fit-content;
-      transition: border-color var(--dur-normal) var(--ease-out),
-                  color var(--dur-normal) var(--ease-out);
-      animation: fadeSlide 0.8s 0.05s var(--ease-out) both;
-    }
-    .role-indicator .dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: var(--color-accent);
-      transition: background var(--dur-normal) var(--ease-out);
-    }
-
-    /* === REDUCED MOTION === */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
-      }
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
       .suv-cursor { display: none; }
       body { cursor: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="ambient" aria-hidden="true"></div>
+  <div class="bg"></div>
+  <div class="grid" aria-hidden="true"></div>
+  <div class="orb orb--1" aria-hidden="true"></div>
+  <div class="orb orb--2" aria-hidden="true"></div>
+  <div class="orb orb--3" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
-  <div class="spotlight" aria-hidden="true" id="spotlight"></div>
 
-  <div class="page role-pick">
-    <!-- LEFT: Hero -->
-    <div class="hero">
-      <div class="brand">
-        <div class="brand-mark">C</div>
-        <div class="brand-text">CAR<span class="hl">-</span>ENT</div>
-      </div>
-
-      <div class="role-indicator" id="roleIndicator">
-        <span class="dot"></span>
-        <span id="roleLabel">Renter</span>
-      </div>
-
-      <h1 class="hero-heading" id="heroHeading">
-        Rent the perfect car<br/>for <span class="hl">every journey</span>.
-      </h1>
-
-      <p class="hero-sub" id="heroSub">
-        Book verified self-drive cars across India.<br/>
-        Affordable. Fast. Reliable.
-      </p>
-
-      <div class="earnings-card" id="ownerCard">
-        <h3 id="ownerCardTitle">For Car Owners</h3>
-        <p id="ownerCardDesc">Register your car and start earning with CAR-ENT.</p>
-        <div class="earnings-amount" id="ownerPrice">
-          <span class="num">₹100<span class="period">/month</span></span>
-        </div>
-        <div class="badge-group">
-          <span class="badge">No other fees.</span>
-          <span class="badge">No hidden charges.</span>
-        </div>
-      </div>
-
-      <div class="features" id="features">
-        <div class="feature-card" data-role="pick">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
-          <span>Verified Cars</span>
-        </div>
-        <div class="feature-card" data-role="pick">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          <span>Affordable Rentals</span>
-        </div>
-        <div class="feature-card" data-role="pick">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          <span>Instant Booking</span>
-        </div>
-        <div class="feature-card" data-role="pick">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-          <span>24×7 Support</span>
-        </div>
-        <div class="feature-card" data-role="give" style="display:none">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          <span>Easy Listing</span>
-        </div>
-        <div class="feature-card" data-role="give" style="display:none">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          <span>Secure Payments</span>
-        </div>
-        <div class="feature-card" data-role="give" style="display:none">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>Full Insurance</span>
-        </div>
-        <div class="feature-card" data-role="give" style="display:none">
-          <svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-          <span>24×7 Support</span>
-        </div>
-      </div>
-
-      <div class="trust-bar" id="trustBar">
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-          <h4>Verified Cars</h4>
-          <p>Every car inspected</p>
-        </div>
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 10-4 4-4-4"/></svg>
-          <h4>Transparent Pricing</h4>
-          <p>No hidden costs</p>
-        </div>
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <h4>Flexible Pickup</h4>
-          <p>Multiple locations</p>
-        </div>
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
-          <h4>24×7 Support</h4>
-          <p>Always available</p>
-        </div>
-      </div>
+  <div class="page">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div class="brand-text">CAR<span class="hl">-</span>ENT</div>
     </div>
 
-    <!-- RIGHT: Login -->
-    <div class="login-wrap">
-      <div class="login-card">
-        <div class="tabs" role="tablist">
-          <button class="tab" id="tabPick" role="tab" aria-selected="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="3" y="13" width="18" height="6" rx="1.5"/><circle cx="7.5" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/></svg>
-            Rent a Car
-          </button>
-          <button class="tab" id="tabGive" role="tab" aria-selected="false">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
-            Give Your Car
-          </button>
-        </div>
-        <div class="tab-desc" id="tabDesc">Find and rent a car near you in minutes</div>
-
-        <div class="field" id="nameField" style="display:none">
-          <label for="name">Name</label>
-          <div class="input-wrap">
-            <input id="name" type="text" placeholder="Your full name" autocomplete="name" />
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="email">Email</label>
-          <div class="input-wrap">
-            <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="password">Password</label>
-          <div class="input-wrap">
-            <input id="password" type="password" placeholder="At least 6 characters" autocomplete="current-password" />
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-        </div>
-
-        <button class="cta" id="signinBtn">
-          <span>Sign in to rent a car</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
-
-        <div class="divider">or</div>
-
-        <button class="google-btn" id="googleBtn" type="button">
-          <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
-          Continue with Google
-        </button>
-
-        <div class="login-foot">
-          New here? <a href="#" id="toggleLink">Create an account</a>
-        </div>
-        <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
+    <div class="card">
+      <div class="card-header">
+        <h1>Welcome back</h1>
+        <p>Sign in to continue</p>
       </div>
+
+      <div class="avatar-row" id="roleSwitcher">
+        <div class="avatar is-active" data-role="pick" id="avatarPick">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+          <span>Renter</span>
+        </div>
+        <div class="avatar" data-role="give" id="avatarGive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
+          <span>Owner</span>
+        </div>
+      </div>
+
+      <div class="field" id="nameField" style="display:none">
+        <label for="name">Name</label>
+        <div class="input-wrap">
+          <input id="name" type="text" placeholder="Your full name" autocomplete="name" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input id="password" type="password" placeholder="At least 6 characters" autocomplete="current-password" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+      </div>
+
+      <button class="cta" id="signinBtn">
+        <span>Sign in to rent a car</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+
+      <div class="divider">or</div>
+
+      <button class="google-btn" id="googleBtn" type="button">
+        <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
+        Continue with Google
+      </button>
+
+      <div class="card-foot">
+        New here? <a href="#" id="toggleLink">Create an account</a>
+      </div>
+      <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
     </div>
   </div>
 
@@ -722,9 +470,8 @@
     let isRegister = false;
     let currentRole = 'pick';
 
-    const tabPick = document.getElementById('tabPick');
-    const tabGive = document.getElementById('tabGive');
-    const tabDesc = document.getElementById('tabDesc');
+    const avatarPick = document.getElementById('avatarPick');
+    const avatarGive = document.getElementById('avatarGive');
     const signinBtn = document.getElementById('signinBtn');
     const nameField = document.getElementById('nameField');
     const nameInput = document.getElementById('name');
@@ -733,48 +480,21 @@
     const errorMsg = document.getElementById('errorMsg');
     const toggleLink = document.getElementById('toggleLink');
 
-    const contentByRole = {
-      pick: {
-        desc: 'Find and rent a car near you in minutes',
-        heading: 'Rent the perfect car<br/>for <span class="hl">every journey</span>.',
-        sub: 'Book verified self-drive cars across India.<br/>Affordable. Fast. Reliable.',
-        cardTitle: 'Zero platform fees',
-        cardDesc: 'No markup. No booking fees. Pay only what the owner charges.',
-        cardPrice: 'Free',
-        cardPeriod: 'for renters',
-        cardBadges: ['No booking fees.', 'No hidden charges.']
-      },
-      give: {
-        desc: 'List your car and start earning with CAR-ENT',
-        heading: 'Turn your car into<br/><span class="hl">steady income</span>.',
-        sub: 'List your car on CAR-ENT and earn on your schedule.<br/>We handle bookings, payments & support.',
-        cardTitle: 'Why CAR-ENT?',
-        cardDesc: 'Only ₹100/month. We handle everything else.',
-        cardPrice: '₹100',
-        cardPeriod: '/month',
-        cardBadges: ['No other fees.', 'No hidden charges.']
-      }
-    };
-
     function setRole(role) {
       currentRole = role;
       const isPick = role === 'pick';
-      document.querySelector('.page').className = 'page role-' + role;
-      tabPick.setAttribute('aria-selected', String(isPick));
-      tabGive.setAttribute('aria-selected', String(!isPick));
-      const c = contentByRole[role];
-      document.getElementById('roleLabel').textContent = isPick ? 'Renter' : 'Owner';
-      tabDesc.textContent = c.desc;
-      document.getElementById('heroHeading').innerHTML = c.heading;
-      document.getElementById('heroSub').innerHTML = c.sub;
-      document.getElementById('ownerCardTitle').textContent = c.cardTitle;
-      document.getElementById('ownerCardDesc').textContent = c.cardDesc;
-      document.getElementById('ownerPrice').innerHTML = '<span class="num">' + c.cardPrice + '<span class="period">' + c.cardPeriod + '</span>';
-      const badges = document.querySelectorAll('.badge-group .badge');
-      if (badges.length >= 2) { badges[0].textContent = c.cardBadges[0]; badges[1].textContent = c.cardBadges[1]; }
-      document.querySelectorAll('.feature-card[data-role="pick"]').forEach(el => el.style.display = isPick ? '' : 'none');
-      document.querySelectorAll('.feature-card[data-role="give"]').forEach(el => el.style.display = isPick ? 'none' : '');
+      avatarPick.classList.toggle('is-active', isPick);
+      avatarGive.classList.toggle('is-active', !isPick);
       updateBtnText();
+
+      const page = document.querySelector('.page');
+      if (!isPick) {
+        page.style.setProperty('--color-accent', 'oklch(68% 0.15 220)');
+        page.style.setProperty('--color-accent-2', 'oklch(62% 0.15 220)');
+      } else {
+        page.style.removeProperty('--color-accent');
+        page.style.removeProperty('--color-accent-2');
+      }
     }
 
     function updateBtnText() {
@@ -784,13 +504,15 @@
         : (isPick ? 'Sign in to rent a car' : 'Sign in to list your car');
     }
 
-    tabPick.addEventListener('click', () => setRole('pick'));
-    tabGive.addEventListener('click', () => setRole('give'));
+    avatarPick.addEventListener('click', () => setRole('pick'));
+    avatarGive.addEventListener('click', () => setRole('give'));
 
     toggleLink.addEventListener('click', e => {
       e.preventDefault();
       isRegister = !isRegister;
       nameField.style.display = isRegister ? 'block' : 'none';
+      document.querySelector('.card-header h1').textContent = isRegister ? 'Create account' : 'Welcome back';
+      document.querySelector('.card-header p').textContent = isRegister ? 'Join CAR-ENT today' : 'Sign in to continue';
       updateBtnText();
       toggleLink.textContent = isRegister ? 'Sign in' : 'Create an account';
       errorMsg.textContent = '';
@@ -857,19 +579,6 @@
         updateBtnText();
       }
     }
-
-    // ===== SPOTLIGHT =====
-    const spotlight = document.getElementById('spotlight');
-    spotlight?.addEventListener('pointermove', (e) => {
-      const x = e.clientX, y = e.clientY;
-      spotlight.style.setProperty('--mx', x + 'px');
-      spotlight.style.setProperty('--my', y + 'px');
-    });
-
-    // ===== STAGGERED REVEAL =====
-    document.querySelectorAll('.reveal').forEach((el, i) => {
-      el.style.setProperty('--i', i);
-    });
   </script>
 </body>
 </html>
