@@ -664,6 +664,7 @@
       });
     }, { threshold: 0.2 });
     document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+    setTimeout(() => { document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible')); }, 1500);
 
     function countUp() {
       if (counted) return;
@@ -858,7 +859,7 @@
         row.forEach(([label, code, extra, w]) => {
           const k = document.createElement('div');
           k.className = 'vkb-key';
-          if (extra) k.classList.add(extra);
+          if (extra && extra.match(/^[a-zA-Z-]+$/)) k.classList.add(extra);
           if (w) k.style.flex = w;
 
           if (extra === 'shift-key' || extra === 'caps-key') {
@@ -879,6 +880,12 @@
             k.style.flex = w;
           } else {
             if (typeof w === 'number') k.style.flex = w;
+            if (extra && !extra.match(/^[a-zA-Z-]+$/) && extra !== label) {
+              const s = document.createElement('div');
+              s.className = 'vkb-shift';
+              s.textContent = extra;
+              k.appendChild(s);
+            }
             const main = document.createElement('div');
             main.className = 'vkb-main';
             main.textContent = label;
