@@ -318,7 +318,7 @@
     .rbtn.is-active { background: #fff; color: #1d1d1f; box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04); }
     .rbtn:hover:not(.is-active) { color: #1d1d1f; }
 
-    .ig { margin-bottom: 0.75rem; }
+    .ig { margin-bottom: 0.75rem; position: relative; }
     .ig input {
       width: 100%; padding: 0.8rem 1rem; border-radius: 12px;
       border: 1.5px solid rgba(0,0,0,0.05); outline: none; background: #fff;
@@ -328,6 +328,16 @@
     .ig input::placeholder { color: #c7c7cc; }
     .ig input:focus { border-color: #1d1d1f; box-shadow: 0 0 0 3px rgba(0,0,0,0.08); transform: scale(1.01); }
     .ig input:hover:not(:focus) { border-color: rgba(0,0,0,0.1); }
+    .ig input.has-toggle { padding-right: 2.5rem; }
+    .pw-toggle {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      width: 28px; height: 28px; border-radius: 6px; border: none;
+      background: transparent; color: #86868b; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .pw-toggle:hover { background: rgba(0,0,0,0.05); color: #1d1d1f; }
+    .pw-toggle svg { width: 16px; height: 16px; }
 
     .subbtn {
       width: 100%; padding: 0.8rem; border-radius: 12px; border: none;
@@ -592,7 +602,7 @@
 
         <div class="ig" id="nameField" style="display:none"><input id="name" type="text" placeholder="Full name" autocomplete="name" /></div>
         <div class="ig"><input id="email" type="email" placeholder="Email" autocomplete="email" /></div>
-        <div class="ig"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /></div>
+        <div class="ig"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /><button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
 
         <button class="subbtn" id="signinBtn"><span id="btnText">Continue</span></button>
 
@@ -653,6 +663,16 @@
     const email = $('email'), password = $('password'), errorMsg = $('errorMsg');
     const toggleLink = $('toggleLink'), loginTitle = $('loginTitle'), loginSub = $('loginSub');
     const nav = $('nav');
+    const pwToggle = $('pwToggle');
+
+    pwToggle.addEventListener('click', () => {
+      const isPassword = password.type === 'password';
+      password.type = isPassword ? 'text' : 'password';
+      pwToggle.innerHTML = isPassword
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      password.focus();
+    });
 
     window.addEventListener('scroll', () => nav.classList.toggle('is-scrolled', window.scrollY > 10));
 
@@ -931,6 +951,20 @@
       let shiftOn = false;
       let capsOn = false;
       let activeField = null;
+      let savedSelStart = 0;
+      let savedSelEnd = 0;
+
+      function saveCursor(field) {
+        if (!field) return;
+        savedSelStart = field.selectionStart || 0;
+        savedSelEnd = field.selectionEnd || 0;
+      }
+      function restoreCursor(field) {
+        if (!field) return;
+        field.focus();
+        field.selectionStart = savedSelStart;
+        field.selectionEnd = savedSelEnd;
+      }
 
       function toggleShift() {
         shiftOn = !shiftOn;
@@ -978,6 +1012,7 @@
         if (code === 'Escape') { closePanel(); return; }
 
         if (activeField) {
+          restoreCursor(activeField);
           if (code === 'Backspace') {
             const start = activeField.selectionStart;
             const end = activeField.selectionEnd;
@@ -1032,9 +1067,13 @@
       vkbFields.forEach(field => {
         field.addEventListener('focus', () => {
           activeField = field;
+          saveCursor(field);
           openPanel();
           updateCursorLabel(field);
         });
+        field.addEventListener('click', () => saveCursor(field));
+        field.addEventListener('keyup', () => saveCursor(field));
+        field.addEventListener('input', () => saveCursor(field));
         field.addEventListener('beforeinput', e => {
           if (e.inputType === 'insertText' && e.data) {
             const ch = e.data;
