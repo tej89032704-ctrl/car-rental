@@ -185,7 +185,7 @@
       padding: 4.5rem 2rem 3rem;
     }
     .hero {
-      text-align: left; overflow: hidden;
+      text-align: left; overflow: hidden; position: relative;
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 0.4rem;
@@ -222,6 +222,60 @@
       max-width: 480px; margin: 1.25rem 0 2rem; line-height: 1.6;
     }
     .hero-actions { display: flex; align-items: center; gap: 1rem; }
+
+    .hero-car {
+      position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 50px;
+      perspective: 600px;
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .hero-car-body {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      animation: carDrive 8s ease-in-out infinite;
+    }
+    .car-top {
+      position: absolute; top: 0; left: 25px; width: 60px; height: 22px;
+      background: #1d1d1f; border-radius: 12px 12px 2px 2px;
+      transform: translateZ(8px);
+    }
+    .car-bottom {
+      position: absolute; top: 18px; left: 5px; width: 110px; height: 22px;
+      background: #1d1d1f; border-radius: 6px;
+      transform: translateZ(8px);
+    }
+    .car-wheel-l, .car-wheel-r {
+      position: absolute; bottom: -4px; width: 16px; height: 16px;
+      border-radius: 50%; background: #1d1d1f;
+      border: 2px solid #fff;
+    }
+    .car-wheel-l { left: 18px; transform: translateZ(14px); animation: wheelSpin 1.5s linear infinite; }
+    .car-wheel-r { right: 18px; transform: translateZ(14px); animation: wheelSpin 1.5s linear infinite; }
+    .car-headlight {
+      position: absolute; top: 24px; right: 2px; width: 8px; height: 6px;
+      background: #fff; border-radius: 2px;
+      transform: translateZ(10px);
+      animation: headlightBlink 3s ease-in-out infinite;
+    }
+    @keyframes carDrive {
+      0%, 100% { transform: translateY(0) rotateY(0deg); }
+      25% { transform: translateY(-6px) rotateY(8deg); }
+      50% { transform: translateY(0) rotateY(0deg); }
+      75% { transform: translateY(-3px) rotateY(-5deg); }
+    }
+    @keyframes wheelSpin { to { transform: translateZ(14px) rotate(360deg); } }
+    @keyframes headlightBlink {
+      0%, 40%, 100% { opacity: 1; }
+      50%, 90% { opacity: 0.3; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-car-body { animation: none; }
+      .car-wheel-l, .car-wheel-r { animation: none; }
+      .car-headlight { animation: none; }
+    }
 
     .btn-pri {
       display: inline-flex; align-items: center; gap: 0.5rem;
@@ -318,7 +372,7 @@
     .rbtn.is-active { background: #fff; color: #1d1d1f; box-shadow: 0 1px 4px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04); }
     .rbtn:hover:not(.is-active) { color: #1d1d1f; }
 
-    .ig { margin-bottom: 0.75rem; position: relative; }
+    .ig { margin-bottom: 0.75rem; }
     .ig input {
       width: 100%; padding: 0.8rem 1rem; border-radius: 12px;
       border: 1.5px solid rgba(0,0,0,0.05); outline: none; background: #fff;
@@ -328,16 +382,6 @@
     .ig input::placeholder { color: #c7c7cc; }
     .ig input:focus { border-color: #1d1d1f; box-shadow: 0 0 0 3px rgba(0,0,0,0.08); transform: scale(1.01); }
     .ig input:hover:not(:focus) { border-color: rgba(0,0,0,0.1); }
-    .ig input.has-toggle { padding-right: 2.5rem; }
-    .pw-toggle {
-      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-      width: 28px; height: 28px; border-radius: 6px; border: none;
-      background: transparent; color: #86868b; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, color 0.15s;
-    }
-    .pw-toggle:hover { background: rgba(0,0,0,0.05); color: #1d1d1f; }
-    .pw-toggle svg { width: 16px; height: 16px; }
 
     .subbtn {
       width: 100%; padding: 0.8rem; border-radius: 12px; border: none;
@@ -582,6 +626,15 @@
         <a href="#login" class="btn-pri">Start renting<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
         <a href="#" class="btn-sec">List your car</a>
       </div>
+      <div class="hero-car" aria-hidden="true">
+        <div class="hero-car-body">
+          <div class="car-top"></div>
+          <div class="car-bottom"></div>
+          <div class="car-wheel-l"></div>
+          <div class="car-wheel-r"></div>
+          <div class="car-headlight"></div>
+        </div>
+      </div>
     </div>
 
     <section class="login-section" id="login">
@@ -602,7 +655,7 @@
 
         <div class="ig" id="nameField" style="display:none"><input id="name" type="text" placeholder="Full name" autocomplete="name" /></div>
         <div class="ig"><input id="email" type="email" placeholder="Email" autocomplete="email" /></div>
-        <div class="ig"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /><button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+        <div class="ig"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /></div>
 
         <button class="subbtn" id="signinBtn"><span id="btnText">Continue</span></button>
 
@@ -663,16 +716,6 @@
     const email = $('email'), password = $('password'), errorMsg = $('errorMsg');
     const toggleLink = $('toggleLink'), loginTitle = $('loginTitle'), loginSub = $('loginSub');
     const nav = $('nav');
-    const pwToggle = $('pwToggle');
-
-    pwToggle.addEventListener('click', () => {
-      const isPassword = password.type === 'password';
-      password.type = isPassword ? 'text' : 'password';
-      pwToggle.innerHTML = isPassword
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-      password.focus();
-    });
 
     window.addEventListener('scroll', () => nav.classList.toggle('is-scrolled', window.scrollY > 10));
 
@@ -961,9 +1004,11 @@
       }
       function restoreCursor(field) {
         if (!field) return;
+        const s = savedSelStart;
+        const e = savedSelEnd;
         field.focus();
-        field.selectionStart = savedSelStart;
-        field.selectionEnd = savedSelEnd;
+        field.selectionStart = s;
+        field.selectionEnd = e;
       }
 
       function toggleShift() {
