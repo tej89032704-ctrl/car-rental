@@ -406,6 +406,41 @@
       footer { padding: 1.25rem; flex-direction: column; gap: 0.75rem; text-align: center; }
       .flinks { flex-wrap: wrap; justify-content: center; gap: 1rem; }
     }
+
+    /* ===== Virtual keyboard (matches login-box styling) ===== */
+    .vkb-panel {
+      position: fixed; top: 50%; right: 24px; transform: translate(120%, -50%);
+      z-index: 500;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 24px;
+      padding: 1rem;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.10);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .vkb-panel.open { transform: translate(0, -50%); }
+    .vkb-row { display: flex; gap: 5px; margin-bottom: 5px; }
+    .vkb-row:last-child { margin-bottom: 0; }
+    .vkb-key {
+      height: 34px; min-width: 28px; padding: 0 4px;
+      border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.05);
+      background: #fff; color: #1d1d1f; font-family: inherit;
+      font-size: 11px; font-weight: 500;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      line-height: 1.05; user-select: none; cursor: default;
+      transition: background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    .vkb-key .vkb-shift { font-size: 8px; color: #c7c7cc; }
+    .vkb-key.active {
+      background: #1d1d1f; color: #fff; transform: scale(1.08);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    .vkb-key.active .vkb-shift { color: #9a9a9e; }
+    @media (max-width: 900px) {
+      .vkb-panel { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -646,6 +681,102 @@
         window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
       } catch (_) { showErr('Cannot connect to server.'); signinBtn.disabled = false; up(); }
     }
+
+    /* ===== Virtual keyboard: appears beside the login/register form ===== */
+    (function () {
+      const vkbRows = [
+        [['1','Digit1','!'],['2','Digit2','@'],['3','Digit3','#'],['4','Digit4','$'],['5','Digit5','%'],['6','Digit6','^'],['7','Digit7','&'],['8','Digit8','*'],['9','Digit9','('],['0','Digit0',')']],
+        [['Q','KeyQ'],['W','KeyW'],['E','KeyE'],['R','KeyR'],['T','KeyT'],['Y','KeyY'],['U','KeyU'],['I','KeyI'],['O','KeyO'],['P','KeyP']],
+        [['A','KeyA'],['S','KeyS'],['D','KeyD'],['F','KeyF'],['G','KeyG'],['H','KeyH'],['J','KeyJ'],['K','KeyK'],['L','KeyL']],
+        [['Z','KeyZ'],['X','KeyX'],['C','KeyC'],['V','KeyV'],['B','KeyB'],['N','KeyN'],['M','KeyM'],['@','At'],['.','Dot']],
+        [['\u21e7','ShiftLeft'],['\u2423','Space',null,4],['\u232b','Backspace'],['\u21b5','Enter']]
+      ];
+
+      const panel = document.createElement('div');
+      panel.className = 'vkb-panel';
+      panel.id = 'vkbPanel';
+      const vkbKeyEls = {};
+
+      vkbRows.forEach(row => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'vkb-row';
+        row.forEach(([label, code, shiftSym, w]) => {
+          const k = document.createElement('div');
+          k.className = 'vkb-key';
+          if (w) k.style.flex = w;
+          if (shiftSym) {
+            const s = document.createElement('div');
+            s.className = 'vkb-shift';
+            s.textContent = shiftSym;
+            k.appendChild(s);
+          }
+          const main = document.createElement('div');
+          main.textContent = label;
+          k.appendChild(main);
+          vkbKeyEls[code] = k;
+          rowDiv.appendChild(k);
+        });
+        panel.appendChild(rowDiv);
+      });
+      document.body.appendChild(panel);
+
+      function vkbFlash(code) {
+        const k = vkbKeyEls[code];
+        if (!k) return;
+        k.classList.remove('active');
+        void k.offsetWidth;
+        k.classList.add('active');
+        clearTimeout(k._t);
+        k._t = setTimeout(() => k.classList.remove('active'), 220);
+      }
+
+      const CHAR_TO_CODE = {
+        '1':'Digit1','!':'Digit1','2':'Digit2','@':'At','3':'Digit3','#':'Digit3','4':'Digit4','$':'Digit4','5':'Digit5','%':'Digit5',
+        '6':'Digit6','^':'Digit6','7':'Digit7','&':'Digit7','8':'Digit8','*':'Digit8','9':'Digit9','(':'Digit9','0':'Digit0',')':'Digit0',
+        'q':'KeyQ','w':'KeyW','e':'KeyE','r':'KeyR','t':'KeyT','y':'KeyY','u':'KeyU','i':'KeyI','o':'KeyO','p':'KeyP',
+        'a':'KeyA','s':'KeyS','d':'KeyD','f':'KeyF','g':'KeyG','h':'KeyH','j':'KeyJ','k':'KeyK','l':'KeyL',
+        'z':'KeyZ','x':'KeyX','c':'KeyC','v':'KeyV','b':'KeyB','n':'KeyN','m':'KeyM','.':'Dot',' ':'Space'
+      };
+
+      const vkbFields = [nameInput, email, password].filter(Boolean);
+
+      function openPanel() { panel.classList.add('open'); }
+      function closePanel() { panel.classList.remove('open'); }
+
+      vkbFields.forEach(field => {
+        field.addEventListener('focus', openPanel);
+        field.addEventListener('beforeinput', e => {
+          if (e.inputType === 'insertText' && e.data) {
+            const ch = e.data;
+            const code = CHAR_TO_CODE[ch.toLowerCase()];
+            if (code) vkbFlash(code);
+            if (ch.toLowerCase() !== ch || '!@#$%^&*()'.includes(ch)) vkbFlash('ShiftLeft');
+          } else if (e.inputType === 'deleteContentBackward') {
+            vkbFlash('Backspace');
+          }
+        });
+        field.addEventListener('keydown', e => {
+          if (e.code === 'Enter') vkbFlash('Enter');
+        });
+      });
+
+      document.addEventListener('focusin', e => {
+        if (vkbFields.includes(e.target)) openPanel();
+        else if (!panel.contains(e.target)) closePanel();
+      });
+
+      document.addEventListener('keydown', e => {
+        if (!vkbFields.includes(document.activeElement)) return;
+        const k = vkbKeyEls[e.code];
+        if (k) {
+          k.classList.remove('active');
+          void k.offsetWidth;
+          k.classList.add('active');
+          clearTimeout(k._t);
+          k._t = setTimeout(() => k.classList.remove('active'), 220);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
