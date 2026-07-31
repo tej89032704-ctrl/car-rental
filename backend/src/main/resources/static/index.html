@@ -1000,16 +1000,15 @@
 
       function saveCursor(field) {
         if (!field) return;
-        savedSelStart = field.selectionStart || 0;
-        savedSelEnd = field.selectionEnd || 0;
+        try { savedSelStart = field.selectionStart || 0; } catch(e) { savedSelStart = field.value.length; }
+        try { savedSelEnd = field.selectionEnd || 0; } catch(e) { savedSelEnd = field.value.length; }
       }
       function restoreCursor(field) {
         if (!field) return;
         const s = savedSelStart;
         const e = savedSelEnd;
         field.focus();
-        field.selectionStart = s;
-        field.selectionEnd = e;
+        try { field.selectionStart = s; field.selectionEnd = e; } catch(err) {}
       }
 
       function toggleShift() {
@@ -1025,11 +1024,11 @@
 
       function insertChar(field, ch) {
         if (!field) return;
-        const start = field.selectionStart;
-        const end = field.selectionEnd;
+        let start = 0, end = 0;
+        try { start = field.selectionStart; end = field.selectionEnd; } catch(e) { start = end = field.value.length; }
         const val = field.value;
         field.value = val.slice(0, start) + ch + val.slice(end);
-        field.selectionStart = field.selectionEnd = start + ch.length;
+        try { field.selectionStart = field.selectionEnd = start + ch.length; } catch(e) {}
         field.dispatchEvent(new Event('input', { bubbles: true }));
       }
 
@@ -1060,14 +1059,14 @@
         if (activeField) {
           restoreCursor(activeField);
           if (code === 'Backspace') {
-            const start = activeField.selectionStart;
-            const end = activeField.selectionEnd;
+            let start = 0, end = 0;
+            try { start = activeField.selectionStart; end = activeField.selectionEnd; } catch(e) { start = end = activeField.value.length; }
             if (start !== end) {
               activeField.value = activeField.value.slice(0, start) + activeField.value.slice(end);
-              activeField.selectionStart = activeField.selectionEnd = start;
+              try { activeField.selectionStart = activeField.selectionEnd = start; } catch(e) {}
             } else if (start > 0) {
               activeField.value = activeField.value.slice(0, start - 1) + activeField.value.slice(start);
-              activeField.selectionStart = activeField.selectionEnd = start - 1;
+              try { activeField.selectionStart = activeField.selectionEnd = start - 1; } catch(e) {}
             }
             activeField.dispatchEvent(new Event('input', { bubbles: true }));
             vkbFlash('Backspace');
