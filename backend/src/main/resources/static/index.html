@@ -407,39 +407,136 @@
       .flinks { flex-wrap: wrap; justify-content: center; gap: 1rem; }
     }
 
-    /* ===== Virtual keyboard (matches login-box styling) ===== */
+    /* ===== Virtual keyboard — upgraded ===== */
     .vkb-panel {
       position: fixed; top: 50%; right: 24px; transform: translate(120%, -50%);
       z-index: 500;
-      background: rgba(255,255,255,0.82);
+      background: rgba(255,255,255,0.88);
       border: 1px solid rgba(0,0,0,0.06);
-      border-radius: 24px;
-      padding: 1rem;
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.10);
+      border-radius: 20px;
+      padding: 14px 16px;
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.5) inset;
       transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 340px;
     }
     .vkb-panel.open { transform: translate(0, -50%); }
-    .vkb-row { display: flex; gap: 5px; margin-bottom: 5px; }
-    .vkb-row:last-child { margin-bottom: 0; }
-    .vkb-key {
-      height: 34px; min-width: 28px; padding: 0 4px;
-      border-radius: 8px; border: 1.5px solid rgba(0,0,0,0.05);
-      background: #fff; color: #1d1d1f; font-family: inherit;
-      font-size: 11px; font-weight: 500;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      line-height: 1.05; user-select: none; cursor: default;
-      transition: background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+
+    .vkb-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px; }
+    .vkb-top .vkb-title { font-size: 10px; font-weight: 600; color: #86868b; letter-spacing: 0.05em; text-transform: uppercase; }
+    .vkb-top .vkb-close {
+      width: 18px; height: 18px; border-radius: 50%; border: none;
+      background: rgba(0,0,0,0.06); color: #86868b; font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
     }
-    .vkb-key .vkb-shift { font-size: 8px; color: #c7c7cc; }
+    .vkb-top .vkb-close:hover { background: rgba(0,0,0,0.12); color: #1d1d1f; }
+
+    .vkb-row { display: flex; gap: 4px; margin-bottom: 4px; }
+    .vkb-row:last-child { margin-bottom: 0; }
+
+    .vkb-key {
+      height: 36px; min-width: 28px; padding: 0 4px;
+      border-radius: 8px; border: 1px solid rgba(0,0,0,0.06);
+      background: #fff; color: #1d1d1f; font-family: inherit;
+      font-size: 12px; font-weight: 500;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      line-height: 1.1; user-select: none; cursor: pointer;
+      transition: background 0.12s, color 0.12s, transform 0.1s, box-shadow 0.12s;
+      position: relative;
+    }
+    .vkb-key:active { transform: scale(0.93); }
+    .vkb-key .vkb-shift {
+      font-size: 9px; color: #86868b; font-weight: 600;
+      line-height: 1; margin-bottom: -1px;
+    }
+    .vkb-key .vkb-main {
+      font-size: 12px; font-weight: 500; line-height: 1;
+    }
+
+    .vkb-key.fn-key {
+      background: rgba(0,0,0,0.04); color: #6e6e73;
+      font-size: 10px; font-weight: 600; min-width: 32px;
+      letter-spacing: 0.02em;
+    }
+    .vkb-key.fn-key:hover { background: rgba(0,0,0,0.08); }
+
+    .vkb-key.space-key {
+      flex: 4; min-width: 120px;
+      background: #fff; border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .vkb-key.shift-key, .vkb-key.caps-key {
+      min-width: 38px; font-size: 10px; font-weight: 600;
+      background: rgba(0,0,0,0.04); color: #6e6e73;
+    }
+    .vkb-key.shift-key:hover, .vkb-key.caps-key:hover {
+      background: rgba(0,0,0,0.08);
+    }
+    .vkb-key.shift-key.on, .vkb-key.caps-key.on {
+      background: #1d1d1f; color: #fff;
+    }
+
+    .vkb-key.backspace-key, .vkb-key.enter-key {
+      min-width: 48px; font-size: 10px; font-weight: 600;
+      background: rgba(0,0,0,0.04); color: #6e6e73;
+    }
+    .vkb-key.backspace-key:hover, .vkb-key.enter-key:hover {
+      background: rgba(0,0,0,0.08);
+    }
+    .vkb-key.enter-key {
+      background: #1d1d1f; color: #fff;
+    }
+    .vkb-key.enter-key:hover { background: #000; }
+
+    .vkb-key.tab-key { min-width: 38px; font-size: 10px; font-weight: 600; background: rgba(0,0,0,0.04); color: #6e6e73; }
+    .vkb-key.tab-key:hover { background: rgba(0,0,0,0.08); }
+
+    .vkb-key.esc-key { min-width: 34px; font-size: 10px; font-weight: 600; background: rgba(0,0,0,0.04); color: #6e6e73; }
+    .vkb-key.esc-key:hover { background: rgba(0,0,0,0.08); }
+
     .vkb-key.active {
-      background: #1d1d1f; color: #fff; transform: scale(1.08);
+      background: #1d1d1f; color: #fff; transform: scale(1.06);
       box-shadow: 0 4px 14px rgba(0,0,0,0.25);
     }
-    .vkb-key.active .vkb-shift { color: #9a9a9e; }
+    .vkb-key.active .vkb-shift { color: #aaa; }
+    .vkb-key.active.fn-key, .vkb-key.active.tab-key,
+    .vkb-key.active.esc-key, .vkb-key.active.shift-key,
+    .vkb-key.active.backspace-key { background: #333; color: #fff; }
+    .vkb-key.active.enter-key { background: #000; color: #fff; }
+
+    .vkb-symbols-row {
+      display: none;
+      gap: 4px; margin-bottom: 4px;
+    }
+    .vkb-symbols-row.show { display: flex; }
+    .vkb-key.sym-key {
+      height: 36px; min-width: 28px; padding: 0 4px;
+      border-radius: 8px; border: 1px solid rgba(0,0,0,0.06);
+      background: #fff; color: #1d1d1f; font-family: inherit;
+      font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.12s, transform 0.1s;
+    }
+    .vkb-key.sym-key:active { transform: scale(0.93); }
+    .vkb-key.sym-key.active { background: #1d1d1f; color: #fff; }
+
+    .vkb-cursor-indicator {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 8px; margin-bottom: 8px;
+      background: rgba(0,0,0,0.02); border-radius: 10px;
+      font-size: 10px; color: #86868b; font-weight: 500;
+    }
+    .vkb-cursor-indicator .cursor-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #1d1d1f; animation: blinkDot 1.2s step-end infinite;
+    }
+    @keyframes blinkDot { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
     @media (max-width: 900px) {
-      .vkb-panel { display: none; }
+      .vkb-panel { display: none !important; }
     }
   </style>
 </head>
@@ -682,43 +779,125 @@
       } catch (_) { showErr('Cannot connect to server.'); signinBtn.disabled = false; up(); }
     }
 
-    /* ===== Virtual keyboard: appears beside the login/register form ===== */
+    /* ===== Virtual keyboard: function keys, shift symbols, close button ===== */
     (function () {
       const vkbRows = [
-        [['1','Digit1','!'],['2','Digit2','@'],['3','Digit3','#'],['4','Digit4','$'],['5','Digit5','%'],['6','Digit6','^'],['7','Digit7','&'],['8','Digit8','*'],['9','Digit9','('],['0','Digit0',')']],
+        [
+          ['1','Digit1','!',28],['2','Digit2','@',28],['3','Digit3','#',28],['4','Digit4','$',28],['5','Digit5','%',28],
+          ['6','Digit6','^',28],['7','Digit7','&',28],['8','Digit8','*',28],['9','Digit9','(',28],['0','Digit0',')',28]
+        ],
         [['Q','KeyQ'],['W','KeyW'],['E','KeyE'],['R','KeyR'],['T','KeyT'],['Y','KeyY'],['U','KeyU'],['I','KeyI'],['O','KeyO'],['P','KeyP']],
-        [['A','KeyA'],['S','KeyS'],['D','KeyD'],['F','KeyF'],['G','KeyG'],['H','KeyH'],['J','KeyJ'],['K','KeyK'],['L','KeyL']],
-        [['Z','KeyZ'],['X','KeyX'],['C','KeyC'],['V','KeyV'],['B','KeyB'],['N','KeyN'],['M','KeyM'],['@','At'],['.','Dot']],
-        [['\u21e7','ShiftLeft'],['\u2423','Space',null,4],['\u232b','Backspace'],['\u21b5','Enter']]
+        [
+          ['Tab','Tab','tab-key'],
+          ['A','KeyA'],['S','KeyS'],['D','KeyD'],['F','KeyF'],['G','KeyG'],['H','KeyH'],['J','KeyJ'],['K','KeyK'],['L','KeyL']
+        ],
+        [
+          ['⇪','CapsLock','caps-key'],
+          ['Z','KeyZ'],['X','KeyX'],['C','KeyC'],['V','KeyV'],['B','KeyB'],['N','KeyN'],['M','KeyM'],['@','At'],['.','Dot'],
+          ['⌫','Backspace','backspace-key']
+        ],
+        [
+          ['⇧','ShiftLeft','shift-key'],
+          ['Esc','Escape','esc-key'],
+          [' ','Space','space-key',4],
+          ['⏎','Enter','enter-key']
+        ]
+      ];
+
+      const symbolRow = [
+        ['!','Digit1'],['@','At'],['#','Digit3'],['$','Digit4'],['%','Digit5'],
+        ['^','Digit6'],['&','Digit7'],['*','Digit8'],['(','Digit9'],[')','Digit0'],
+        ['-','Minus'],['_','Underscore'],['=','Equal'],['+','Plus'],['[','BracketLeft'],
+        [']','BracketRight'],['{','BracketLeft'],['}','BracketRight'],['/','Slash'],['\\','Backslash'],
+        ['|','Backslash'],['<','Comma'],['>','Period'],['?','Slash']
       ];
 
       const panel = document.createElement('div');
       panel.className = 'vkb-panel';
       panel.id = 'vkbPanel';
+
+      const topBar = document.createElement('div');
+      topBar.className = 'vkb-top';
+      const title = document.createElement('span');
+      title.className = 'vkb-title';
+      title.textContent = 'Keyboard';
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'vkb-close';
+      closeBtn.textContent = '\u00d7';
+      closeBtn.setAttribute('aria-label', 'Close keyboard');
+      topBar.appendChild(title);
+      topBar.appendChild(closeBtn);
+      panel.appendChild(topBar);
+
+      const cursorIndicator = document.createElement('div');
+      cursorIndicator.className = 'vkb-cursor-indicator';
+      const cursorDot = document.createElement('span');
+      cursorDot.className = 'cursor-dot';
+      const cursorLabel = document.createElement('span');
+      cursorIndicator.appendChild(cursorDot);
+      cursorIndicator.appendChild(cursorLabel);
+      panel.appendChild(cursorIndicator);
+
+      const symRowDiv = document.createElement('div');
+      symRowDiv.className = 'vkb-symbols-row';
+      symbolRow.forEach(([ch, code]) => {
+        const k = document.createElement('div');
+        k.className = 'vkb-key sym-key';
+        k.textContent = ch;
+        k.dataset.char = ch;
+        k.dataset.code = code;
+        symRowDiv.appendChild(k);
+      });
+      panel.appendChild(symRowDiv);
+
       const vkbKeyEls = {};
 
       vkbRows.forEach(row => {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'vkb-row';
-        row.forEach(([label, code, shiftSym, w]) => {
+        row.forEach(([label, code, extra, w]) => {
           const k = document.createElement('div');
           k.className = 'vkb-key';
+          if (extra) k.classList.add(extra);
           if (w) k.style.flex = w;
-          if (shiftSym) {
-            const s = document.createElement('div');
-            s.className = 'vkb-shift';
-            s.textContent = shiftSym;
-            k.appendChild(s);
+
+          if (extra === 'shift-key' || extra === 'caps-key') {
+            k.textContent = label;
+          } else if (extra === 'tab-key') {
+            k.textContent = label;
+          } else if (extra === 'esc-key') {
+            k.textContent = label;
+          } else if (extra === 'backspace-key') {
+            k.textContent = label;
+          } else if (extra === 'enter-key') {
+            k.textContent = label;
+          } else if (extra === 'space-key') {
+            k.style.fontSize = '11px';
+            k.style.color = '#c7c7cc';
+            k.textContent = 'space';
+          } else if (w && label === ' ') {
+            k.style.flex = w;
+          } else {
+            if (typeof w === 'number') k.style.flex = w;
+            const main = document.createElement('div');
+            main.className = 'vkb-main';
+            main.textContent = label;
+            k.appendChild(main);
           }
-          const main = document.createElement('div');
-          main.textContent = label;
-          k.appendChild(main);
+
           vkbKeyEls[code] = k;
           rowDiv.appendChild(k);
         });
         panel.appendChild(rowDiv);
       });
+
       document.body.appendChild(panel);
+
+      function updateCursorLabel(field) {
+        if (!field) { cursorLabel.textContent = ''; return; }
+        const map = { name: 'Name', email: 'Email', password: 'Password' };
+        cursorLabel.textContent = map[field.id] || 'Input';
+      }
 
       function vkbFlash(code) {
         const k = vkbKeyEls[code];
@@ -735,22 +914,127 @@
         '6':'Digit6','^':'Digit6','7':'Digit7','&':'Digit7','8':'Digit8','*':'Digit8','9':'Digit9','(':'Digit9','0':'Digit0',')':'Digit0',
         'q':'KeyQ','w':'KeyW','e':'KeyE','r':'KeyR','t':'KeyT','y':'KeyY','u':'KeyU','i':'KeyI','o':'KeyO','p':'KeyP',
         'a':'KeyA','s':'KeyS','d':'KeyD','f':'KeyF','g':'KeyG','h':'KeyH','j':'KeyJ','k':'KeyK','l':'KeyL',
-        'z':'KeyZ','x':'KeyX','c':'KeyC','v':'KeyV','b':'KeyB','n':'KeyN','m':'KeyM','.':'Dot',' ':'Space'
+        'z':'KeyZ','x':'KeyX','c':'KeyC','v':'KeyV','b':'KeyB','n':'KeyN','m':'KeyM','.':'Dot',' ':'Space',
+        '-':'Minus','_':'Underscore','=':'Equal','+':'Plus','[':'BracketLeft',']':'BracketRight',
+        '{':'BracketLeft','}':'BracketRight','/':'Slash','\\':'Backslash','|':'Backslash',
+        '<':'Comma','>':'Period','?':'Slash'
       };
 
       const vkbFields = [nameInput, email, password].filter(Boolean);
+      let shiftOn = false;
+      let capsOn = false;
+      let activeField = null;
+
+      function toggleShift() {
+        shiftOn = !shiftOn;
+        const shiftBtn = vkbKeyEls['ShiftLeft'];
+        if (shiftBtn) shiftBtn.classList.toggle('on', shiftOn);
+      }
+      function toggleCaps() {
+        capsOn = !capsOn;
+        const capsBtn = vkbKeyEls['CapsLock'];
+        if (capsBtn) capsBtn.classList.toggle('on', capsOn);
+      }
+
+      function insertChar(field, ch) {
+        if (!field) return;
+        const start = field.selectionStart;
+        const end = field.selectionEnd;
+        const val = field.value;
+        field.value = val.slice(0, start) + ch + val.slice(end);
+        field.selectionStart = field.selectionEnd = start + ch.length;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+      }
 
       function openPanel() { panel.classList.add('open'); }
       function closePanel() { panel.classList.remove('open'); }
 
+      closeBtn.addEventListener('click', closePanel);
+
+      panel.addEventListener('click', e => {
+        const key = e.target.closest('.vkb-key');
+        if (!key) return;
+
+        if (key.classList.contains('sym-key')) {
+          if (activeField) {
+            insertChar(activeField, key.dataset.char);
+            vkbFlash(key.dataset.code);
+          }
+          return;
+        }
+
+        const code = key.dataset?.code || Array.from(vkbKeyEls).find(([c, el]) => el === key)?.[0];
+        if (!code) return;
+
+        if (code === 'ShiftLeft') { toggleShift(); return; }
+        if (code === 'CapsLock') { toggleCaps(); return; }
+        if (code === 'Escape') { closePanel(); return; }
+
+        if (activeField) {
+          if (code === 'Backspace') {
+            const start = activeField.selectionStart;
+            const end = activeField.selectionEnd;
+            if (start !== end) {
+              activeField.value = activeField.value.slice(0, start) + activeField.value.slice(end);
+              activeField.selectionStart = activeField.selectionEnd = start;
+            } else if (start > 0) {
+              activeField.value = activeField.value.slice(0, start - 1) + activeField.value.slice(start);
+              activeField.selectionStart = activeField.selectionEnd = start - 1;
+            }
+            activeField.dispatchEvent(new Event('input', { bubbles: true }));
+            vkbFlash('Backspace');
+            return;
+          }
+
+          if (code === 'Tab') {
+            const idx = vkbFields.indexOf(activeField);
+            const next = vkbFields[(idx + 1) % vkbFields.length];
+            if (next) next.focus();
+            vkbFlash('Tab');
+            return;
+          }
+
+          if (code === 'Enter') {
+            vkbFlash('Enter');
+            activeField.form?.requestSubmit();
+            return;
+          }
+
+          if (code === 'Space') {
+            insertChar(activeField, ' ');
+            vkbFlash('Space');
+            return;
+          }
+
+          const label = key.querySelector('.vkb-main')?.textContent || key.textContent.trim();
+          let ch = label;
+
+          if (capsOn) ch = ch.toUpperCase();
+          else if (shiftOn) {
+            const shiftMap = { '1':'!','2':'@','3':'#','4':'$','5':'%','6':'^','7':'&','8':'*','9':'(','0':')',
+              '-':'_','=':'+','[':'{',']':'}','/':'?','\\':'|','<':',','.':'>',';'::','\'':'"'};
+            ch = shiftMap[ch] || ch.toUpperCase();
+          }
+
+          insertChar(activeField, ch);
+          vkbFlash(code);
+
+          if (shiftOn && !capsOn) toggleShift();
+        }
+      });
+
       vkbFields.forEach(field => {
-        field.addEventListener('focus', openPanel);
+        field.addEventListener('focus', () => {
+          activeField = field;
+          openPanel();
+          updateCursorLabel(field);
+        });
         field.addEventListener('beforeinput', e => {
           if (e.inputType === 'insertText' && e.data) {
             const ch = e.data;
             const code = CHAR_TO_CODE[ch.toLowerCase()];
             if (code) vkbFlash(code);
-            if (ch.toLowerCase() !== ch || '!@#$%^&*()'.includes(ch)) vkbFlash('ShiftLeft');
+            if (ch.toLowerCase() !== ch || '!@#$%^&*()_+{}<>?|~'.includes(ch)) vkbFlash('ShiftLeft');
           } else if (e.inputType === 'deleteContentBackward') {
             vkbFlash('Backspace');
           }
@@ -761,12 +1045,12 @@
       });
 
       document.addEventListener('focusin', e => {
-        if (vkbFields.includes(e.target)) openPanel();
-        else if (!panel.contains(e.target)) closePanel();
+        if (vkbFields.includes(e.target)) { openPanel(); updateCursorLabel(e.target); }
+        else if (!panel.contains(e.target)) { closePanel(); }
       });
 
       document.addEventListener('keydown', e => {
-        if (!vkbFields.includes(document.activeElement)) return;
+        if (!activeField || activeField !== document.activeElement) return;
         const k = vkbKeyEls[e.code];
         if (k) {
           k.classList.remove('active');
