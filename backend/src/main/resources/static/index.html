@@ -390,7 +390,7 @@
       background: none; border: none; cursor: pointer; padding: 0.2rem;
       display: flex; align-items: center; justify-content: center;
     }
-    .pw-toggle svg { width: 20px; height: 20px; color: #86868b; transition: color 0.2s; }
+    .pw-toggle svg { width: 22px; height: 22px; color: #86868b; transition: color 0.2s; }
     .pw-toggle:hover svg { color: #1d1d1f; }
     .pw-toggle .bf-open { display: none; }
     .pw-toggle.visible .bf-closed { display: none; }
@@ -634,7 +634,7 @@
         <span class="line">Cars, on <span class="grad">demand</span>.</span>
         <span class="line">No middlemen. No markup.</span>
       </h1>
-      <p class="reveal reveal-up reveal-d3" id="heroFact" style="transition:opacity 0.5s">Rent verified cars from real owners. Or list yours and earn. Simple, transparent, yours.</p>
+      <p class="reveal reveal-up reveal-d3" id="heroFact" style="transition:opacity 0.5s;font-size:1.35rem;color:#1d1d1f;font-weight:600;line-height:1.5;max-width:420px">Rent verified cars from real owners. Or list yours and earn. Simple, transparent, yours.</p>
       <div class="hero-actions reveal reveal-up reveal-d4">
         <a href="#login" class="btn-pri">Start renting<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
         <a href="#" class="btn-sec">List your car</a>
@@ -668,7 +668,7 @@
 
         <div class="ig" id="nameField" style="display:none"><input id="name" type="text" placeholder="Full name" autocomplete="name" /></div>
         <div class="ig"><input id="email" type="email" placeholder="Email" autocomplete="email" /></div>
-        <div class="ig pw-wrap"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /><button type="button" class="pw-toggle" id="pwToggle" aria-label="Toggle password visibility"><svg class="bf-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3C7 3 2.7 7.1 1 11.5 2.7 15.9 7 20 12 20s9.3-4.1 11-8.5C21.3 7.1 17 3 12 3z"/><path d="M9.5 9.5c0-1.4 1.1-2.5 2.5-2.5s2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5"/><path d="M4 4l16 16"/></svg><svg class="bf-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3C7 3 2.7 7.1 1 11.5 2.7 15.9 7 20 12 20s9.3-4.1 11-8.5C21.3 7.1 17 3 12 3z"/><circle cx="12" cy="12" r="3"/><path d="M2 2c4 3.5 7.5 5 10 5s6-1.5 10-5"/><path d="M2 22c4-3.5 7.5-5 10-5s6 1.5 10 5"/></svg></button></div>
+        <div class="ig pw-wrap"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /><button type="button" class="pw-toggle" id="pwToggle" aria-label="Toggle password visibility"><svg class="bf-closed" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.5.7 2.8 1.8 3.7L12 12l2.7-1.8c1.1-.9 1.8-2.2 1.8-3.7C16.5 4 14.5 2 12 2zM12 14c-3 0-5.5 1.5-5.5 3.5S9 21 12 21s5.5-1.5 5.5-3.5S15 14 12 14z"/><line x1="12" y1="2" x2="12" y2="21" stroke="currentColor" stroke-width="0.5"/></svg><svg class="bf-open" viewBox="0 0 24 24" fill="currentColor"><path d="M12 11c-4.5 0-8-3-8-6.5S7.5 2 12 2s8 1.5 8 4.5S16.5 11 12 11z" opacity="0.85"/><path d="M12 13c-4.5 0-8 2.5-8 5.5S7.5 22 12 22s8-2.5 8-5.5S16.5 13 12 13z" opacity="0.85"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1"/><path d="M12 2c-1-2-3-3-4-3" fill="none" stroke="currentColor" stroke-width="0.8"/><path d="M12 2c1-2 3-3 4-3" fill="none" stroke="currentColor" stroke-width="0.8"/></svg></button></div>
 
         <button class="subbtn" id="signinBtn"><span id="btnText">Continue</span></button>
 
