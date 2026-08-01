@@ -240,6 +240,34 @@ public class AdminService {
         return users;
     }
 
+    /* ================= TRANSACTIONS ================= */
+
+    public List<AdminTransactionResponse> listTransactions() {
+        return transactionRepository.findAll().stream()
+                .sorted(Comparator.comparing(Transaction::getCreatedAt).reversed())
+                .map(this::toAdminTransactionResponse)
+                .collect(Collectors.toList());
+    }
+
+    private AdminTransactionResponse toAdminTransactionResponse(Transaction tx) {
+        AdminTransactionResponse r = new AdminTransactionResponse();
+        r.setId(tx.getId());
+        r.setTripId(tx.getTrip() == null ? null : tx.getTrip().getId());
+        r.setCustomerName(tx.getCustomer() == null ? null : tx.getCustomer().getName());
+        r.setOwnerName(tx.getOwner() == null ? null : tx.getOwner().getName());
+        r.setCarName(tx.getTrip() != null && tx.getTrip().getCar() != null
+                ? tx.getTrip().getCar().getMake() + " " + tx.getTrip().getCar().getModel() : null);
+        r.setAmount(tx.getAmount());
+        r.setPlatformFee(tx.getPlatformFee());
+        r.setOwnerPayout(tx.getOwnerPayout());
+        r.setPaymentMethod(tx.getPaymentMethod());
+        r.setStatus(tx.getStatus());
+        r.setRentalUnit(tx.getTrip() == null ? null : tx.getTrip().getRentalUnit());
+        r.setRentalQty(tx.getTrip() == null ? null : tx.getTrip().getRentalQty());
+        r.setCreatedAt(tx.getCreatedAt() == null ? null : tx.getCreatedAt().toString());
+        return r;
+    }
+
     /* ================= STATS ================= */
 
     public AdminStatsResponse stats() {

@@ -115,6 +115,16 @@ public class AdminController {
 
     /* ---------------- USERS & STATS ---------------- */
 
+    @GetMapping("/transactions")
+    public ResponseEntity<?> transactions() {
+        try {
+            currentAdmin();
+            return ok(adminService.listTransactions());
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
     @GetMapping("/users")
     public ResponseEntity<?> users() {
         try {

@@ -245,6 +245,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Users</span>
     </button>
+    <button class="nav-btn" data-view="transactions">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      <span>Transactions</span>
+    </button>
     <div class="spacer"></div>
     <div class="user-chip">
       <div class="avatar" id="avatar">A</div>
@@ -303,6 +307,13 @@
       <div class="empty" id="userEmpty" style="display:none">No users yet.</div>
     </section>
 
+    <!-- TRANSACTIONS -->
+    <section class="view" id="view-transactions">
+      <div class="view-head"><h1>Platform transactions</h1><p>Every payment across the marketplace — amounts, fees and payouts.</p></div>
+      <div class="list" id="txList"></div>
+      <div class="empty" id="txEmpty" style="display:none">No transactions yet.</div>
+    </section>
+
   </main>
 
   <div class="toast" id="toast"></div>
@@ -339,7 +350,9 @@
     carList: document.getElementById('carList'),
     carEmpty: document.getElementById('carEmpty'),
     userList: document.getElementById('userList'),
-    userEmpty: document.getElementById('userEmpty')
+    userEmpty: document.getElementById('userEmpty'),
+    txList: document.getElementById('txList'),
+    txEmpty: document.getElementById('txEmpty')
   };
 
   var state = { docFilter: 'pending', carFilter: 'pending' };
@@ -476,6 +489,7 @@
     if (name === 'documents') loadDocs(state.docFilter);
     if (name === 'cars') loadCars(state.carFilter);
     if (name === 'users') loadUsers();
+    if (name === 'transactions') loadTransactions();
   };
   document.querySelectorAll('.nav-btn[data-view]').forEach(function (b) {
     b.addEventListener('click', function () { goView(b.dataset.view); });
@@ -597,6 +611,30 @@
           '</div></div></div>';
       }).join('');
       els.userEmpty.style.display = users.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- transactions ---------- */
+  function loadTransactions() {
+    api('/transactions').then(function (txs) {
+      els.txList.innerHTML = txs.map(function (t) {
+        var unit = t.rentalUnit === 'HOUR'
+          ? ' · ' + (t.rentalQty || 0) + ' hr' + (t.rentalQty > 1 ? 's' : '')
+          : (t.rentalQty ? ' · ' + t.rentalQty + ' day' + (t.rentalQty > 1 ? 's' : '') : '');
+        var who = esc(t.customerName || 'Customer') + ' → ' + esc(t.ownerName || 'Owner');
+        return '<div class="row-card">' +
+          '<div class="row-top">' +
+          '<div class="ico">₹</div>' +
+          '<div style="min-width:0"><div class="ttl">' + esc(t.carName || 'Rental') + '</div>' +
+          '<div class="st">' + who + ' · ' + (t.createdAt || '').replace('T', ' ').slice(0, 16) + unit + '</div></div>' +
+          '<div class="row-actions"><span class="badge ' + esc(t.status) + '">' + esc(t.status) + '</span></div>' +
+          '</div>' +
+          '<div class="row-foot"><span>Amount <span class="amt" style="color:var(--amber)">' + fmt(t.amount) + '</span></span>' +
+          (t.platformFee != null ? '<span>Platform fee <span class="amt">' + fmt(t.platformFee) + '</span></span>' : '') +
+          '<span>Owner payout <span class="amt green">' + fmt(t.ownerPayout) + '</span></span></div>' +
+          '</div>';
+      }).join('');
+      els.txEmpty.style.display = txs.length ? 'none' : 'block';
     }).catch(function (e) { toast(e.message, true); });
   }
 
