@@ -9,6 +9,9 @@ public class TripRequest {
     private String startLocation;
     private String endLocation;
     private String paymentMethod;
+    private String rentalUnit;
+    private String startDateTime;
+    private String endDateTime;
 
     public Long getCarId() { return carId; }
     public void setCarId(Long carId) { this.carId = carId; }
@@ -22,4 +25,10 @@ public class TripRequest {
     public void setEndLocation(String endLocation) { this.endLocation = endLocation; }
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public String getRentalUnit() { return rentalUnit; }
+    public void setRentalUnit(String rentalUnit) { this.rentalUnit = rentalUnit; }
+    public String getStartDateTime() { return startDateTime; }
+    public void setStartDateTime(String startDateTime) { this.startDateTime = startDateTime; }
+    public String getEndDateTime() { return endDateTime; }
+    public void setEndDateTime(String endDateTime) { this.endDateTime = endDateTime; }
 }

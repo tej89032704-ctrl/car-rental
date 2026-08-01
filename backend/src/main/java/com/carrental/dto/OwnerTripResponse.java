@@ -15,6 +15,8 @@ public class OwnerTripResponse {
     private String endLocation;
     private BigDecimal totalAmount;
     private BigDecimal ownerPayout;
+    private String rentalUnit;
+    private Integer rentalQty;
     private String status;
     private String createdAt;
 
@@ -42,6 +44,10 @@ public class OwnerTripResponse {
     public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
     public BigDecimal getOwnerPayout() { return ownerPayout; }
     public void setOwnerPayout(BigDecimal ownerPayout) { this.ownerPayout = ownerPayout; }
+    public String getRentalUnit() { return rentalUnit; }
+    public void setRentalUnit(String rentalUnit) { this.rentalUnit = rentalUnit; }
+    public Integer getRentalQty() { return rentalQty; }
+    public void setRentalQty(Integer rentalQty) { this.rentalQty = rentalQty; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public String getCreatedAt() { return createdAt; }

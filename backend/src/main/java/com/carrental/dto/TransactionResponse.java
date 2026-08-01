@@ -12,6 +12,8 @@ public class TransactionResponse {
     private BigDecimal ownerPayout;
     private String paymentMethod;
     private String status;
+    private String rentalUnit;
+    private Integer rentalQty;
     private String createdAt;
 
     public TransactionResponse() {}
@@ -34,6 +36,10 @@ public class TransactionResponse {
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getRentalUnit() { return rentalUnit; }
+    public void setRentalUnit(String rentalUnit) { this.rentalUnit = rentalUnit; }
+    public Integer getRentalQty() { return rentalQty; }
+    public void setRentalQty(Integer rentalQty) { this.rentalQty = rentalQty; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

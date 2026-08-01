@@ -30,6 +30,18 @@ public class TripDetail {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    @Column(name = "rental_unit")
+    private String rentalUnit = "DAY";
+
+    @Column(name = "rental_qty")
+    private Integer rentalQty;
+
+    @Column(name = "start_date_time")
+    private LocalDateTime startDateTime;
+
+    @Column(name = "end_date_time")
+    private LocalDateTime endDateTime;
+
     @Column(name = "start_location")
     private String startLocation;
 
@@ -60,6 +72,14 @@ public class TripDetail {
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public LocalDate getEndDate() { return endDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public String getRentalUnit() { return rentalUnit; }
+    public void setRentalUnit(String rentalUnit) { this.rentalUnit = rentalUnit; }
+    public Integer getRentalQty() { return rentalQty; }
+    public void setRentalQty(Integer rentalQty) { this.rentalQty = rentalQty; }
+    public LocalDateTime getStartDateTime() { return startDateTime; }
+    public void setStartDateTime(LocalDateTime startDateTime) { this.startDateTime = startDateTime; }
+    public LocalDateTime getEndDateTime() { return endDateTime; }
+    public void setEndDateTime(LocalDateTime endDateTime) { this.endDateTime = endDateTime; }
     public String getStartLocation() { return startLocation; }
     public void setStartLocation(String startLocation) { this.startLocation = startLocation; }
     public String getEndLocation() { return endLocation; }

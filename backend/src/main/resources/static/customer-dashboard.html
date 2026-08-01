@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAR-ENT · Customer Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1014;
+    --panel: #17181d;
+    --panel-2: #1e2027;
+    --line: rgba(255,255,255,0.08);
+    --text: #f5f5f7;
+    --muted: rgba(245,245,247,0.55);
+    --amber: #f0b14a;
+    --amber-2: #d98a2b;
+    --red: #ff5d5d;
+    --green: #4ade80;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Geist', -apple-system, system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex; min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ------- Sidebar ------- */
+  .sidebar {
+    width: 240px; flex: none;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    padding: 1.5rem 1rem; gap: 0.25rem;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 0.5rem; padding: 0 0.75rem 1.25rem; }
+  .brand .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--amber), var(--amber-2));
+    box-shadow: 0 0 12px rgba(240,177,74,0.7);
+  }
+  .brand .name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); }
+  .nav-btn {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.7rem 0.75rem; border-radius: 12px; border: none;
+    background: transparent; color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 500; cursor: pointer; text-align: left;
+    transition: background 0.2s, color 0.2s;
+  }
+  .nav-btn svg { width: 17px; height: 17px; flex: none; }
+  .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+  .nav-btn.active { background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d; font-weight: 600; }
+  .sidebar .spacer { flex: 1; }
+  .user-chip {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.7rem 0.75rem; border-top: 1px solid var(--line); margin-top: 0.5rem;
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, var(--amber), var(--amber-2));
+    color: #17181d; font-weight: 700; font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .user-chip .meta { min-width: 0; }
+  .user-chip .meta .nm { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-chip .meta .em { font-size: 0.68rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ------- Main ------- */
+  .main { flex: 1; padding: 2rem 2.5rem; overflow-y: auto; }
+  .view { display: none; animation: fade 0.3s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .view-head { margin-bottom: 1.5rem; }
+  .view-head h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .view-head p { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+
+  /* ------- Toolbar / filters ------- */
+  .toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .toolbar input, .toolbar select {
+    background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px;
+    color: var(--text); font-family: inherit; font-size: 0.82rem;
+    padding: 0.6rem 0.85rem; outline: none; transition: border-color 0.2s;
+  }
+  .toolbar input::placeholder { color: rgba(245,245,247,0.3); }
+  .toolbar input:focus, .toolbar select:focus { border-color: rgba(240,177,74,0.6); }
+  .toolbar .grow { flex: 1; min-width: 180px; }
+
+  /* ------- Cards grid ------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.1rem; }
+  .car-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s, box-shadow 0.3s;
+  }
+  .car-card:hover { transform: translateY(-4px); border-color: rgba(240,177,74,0.4); box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
+  .car-card .img {
+    height: 140px; background: linear-gradient(135deg, #23252e, #17181d);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.6rem; font-weight: 800; color: rgba(240,177,74,0.7);
+    background-size: cover; background-position: center;
+  }
+  .car-card .body { padding: 0.9rem 1rem 1rem; }
+  .car-card .nm { font-size: 0.98rem; font-weight: 650; }
+  .car-card .meta { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .car-card .price { display: flex; align-items: baseline; gap: 0.3rem; margin-top: 0.7rem; }
+  .car-card .price .amt { font-size: 1.15rem; font-weight: 700; color: var(--amber); }
+  .car-card .price .per { font-size: 0.72rem; color: var(--muted); }
+
+  /* ------- Detail ------- */
+  .detail-wrap { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1.5rem; }
+  .detail-media {
+    background: linear-gradient(135deg, #23252e, #17181d); border: 1px solid var(--line);
+    border-radius: var(--radius); min-height: 260px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4.5rem; font-weight: 800; color: rgba(240,177,74,0.6);
+    background-size: cover; background-position: center;
+  }
+  .detail-info h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  .detail-info .sub { color: var(--muted); font-size: 0.85rem; margin: 0.25rem 0 1rem; }
+  .specs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1.2rem; }
+  .spec { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 0.6rem 0.8rem; }
+  .spec .k { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec .v { font-size: 0.9rem; font-weight: 600; margin-top: 0.15rem; }
+  .desc { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin-bottom: 1.2rem; }
+  .booking-box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.2rem; }
+  .booking-box h3 { font-size: 0.95rem; margin-bottom: 0.9rem; }
+  .unit-row { display: flex; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .unit-opt { flex: 1; padding: 0.55rem; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--muted, #9aa0aa); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+  .unit-opt.active { background: var(--accent, #f5a623); border-color: var(--accent, #f5a623); color: #0f1014; }
+  .price .sep { color: var(--muted, #9aa0aa); margin: 0 0.35rem; }
+  .dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.8rem; }
+  .dates label { font-size: 0.68rem; color: var(--muted); display: block; margin-bottom: 0.3rem; }
+  .dates input {
+    width: 100%; background: var(--panel-2); border: 1.5px solid var(--line); border-radius: 10px;
+    color: var(--text); font-family: inherit; padding: 0.55rem 0.7rem; font-size: 0.82rem; outline: none;
+  }
+  .dates input:focus { border-color: rgba(240,177,74,0.6); }
+  .calc { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); padding: 0.35rem 0; }
+  .calc .val { color: var(--text); font-weight: 600; }
+  .calc.total { border-top: 1px solid var(--line); margin-top: 0.5rem; padding-top: 0.8rem; }
+  .calc.total .val { color: var(--amber); font-size: 1.05rem; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d;
+    border: none; border-radius: 12px; padding: 0.72rem 1.2rem;
+    font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    transition: filter 0.2s, transform 0.15s, box-shadow 0.25s;
+  }
+  .btn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(240,177,74,0.3); }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.ghost { background: transparent; border: 1.5px solid var(--line); color: var(--text); }
+  .btn.ghost:hover { border-color: rgba(240,177,74,0.5); box-shadow: none; }
+  .btn.danger { background: transparent; border: 1.5px solid rgba(255,93,93,0.4); color: var(--red); }
+  .btn.danger:hover { background: rgba(255,93,93,0.1); box-shadow: none; }
+  .btn.back { margin-bottom: 1.2rem; padding: 0.5rem 0.9rem; font-size: 0.8rem; }
+
+  /* ------- Tables / lists ------- */
+  .list { display: flex; flex-direction: column; gap: 0.8rem; }
+  .row-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem 1.1rem; }
+  .row-top { display: flex; align-items: center; gap: 0.8rem; }
+  .row-top .ico {
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    background: var(--panel-2); display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; font-weight: 800; color: var(--amber);
+  }
+  .row-top .ttl { font-size: 0.95rem; font-weight: 650; }
+  .row-top .st { font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+  .row-actions { margin-left: auto; display: flex; gap: 0.5rem; }
+  .row-foot { display: flex; gap: 1rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 0.22rem 0.6rem; border-radius: 980px; font-size: 0.68rem; font-weight: 600; }
+  .badge.confirmed { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge.pending { background: rgba(240,177,74,0.15); color: var(--amber); }
+  .badge.cancelled, .badge.refunded { background: rgba(255,93,93,0.15); color: var(--red); }
+  .badge.paid { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge.verified { background: rgba(74,222,128,0.15); color: var(--green); }
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .tab {
+    background: var(--panel); border: 1.5px solid var(--line); color: var(--muted);
+    border-radius: 980px; padding: 0.45rem 1rem; font-family: inherit; font-size: 0.8rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .tab.active { background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d; border-color: transparent; font-weight: 600; }
+
+  /* ------- Profile ------- */
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; max-width: 560px; }
+  .field label { font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 0.35rem; }
+  .field input {
+    width: 100%; background: var(--panel); border: 1.5px solid var(--line); border-radius: 12px;
+    color: var(--text); font-family: inherit; padding: 0.7rem 0.9rem; font-size: 0.88rem; outline: none;
+  }
+  .field input:focus { border-color: rgba(240,177,74,0.6); }
+  .field input[readonly] { opacity: 0.6; }
+  .profile-grid .full { grid-column: 1 / -1; }
+  .profile-grid .btn { justify-self: start; margin-top: 0.4rem; }
+
+  /* ------- Upload ------- */
+  .upload-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.35rem; }
+
+  /* ------- Empty / toast ------- */
+  .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
+  .toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 0.7rem 1.2rem; border-radius: 12px; font-size: 0.85rem; z-index: 50;
+    opacity: 0; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { border-color: rgba(255,93,93,0.5); color: var(--red); }
+
+  @media (max-width: 860px) {
+    .sidebar { width: 68px; padding: 1rem 0.5rem; }
+    .sidebar .name, .nav-btn span, .user-chip .meta { display: none; }
+    .nav-btn { justify-content: center; padding: 0.7rem 0; }
+    .brand { justify-content: center; padding: 0 0 1rem; }
+    .main { padding: 1.25rem 1rem; }
+    .detail-wrap { grid-template-columns: 1fr; }
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="brand"><span class="dot"></span><span class="name">CAR-ENT</span></div>
+  <button class="nav-btn active" data-view="browse">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="3" y="13" width="18" height="6" rx="1.5"/><circle cx="7.5" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/></svg>
+    <span>Browse cars</span>
+  </button>
+  <button class="nav-btn" data-view="bookings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+    <span>My bookings</span>
+  </button>
+  <button class="nav-btn" data-view="documents">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+    <span>Documents</span>
+  </button>
+  <button class="nav-btn" data-view="profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-3.5 3.6-5.5 8-5.5s8 2 8 5.5"/></svg>
+    <span>Profile</span>
+  </button>
+  <div class="spacer"></div>
+  <div class="user-chip">
+    <div class="avatar" id="avatar">U</div>
+    <div class="meta"><div class="nm" id="chipName">User</div><div class="em" id="chipEmail">-</div></div>
+  </div>
+  <button class="nav-btn" id="logoutBtn" style="color:var(--red)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+    <span>Logout</span>
+  </button>
+</aside>
+
+<main class="main">
+
+  <!-- BROWSE -->
+  <section class="view active" id="view-browse">
+    <div class="view-head"><h1>Browse cars</h1><p>Verified cars from real owners, ready when you are.</p></div>
+    <div class="toolbar">
+      <input class="grow" id="fSearch" placeholder="Search make or model…">
+      <select id="fCity"><option value="">All cities</option></select>
+      <select id="fFuel"><option value="">Any fuel</option><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option></select>
+      <select id="fTrans"><option value="">Any transmission</option><option>Manual</option><option>Automatic</option></select>
+      <button class="btn ghost" id="fReset">Reset</button>
+    </div>
+    <div class="grid" id="carGrid"></div>
+    <div class="empty" id="carEmpty" style="display:none">No cars match your filters.</div>
+  </section>
+
+  <!-- DETAIL -->
+  <section class="view" id="view-detail">
+    <button class="btn ghost back" onclick="goView('browse')">← Back to browse</button>
+    <div id="detailRoot"></div>
+  </section>
+
+  <!-- BOOKINGS -->
+  <section class="view" id="view-bookings">
+    <div class="view-head"><h1>My bookings</h1><p>Track and manage your trips.</p></div>
+    <div class="tabs">
+      <button class="tab active" data-st="">All</button>
+      <button class="tab" data-st="confirmed">Confirmed</button>
+      <button class="tab" data-st="cancelled">Cancelled</button>
+    </div>
+    <div class="list" id="tripList"></div>
+    <div class="empty" id="tripEmpty" style="display:none">No bookings here yet — go browse some cars!</div>
+  </section>
+
+  <!-- DOCUMENTS -->
+  <section class="view" id="view-documents">
+    <div class="view-head"><h1>Documents</h1><p>Upload your license &amp; ID for verification.</p></div>
+    <div class="toolbar">
+      <select id="docType"><option>Driving License</option><option>Aadhaar</option><option>PAN Card</option><option>Passport</option></select>
+      <input class="grow" id="docUrl" placeholder="Paste a document URL, or use Choose file below">
+      <button type="button" class="btn ghost" id="docPick">⬆ Choose file</button>
+      <input type="file" id="docFiles" accept="image/*,.pdf" hidden>
+      <button class="btn" id="docAdd">Upload</button>
+    </div>
+    <div class="list" id="docList"></div>
+    <div class="empty" id="docEmpty" style="display:none">No documents yet.</div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="view" id="view-profile">
+    <div class="view-head"><h1>Profile</h1><p>Keep your details up to date.</p></div>
+    <div class="profile-grid">
+      <div class="field"><label>Name</label><input id="pName"></div>
+      <div class="field"><label>Email</label><input id="pEmail" readonly></div>
+      <div class="field"><label>Phone</label><input id="pPhone" placeholder="+91 …"></div>
+      <div class="field"><label>City</label><input id="pCity" placeholder="Your city"></div>
+      <button class="btn" id="pSave">Save changes</button>
+    </div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var user = null, token = null;
+  try { user = JSON.parse(localStorage.getItem('user')); } catch (e) { user = null; }
+  token = localStorage.getItem('token');
+  if (!token || !user || user.role !== 'customer') { window.location.href = '/'; return; }
+
+  var API = (window.location.port === '5173' ? 'http://localhost:8081' : '') + '/api/customer';
+  var els = {
+    chipName: document.getElementById('chipName'),
+    chipEmail: document.getElementById('chipEmail'),
+    avatar: document.getElementById('avatar'),
+    toast: document.getElementById('toast'),
+    carGrid: document.getElementById('carGrid'),
+    carEmpty: document.getElementById('carEmpty'),
+    detailRoot: document.getElementById('detailRoot'),
+    tripList: document.getElementById('tripList'),
+    tripEmpty: document.getElementById('tripEmpty'),
+    docList: document.getElementById('docList'),
+    docEmpty: document.getElementById('docEmpty'),
+  };
+  var state = { cars: [], selectedCar: null, trips: [], docs: [], profile: null, tripFilter: '' };
+  var toastTimer = null;
+
+  /* ---------- helpers ---------- */
+  function initals(name) {
+    return (name || 'U').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase() || 'U';
+  }
+  function fmt(n) { return '\u20B9' + Number(n || 0).toLocaleString('en-IN'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+
+  /* ---------- Cloudinary upload ---------- */
+  function cloudCfg() {
+    var c = null, p = null;
+    try { c = localStorage.getItem('cloudinary_cloud'); } catch (e) {}
+    try { p = localStorage.getItem('cloudinary_preset'); } catch (e) {}
+    if (!c) { c = window.prompt('Enter your Cloudinary cloud name (dashboard.cloudinary.com)'); if (c) { try { localStorage.setItem('cloudinary_cloud', c); } catch (e) {} } }
+    if (!p) { p = window.prompt('Enter your Cloudinary unsigned upload preset name (Settings > Upload > Upload presets, mode: Unsigned)'); if (p) { try { localStorage.setItem('cloudinary_preset', p); } catch (e) {} } }
+    return { cloud: c, preset: p };
+  }
+  function uploadFiles(files, resourceType, cb) {
+    if (!files || !files.length) { cb([]); return; }
+    var cfg = cloudCfg();
+    if (!cfg.cloud || !cfg.preset) { toast('Cloudinary not configured — cloud name & unsigned preset required', true); cb([]); return; }
+    var urls = [], done = 0, arr = Array.prototype.slice.call(files);
+    arr.forEach(function (file) {
+      var fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', cfg.preset);
+      fd.append('folder', 'car-rental');
+      fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cfg.cloud) + '/' + (resourceType || 'image') + '/upload', { method: 'POST', body: fd })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (d) { if (d.secure_url) urls.push(d.secure_url); done++; if (done === arr.length) cb(urls); })
+        .catch(function () { done++; if (done === arr.length) cb(urls); });
+    });
+  }
+  function toast(msg, isErr) {
+    els.toast.textContent = msg;
+    els.toast.classList.toggle('err', !!isErr);
+    els.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { els.toast.classList.remove('show'); }, 3200);
+  }
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, opts.headers || {});
+    return fetch(API + path, opts).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (d) {
+        if (!r.ok) { throw new Error(d.message || 'Request failed (' + r.status + ')'); }
+        return d;
+      });
+    });
+  }
+  function carImg(car) {
+    var u = (car.primaryImage || '').trim();
+    return u;
+  }
+  function priceLabel(car) {
+    var m = car.pricingMode || 'DAILY';
+    var parts = [];
+    if (m !== 'HOURLY') parts.push('<span class="amt">' + fmt(car.pricePerDay) + '</span><span class="per">/ day</span>');
+    if (m !== 'DAILY') parts.push('<span class="amt">' + fmt(car.pricePerHour) + '</span><span class="per">/ hr</span>');
+    return parts.join('<span class="sep">·</span>');
+  }
+  window.setUnit = function (btn) {
+    state.bookingUnit = btn.dataset.unit;
+    document.querySelectorAll('#unitRow .unit-opt').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    document.getElementById('dayFields').style.display = state.bookingUnit === 'DAY' ? '' : 'none';
+    document.getElementById('hourFields').style.display = state.bookingUnit === 'HOUR' ? '' : 'none';
+    calcPrice();
+  };
+  function carTile(car) {
+    var img = carImg(car);
+    var style = img ? 'style="background-image:url(' + esc(img) + ')"' : '';
+    return '<div class="car-card" data-id="' + car.id + '" onclick="openCar(' + car.id + ')">' +
+      '<div class="img" ' + style + '>' + (img ? '' : (car.make[0] || 'C') + '</div>') + '</div>' +
+      '<div class="body">' +
+      '<div class="nm">' + esc(car.make) + ' ' + esc(car.model) + ' (' + car.year + ')</div>' +
+      '<div class="meta"><span>' + esc(car.city) + '</span><span>·</span><span>' + esc(car.fuelType || '-') + '</span><span>·</span><span>' + esc(car.transmission || '-') + '</span><span>·</span><span>' + car.seats + ' seats</span></div>' +
+      '<div class="price">' + priceLabel(car) + '</div>' +
+      '</div></div>';
+  }
+
+  /* ---------- navigation ---------- */
+  window.goView = function (name) {
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+    var v = document.getElementById('view-' + name);
+    if (v) v.classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.view === name);
+    });
+    if (name === 'bookings') loadTrips();
+    if (name === 'documents') loadDocs();
+    if (name === 'profile') loadProfile();
+  };
+  document.querySelectorAll('.nav-btn[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () { goView(b.dataset.view); });
+  });
+  window.openCar = function (id) {
+    api('/cars/' + id).then(function (car) {
+      state.selectedCar = car;
+      renderDetail(car);
+      goView('detail');
+    }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ---------- browse ---------- */
+  function loadCars() {
+    var q = [];
+    var city = document.getElementById('fCity').value;
+    var fuel = document.getElementById('fFuel').value;
+    var trans = document.getElementById('fTrans').value;
+    var search = document.getElementById('fSearch').value.trim();
+    if (city) q.push('city=' + encodeURIComponent(city));
+    if (fuel) q.push('fuelType=' + encodeURIComponent(fuel));
+    if (trans) q.push('transmission=' + encodeURIComponent(trans));
+    if (search) q.push('search=' + encodeURIComponent(search));
+    api('/cars' + (q.length ? '?' + q.join('&') : '')).then(function (cars) {
+      state.cars = cars;
+      els.carGrid.innerHTML = cars.map(carTile).join('');
+      els.carEmpty.style.display = cars.length ? 'none' : 'block';
+      populateCities(cars);
+    }).catch(function (e) { toast(e.message, true); });
+  }
+  function populateCities(cars) {
+    var sel = document.getElementById('fCity');
+    var current = sel.value;
+    var cities = Array.from(new Set(cars.map(function (c) { return c.city; }).filter(Boolean))).sort();
+    sel.innerHTML = '<option value="">All cities</option>' + cities.map(function (c) {
+      return '<option' + (c === current ? ' selected' : '') + '>' + esc(c) + '</option>';
+    }).join('');
+  }
+  ['fSearch', 'fCity', 'fFuel', 'fTrans'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', loadCars);
+  });
+  document.getElementById('fReset').addEventListener('click', function () {
+    document.getElementById('fSearch').value = '';
+    document.getElementById('fCity').value = '';
+    document.getElementById('fFuel').value = '';
+    document.getElementById('fTrans').value = '';
+    loadCars();
+  });
+
+  /* ---------- detail + booking ---------- */
+  function renderDetail(car) {
+    var img = car.primaryImage || '';
+    var mediaStyle = img ? 'style="background-image:url(' + esc(img) + ')"' : '';
+    var html =
+      '<div class="detail-wrap">' +
+      '<div>' +
+      '<div class="detail-media" ' + mediaStyle + '>' + (img ? '' : (car.make[0] || 'C')) + '</div>' +
+      '<div class="desc" style="margin-top:1rem">' + esc(car.description || 'No description yet.') + '</div>' +
+      '</div>' +
+      '<div class="detail-info">' +
+      '<h2>' + esc(car.make) + ' ' + esc(car.model) + '</h2>' +
+      '<div class="sub">' + car.year + ' · ' + esc(car.city || '') + (car.ownerName ? ' · Hosted by ' + esc(car.ownerName) : '') + '</div>' +
+      '<div class="specs">' +
+      spec('Fuel', car.fuelType) + spec('Transmission', car.transmission) +
+      spec('Seats', car.seats) + spec('Color', car.color) +
+      spec('Registration', car.registrationNumber) +
+      spec('Price/day', car.pricingMode === 'HOURLY' ? '—' : fmt(car.pricePerDay)) +
+      spec('Price/hr', car.pricingMode === 'DAILY' ? '—' : fmt(car.pricePerHour)) +
+      '</div>' +
+      '<div class="booking-box">' +
+      '<h3>Book this car</h3>' +
+      '<div class="unit-row" id="unitRow" style="display:none">' +
+      '<button type="button" class="unit-opt" data-unit="DAY" onclick="setUnit(this)">By day</button>' +
+      '<button type="button" class="unit-opt" data-unit="HOUR" onclick="setUnit(this)">By hour</button>' +
+      '</div>' +
+      '<div class="dates" id="dayFields">' +
+      '<div><label>Pickup date</label><input type="date" id="dStart" min="' + new Date().toISOString().split('T')[0] + '" onchange="calcPrice()"></div>' +
+      '<div><label>Return date</label><input type="date" id="dEnd" min="' + new Date().toISOString().split('T')[0] + '" onchange="calcPrice()"></div>' +
+      '</div>' +
+      '<div class="dates" id="hourFields" style="display:none">' +
+      '<div><label>Pickup (date &amp; time)</label><input type="datetime-local" id="hStart" onchange="calcPrice()"></div>' +
+      '<div><label>Return (date &amp; time)</label><input type="datetime-local" id="hEnd" onchange="calcPrice()"></div>' +
+      '</div>' +
+      '<div class="hint" id="hHint" style="display:none"></div>' +
+      '<div class="calc"><span id="cRate">—</span><span class="val" id="cBase">—</span></div>' +
+      '<div class="calc"><span>Platform fee (10%)</span><span class="val" id="cFee">—</span></div>' +
+      '<div class="calc total"><span>Total</span><span class="val" id="cTotal">—</span></div>' +
+      '<button class="btn" id="bookBtn" style="width:100%;margin-top:1rem" onclick="bookCar()">Confirm booking</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>';
+    els.detailRoot.innerHTML = html;
+    state.bookingUnit = (car.pricingMode === 'HOURLY') ? 'HOUR' : 'DAY';
+    var unitRow = document.getElementById('unitRow');
+    if (unitRow) unitRow.style.display = car.pricingMode === 'BOTH' ? 'flex' : 'none';
+    document.querySelectorAll('#unitRow .unit-opt').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.unit === state.bookingUnit);
+    });
+    var dayF = document.getElementById('dayFields');
+    var hourF = document.getElementById('hourFields');
+    if (dayF) dayF.style.display = state.bookingUnit === 'DAY' ? '' : 'none';
+    if (hourF) hourF.style.display = state.bookingUnit === 'HOUR' ? '' : 'none';
+    var hint = document.getElementById('hHint');
+    if (hint) {
+      var bits = [];
+      if (car.minHours) bits.push('Min ' + car.minHours + ' hr');
+      if (car.maxHoursPerDay) bits.push('Max ' + car.maxHoursPerDay + ' hr');
+      if (car.sameDayOnly) bits.push('Same-day only');
+      if (car.cancelPolicyHours) bits.push('Free cancel ' + car.cancelPolicyHours + 'h before pickup');
+      hint.style.display = bits.length && car.pricingMode !== 'DAILY' ? 'block' : 'none';
+      hint.textContent = bits.join(' · ');
+    }
+    calcPrice();
+  }
+  window.calcPrice = function () {
+    var el = function (id) { return document.getElementById(id); };
+    var car = state.selectedCar;
+    var unit = state.bookingUnit || 'DAY';
+    var base = 0, qty = 0, label = '';
+    if (unit === 'HOUR') {
+      var hs = el('hStart').value;
+      var he = el('hEnd').value;
+      if (hs && he) {
+        var ms = new Date(he) - new Date(hs);
+        if (ms > 0) {
+          qty = Math.ceil(ms / 3600000);
+          base = Number(car.pricePerHour || 0) * qty;
+          label = fmt(car.pricePerHour) + ' × ' + qty + ' hr' + (qty > 1 ? 's' : '');
+        }
+      }
+    } else {
+      var s = el('dStart').value;
+      var e = el('dEnd').value;
+      if (s && e && e > s) {
+        qty = Math.round((new Date(e) - new Date(s)) / 86400000);
+        base = Number(car.pricePerDay || 0) * qty;
+        label = fmt(car.pricePerDay) + ' × ' + qty + ' day' + (qty > 1 ? 's' : '');
+      }
+    }
+    var fee = Math.round(base * 0.1);
+    el('cRate').textContent = qty ? label : '—';
+    el('cBase').textContent = qty ? fmt(base) : '—';
+    el('cFee').textContent = qty ? fmt(fee) : '—';
+    el('cTotal').textContent = qty ? fmt(base + fee) : '—';
+  };
+  window.bookCar = function () {
+    var unit = state.bookingUnit || 'DAY';
+    var payload = { carId: state.selectedCar.id, paymentMethod: 'card' };
+    if (unit === 'HOUR') {
+      var hs = document.getElementById('hStart').value;
+      var he = document.getElementById('hEnd').value;
+      if (!hs || !he || new Date(he) <= new Date(hs)) { toast('Pick valid pickup and return times', true); return; }
+      var hrs = Math.ceil((new Date(he) - new Date(hs)) / 3600000);
+      var minH = Number(state.selectedCar.minHours || 1);
+      var maxH = Number(state.selectedCar.maxHoursPerDay || 0);
+      if (hrs < minH) { toast('Minimum rental is ' + minH + ' hr' + (minH > 1 ? 's' : ''), true); return; }
+      if (maxH && hrs > maxH) { toast('Maximum rental is ' + maxH + ' hr' + (maxH > 1 ? 's' : ''), true); return; }
+      if (state.selectedCar.sameDayOnly) {
+        var hsd = new Date(hs), hed = new Date(he);
+        if (hsd.toDateString() !== hed.toDateString()) { toast('This car is same-day only (no overnight)', true); return; }
+      }
+      payload.rentalUnit = 'HOUR';
+      payload.startDateTime = hs;
+      payload.endDateTime = he;
+    } else {
+      var s = document.getElementById('dStart').value;
+      var e = document.getElementById('dEnd').value;
+      if (!s || !e || e <= s) { toast('Pick valid pickup and return dates', true); return; }
+      payload.rentalUnit = 'DAY';
+      payload.startDate = s;
+      payload.endDate = e;
+    }
+    var btn = document.getElementById('bookBtn');
+    btn.disabled = true;
+    api('/trips', { method: 'POST', body: JSON.stringify(payload) })
+      .then(function (trip) {
+        toast('Booking confirmed — total ' + fmt(trip.totalAmount));
+        btn.disabled = false;
+        goView('bookings');
+      })
+      .catch(function (err) { toast(err.message, true); btn.disabled = false; });
+  };
+  function spec(k, v) {
+    return '<div class="spec"><div class="k">' + k + '</div><div class="v">' + esc(v == null || v === '' ? '—' : v) + '</div></div>';
+  }
+
+  /* ---------- trips ---------- */
+  function loadTrips() {
+    api('/trips' + (state.tripFilter ? '?status=' + state.tripFilter : '')).then(function (trips) {
+      state.trips = trips;
+      els.tripList.innerHTML = trips.map(function (t) {
+        return '<div class="row-card">' +
+          '<div class="row-top">' +
+          '<div class="ico">' + esc((t.carName || 'C').charAt(0)) + '</div>' +
+          '<div><div class="ttl">' + esc(t.carName || 'Car') + '</div>' +
+          '<div class="st">' + (t.startDate || '') + ' → ' + (t.endDate || '') +
+          (t.rentalUnit === 'HOUR' ? ' · ' + (t.rentalQty || 0) + ' hr' + (t.rentalQty > 1 ? 's' : '') : '') + '</div></div>' +
+          '<div class="row-actions"><span class="badge ' + esc(t.status) + '">' + esc(t.status) + '</span>' +
+          (t.status !== 'cancelled' ? '<button class="btn danger" onclick="cancelTrip(' + t.id + ')">Cancel</button>' : '') +
+          (t.cancelDeadline ? '<div class="st" style="font-size:0.8rem;color:var(--muted);margin-top:4px">Free cancel until ' + esc(t.cancelDeadline) + '</div>' : '') +
+          '</div></div>' +
+          '<div class="row-foot"><span>' + fmt(t.totalAmount) + ' total</span>' +
+          (t.platformFee ? '<span>Fee ' + fmt(t.platformFee) + '</span>' : '') +
+          '<span>Host: ' + esc(t.ownerName || '-') + '</span></div>' +
+          '</div>';
+      }).join('');
+      els.tripEmpty.style.display = trips.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+  window.cancelTrip = function (id) {
+    if (!confirm('Cancel this booking? You may be charged if the cancellation window has passed.')) return;
+    api('/trips/' + id + '/cancel', { method: 'PUT' }).then(function () {
+      toast('Booking cancelled');
+      loadTrips();
+    }).catch(function (e) { toast(e.message, true); });
+  };
+  document.querySelectorAll('#view-bookings .tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('#view-bookings .tab').forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      state.tripFilter = tab.dataset.st;
+      loadTrips();
+    });
+  });
+
+  /* ---------- documents ---------- */
+  function loadDocs() {
+    api('/documents').then(function (docs) {
+      state.docs = docs;
+      els.docList.innerHTML = docs.map(function (d) {
+        return '<div class="row-card">' +
+          '<div class="row-top">' +
+          '<div class="ico">📄</div>' +
+          '<div><div class="ttl">' + esc(d.docType) + '</div>' +
+          '<div class="st"><a href="' + esc(d.docUrl) + '" target="_blank" rel="noopener" style="color:var(--amber)">' + esc(d.docUrl) + '</a></div></div>' +
+          '<div class="row-actions"><span class="badge ' + esc(d.verificationStatus) + '">' + esc(d.verificationStatus) + '</span>' +
+          '<button class="btn danger" onclick="delDoc(' + d.id + ')">Delete</button>' +
+          '</div></div>' +
+          '</div>';
+      }).join('');
+      els.docEmpty.style.display = docs.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+  document.getElementById('docAdd').addEventListener('click', function () {
+    var type = document.getElementById('docType').value;
+    var url = document.getElementById('docUrl').value.trim();
+    if (!url) { toast('Enter a document URL', true); return; }
+    api('/documents', { method: 'POST', body: JSON.stringify({ docType: type, docUrl: url }) })
+      .then(function () { document.getElementById('docUrl').value = ''; toast('Document submitted for verification'); loadDocs(); })
+      .catch(function (e) { toast(e.message, true); });
+  });
+  window.delDoc = function (id) {
+    if (!confirm('Delete this document?')) return;
+    api('/documents/' + id, { method: 'DELETE' }).then(function () { toast('Document deleted'); loadDocs(); })
+      .catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ---------- profile ---------- */
+  function loadProfile() {
+    api('/profile').then(function (p) {
+      state.profile = p;
+      document.getElementById('pName').value = p.name || '';
+      document.getElementById('pEmail').value = p.email || '';
+      document.getElementById('pPhone').value = p.phone || '';
+      document.getElementById('pCity').value = p.city || '';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+  document.getElementById('pSave').addEventListener('click', function () {
+    api('/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: document.getElementById('pName').value,
+        phone: document.getElementById('pPhone').value,
+        city: document.getElementById('pCity').value,
+      })
+    }).then(function (p) {
+      state.profile = p;
+      try {
+        user.name = p.name; localStorage.setItem('user', JSON.stringify(user));
+      } catch (e) {}
+      els.chipName.textContent = p.name;
+      els.chipEmail.textContent = p.email;
+      els.avatar.textContent = initals(p.name);
+      toast('Profile updated');
+    }).catch(function (e) { toast(e.message, true); });
+  });
+
+  /* ---------- upload wiring ---------- */
+  var docPick = document.getElementById('docPick');
+  var docFiles = document.getElementById('docFiles');
+  if (docPick && docFiles) {
+    docPick.addEventListener('click', function () { docFiles.click(); });
+    docFiles.addEventListener('change', function () {
+      uploadFiles(docFiles.files, 'auto', function (urls) {
+        docFiles.value = '';
+        if (!urls.length) { toast('File upload failed', true); return; }
+        document.getElementById('docUrl').value = urls[0];
+        toast('File uploaded — click Upload to submit');
+      });
+    });
+  }
+
+  /* ---------- boot ---------- */
+  els.chipName.textContent = user.name || 'User';
+  els.chipEmail.textContent = user.email || '';
+  els.avatar.textContent = initals(user.name);
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    localStorage.clear();
+    window.location.href = '/';
+  });
+  loadCars();
+})();
+</script>
+</body>
+</html>

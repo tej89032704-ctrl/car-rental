@@ -381,6 +381,109 @@ class CustomerServiceTest {
         verify(tripDetailRepository).save(t);
     }
 
+    @Test
+    void cancelTrip_acceptsWhenInsideWindow() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        // Trip starts 10 hours from now, policy = 24 hours — window NOT passed
+        TripDetail t = trip(c, 100L, "confirmed");
+        t.setRentalUnit("HOUR");
+        t.setStartDateTime(LocalDateTime.now().plusHours(10));
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setCancelPolicyHours(24);
+        t.setCar(car);
+        Transaction tx = new Transaction();
+        tx.setId(200L);
+        tx.setTrip(t);
+        tx.setStatus("paid");
+        when(tripDetailRepository.findById(100L)).thenReturn(Optional.of(t));
+        when(tripDetailRepository.save(any(TripDetail.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(transactionRepository.findByTripId(100L)).thenReturn(List.of(tx));
+
+        TripResponse resp = customerService.cancelTrip(c, 100L);
+
+        assertEquals("cancelled", resp.getStatus());
+        assertEquals("refunded", tx.getStatus());
+    }
+
+    @Test
+    void cancelTrip_rejectsWhenOutsideWindow() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        // Trip starts 2 hours from now, policy = 24 hours — window has passed
+        TripDetail t = trip(c, 100L, "confirmed");
+        t.setRentalUnit("HOUR");
+        t.setStartDateTime(LocalDateTime.now().plusHours(2));
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setCancelPolicyHours(24);
+        t.setCar(car);
+        when(tripDetailRepository.findById(100L)).thenReturn(Optional.of(t));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.cancelTrip(c, 100L));
+        assertTrue(ex.getMessage().contains("cancellation window"));
+        verify(tripDetailRepository, never()).save(any(TripDetail.class));
+    }
+
+    @Test
+    void cancelTrip_acceptsWhenWindowIsNull() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        // No cancel policy — always allowed
+        TripDetail t = trip(c, 100L, "confirmed");
+        t.setRentalUnit("HOUR");
+        t.setStartDateTime(LocalDateTime.now().plusHours(1));
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setCancelPolicyHours(null);
+        t.setCar(car);
+        Transaction tx = new Transaction();
+        tx.setId(200L);
+        tx.setTrip(t);
+        tx.setStatus("paid");
+        when(tripDetailRepository.findById(100L)).thenReturn(Optional.of(t));
+        when(tripDetailRepository.save(any(TripDetail.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(transactionRepository.findByTripId(100L)).thenReturn(List.of(tx));
+
+        TripResponse resp = customerService.cancelTrip(c, 100L);
+
+        assertEquals("cancelled", resp.getStatus());
+    }
+
+    @Test
+    void cancelTrip_rejectsWhenOutsideWindow_dailyTrip() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        // Daily trip starts tomorrow, policy = 48 hours — window has passed
+        TripDetail t = trip(c, 100L, "confirmed");
+        t.setStartDate(LocalDate.now().plusDays(1));
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setCancelPolicyHours(48);
+        t.setCar(car);
+        when(tripDetailRepository.findById(100L)).thenReturn(Optional.of(t));
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.cancelTrip(c, 100L));
+        assertTrue(ex.getMessage().contains("cancellation window"));
+        verify(tripDetailRepository, never()).save(any(TripDetail.class));
+    }
+
+    @Test
+    void cancelTrip_acceptsWhenInsideWindow_dailyTrip() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        // Daily trip starts in 5 days, policy = 24 hours — well inside
+        TripDetail t = trip(c, 100L, "confirmed");
+        t.setStartDate(LocalDate.now().plusDays(5));
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setCancelPolicyHours(24);
+        t.setCar(car);
+        Transaction tx = new Transaction();
+        tx.setId(200L);
+        tx.setTrip(t);
+        tx.setStatus("paid");
+        when(tripDetailRepository.findById(100L)).thenReturn(Optional.of(t));
+        when(tripDetailRepository.save(any(TripDetail.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(transactionRepository.findByTripId(100L)).thenReturn(List.of(tx));
+
+        TripResponse resp = customerService.cancelTrip(c, 100L);
+
+        assertEquals("cancelled", resp.getStatus());
+        assertEquals("refunded", tx.getStatus());
+    }
+
     /* ================= DOCUMENTS ================= */
 
     @Test
@@ -462,6 +565,315 @@ class CustomerServiceTest {
         when(customerRepository.findByEmail("nobody@mail.com")).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> customerService.findByEmail("nobody@mail.com"));
+    }
+
+    /* ================= HOURLY BOOKINGS ================= */
+
+    @Test
+    void createTrip_hourly_success_createsTripWithHourlyPricing() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of());
+        when(tripDetailRepository.save(any(TripDetail.class))).thenAnswer(inv -> {
+            TripDetail t = inv.getArgument(0);
+            t.setId(101L);
+            return t;
+        });
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
+            Transaction tx = inv.getArgument(0);
+            tx.setId(201L);
+            return tx;
+        });
+
+        LocalDateTime start = LocalDateTime.now().plusHours(2).withSecond(0).withNano(0);
+        LocalDateTime end = start.plusMinutes(210); // 3.5h -> rounds up to 4h
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(start.toString());
+        req.setEndDateTime(end.toString());
+
+        TripResponse resp = customerService.createTrip(c, req);
+
+        assertEquals("HOUR", resp.getRentalUnit());
+        assertEquals(4, resp.getRentalQty());
+        // 4h x 50.00 = 200.00, 10% fee = 20.00, payout = 180.00
+        assertEquals(new BigDecimal("200.00"), resp.getTotalAmount());
+        assertEquals(new BigDecimal("20.00"), resp.getPlatformFee());
+        assertEquals(new BigDecimal("180.00"), resp.getOwnerPayout());
+    }
+
+    @Test
+    void createTrip_hourly_rejectsCarNotSupportingHourly() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("DAILY");
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(LocalDateTime.now().plusHours(2).toString());
+        req.setEndDateTime(LocalDateTime.now().plusHours(4).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("only available for daily rentals"));
+    }
+
+    @Test
+    void createTrip_daily_rejectsCarNotSupportingDaily() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("HOURLY");
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDate start = LocalDate.now().plusDays(2);
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> customerService.createTrip(c, tripRequest(10L, start, start.plusDays(1))));
+        assertTrue(ex.getMessage().contains("only available for hourly rentals"));
+    }
+
+    @Test
+    void createTrip_hourly_rejectsEndTimeBeforeStartTime() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(LocalDateTime.now().plusHours(2).toString());
+        req.setEndDateTime(LocalDateTime.now().plusHours(1).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("End time"));
+    }
+
+    @Test
+    void createTrip_hourly_rejectsOverlappingBooking() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripDetail existing = new TripDetail();
+        existing.setId(90L);
+        existing.setCar(car);
+        existing.setStatus("confirmed");
+        existing.setRentalUnit("HOUR");
+        existing.setStartDateTime(LocalDateTime.now().plusHours(3));
+        existing.setEndDateTime(LocalDateTime.now().plusHours(5));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of(existing));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(LocalDateTime.now().plusHours(2).toString());
+        req.setEndDateTime(LocalDateTime.now().plusHours(4).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("already booked"));
+    }
+
+    @Test
+    void createTrip_hourly_rejectsBelowMinimumHours() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        car.setMinHours(4);
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(LocalDateTime.now().plusHours(2).toString());
+        req.setEndDateTime(LocalDateTime.now().plusHours(4).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("minimum of 4 hours"));
+    }
+
+    @Test
+    void createTrip_hourly_rejectsOverMaxHoursPerDay() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        car.setMaxHoursPerDay(8);
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(LocalDateTime.now().plusHours(1).toString());
+        req.setEndDateTime(LocalDateTime.now().plusHours(11).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("up to 8 hours"));
+    }
+
+    @Test
+    void createTrip_hourly_rejectsOvernightWhenSameDayOnly() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        car.setSameDayOnly(true);
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDateTime start = LocalDate.now().plusDays(1).atTime(23, 0);
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(start.toString());
+        req.setEndDateTime(start.plusHours(2).toString()); // 01:00 next day
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("single day"));
+    }
+
+    /* ================= CROSS-UNIT OVERLAP ================= */
+
+    @Test
+    void createTrip_hourly_rejectsOverlappingDailyTrip() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDate day = LocalDate.now().plusDays(5);
+        TripDetail existing = new TripDetail();
+        existing.setId(90L);
+        existing.setCar(car);
+        existing.setStatus("confirmed");
+        existing.setRentalUnit("DAY");
+        existing.setStartDate(day);
+        existing.setEndDate(day.plusDays(2));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of(existing));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(day.atTime(14, 0).toString());
+        req.setEndDateTime(day.atTime(16, 0).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("already booked"));
+    }
+
+    @Test
+    void createTrip_daily_rejectsOverlappingHourlyTrip() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDate day = LocalDate.now().plusDays(5);
+        TripDetail existing = new TripDetail();
+        existing.setId(91L);
+        existing.setCar(car);
+        existing.setStatus("confirmed");
+        existing.setRentalUnit("HOUR");
+        existing.setStartDateTime(day.atTime(10, 0));
+        existing.setEndDateTime(day.atTime(12, 0));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of(existing));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> customerService.createTrip(c, tripRequest(10L, day, day.plusDays(1))));
+        assertTrue(ex.getMessage().contains("already booked"));
+    }
+
+    @Test
+    void createTrip_daily_rejectsOverlappingLegacyTripWithoutRentalUnit() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDate day = LocalDate.now().plusDays(5);
+        TripDetail legacy = new TripDetail();
+        legacy.setId(92L);
+        legacy.setCar(car);
+        legacy.setStatus("confirmed");
+        legacy.setRentalUnit(null); // rows created before the hourly feature
+        legacy.setStartDate(day);
+        legacy.setEndDate(day.plusDays(2));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of(legacy));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> customerService.createTrip(c, tripRequest(10L, day.plusDays(1), day.plusDays(3))));
+        assertTrue(ex.getMessage().contains("already booked"));
+    }
+
+    @Test
+    void createTrip_hourly_rejectsOverlappingLegacyTripWithoutRentalUnit() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        car.setPricePerHour(new BigDecimal("50.00"));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDate day = LocalDate.now().plusDays(5);
+        TripDetail legacy = new TripDetail();
+        legacy.setId(93L);
+        legacy.setCar(car);
+        legacy.setStatus("confirmed");
+        legacy.setRentalUnit(null);
+        legacy.setStartDate(day);
+        legacy.setEndDate(day.plusDays(2));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of(legacy));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("HOUR");
+        req.setStartDateTime(day.plusDays(1).atTime(10, 0).toString());
+        req.setEndDateTime(day.plusDays(1).atTime(12, 0).toString());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("already booked"));
+    }
+
+    @Test
+    void createTrip_daily_succeedsWhenHourlyTripDoesNotOverlap() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        car.setPricingMode("BOTH");
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        LocalDate day = LocalDate.now().plusDays(5);
+        TripDetail hourly = new TripDetail();
+        hourly.setId(94L);
+        hourly.setCar(car);
+        hourly.setStatus("confirmed");
+        hourly.setRentalUnit("HOUR");
+        hourly.setStartDateTime(day.plusDays(3).atTime(10, 0));
+        hourly.setEndDateTime(day.plusDays(3).atTime(12, 0));
+        when(tripDetailRepository.findByCarId(10L)).thenReturn(List.of(hourly));
+        when(tripDetailRepository.save(any(TripDetail.class))).thenAnswer(inv -> {
+            TripDetail t = inv.getArgument(0);
+            t.setId(95L);
+            return t;
+        });
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(inv -> {
+            Transaction tx = inv.getArgument(0);
+            tx.setId(96L);
+            return tx;
+        });
+
+        TripResponse resp = customerService.createTrip(c, tripRequest(10L, day, day.plusDays(2)));
+
+        assertEquals("confirmed", resp.getStatus());
+    }
+
+    @Test
+    void createTrip_throwsWhenRentalUnitInvalid() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner(5L));
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripRequest req = tripRequest(10L, LocalDate.now(), LocalDate.now());
+        req.setRentalUnit("WEEK");
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+        assertTrue(ex.getMessage().contains("rentalUnit"));
     }
 
     private TripDetail trip(Customer customer, Long id, String status) {

@@ -39,6 +39,24 @@ public class Car {
     @Column(name = "price_per_day", nullable = false)
     private BigDecimal pricePerDay;
 
+    @Column(name = "price_per_hour")
+    private BigDecimal pricePerHour;
+
+    @Column(name = "pricing_mode")
+    private String pricingMode = "DAILY";
+
+    @Column(name = "min_hours")
+    private Integer minHours;
+
+    @Column(name = "max_hours_per_day")
+    private Integer maxHoursPerDay;
+
+    @Column(name = "same_day_only")
+    private Boolean sameDayOnly;
+
+    @Column(name = "cancel_policy_hours")
+    private Integer cancelPolicyHours;
+
     @Column(nullable = false)
     private String city;
 
@@ -78,6 +96,18 @@ public class Car {
     public void setSeats(int seats) { this.seats = seats; }
     public BigDecimal getPricePerDay() { return pricePerDay; }
     public void setPricePerDay(BigDecimal pricePerDay) { this.pricePerDay = pricePerDay; }
+    public BigDecimal getPricePerHour() { return pricePerHour; }
+    public void setPricePerHour(BigDecimal pricePerHour) { this.pricePerHour = pricePerHour; }
+    public String getPricingMode() { return pricingMode; }
+    public void setPricingMode(String pricingMode) { this.pricingMode = pricingMode; }
+    public Integer getMinHours() { return minHours; }
+    public void setMinHours(Integer minHours) { this.minHours = minHours; }
+    public Integer getMaxHoursPerDay() { return maxHoursPerDay; }
+    public void setMaxHoursPerDay(Integer maxHoursPerDay) { this.maxHoursPerDay = maxHoursPerDay; }
+    public Boolean getSameDayOnly() { return sameDayOnly; }
+    public void setSameDayOnly(Boolean sameDayOnly) { this.sameDayOnly = sameDayOnly; }
+    public Integer getCancelPolicyHours() { return cancelPolicyHours; }
+    public void setCancelPolicyHours(Integer cancelPolicyHours) { this.cancelPolicyHours = cancelPolicyHours; }
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
     public String getDescription() { return description; }

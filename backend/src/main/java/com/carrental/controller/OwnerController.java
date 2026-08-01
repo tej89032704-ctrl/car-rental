@@ -126,6 +126,15 @@ public class OwnerController {
         }
     }
 
+    @GetMapping("/earnings")
+    public ResponseEntity<?> earningsSummary() {
+        try {
+            return ok(ownerService.getEarningsSummary(currentOwner()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
     /* ---------------- DOCUMENTS ---------------- */
 
     @GetMapping("/documents")

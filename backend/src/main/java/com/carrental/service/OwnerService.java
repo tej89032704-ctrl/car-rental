@@ -118,6 +118,31 @@ public class OwnerService {
         }
         if (req.getCity() == null || req.getCity().isBlank()) throw new RuntimeException("city is required");
 
+        String mode = req.getPricingMode() == null || req.getPricingMode().isBlank()
+                ? "DAILY" : req.getPricingMode().trim().toUpperCase();
+        if (!List.of("DAILY", "HOURLY", "BOTH").contains(mode)) {
+            throw new RuntimeException("pricingMode must be DAILY, HOURLY or BOTH");
+        }
+        if (!"DAILY".equals(mode)
+                && (req.getPricePerHour() == null || req.getPricePerHour().signum() <= 0)) {
+            throw new RuntimeException("pricePerHour must be greater than 0");
+        }
+        Integer minHours = req.getMinHours();
+        Integer maxHours = req.getMaxHoursPerDay();
+        if (minHours != null && minHours < 1) {
+            throw new RuntimeException("minHours must be at least 1");
+        }
+        if (maxHours != null && maxHours < 1) {
+            throw new RuntimeException("maxHoursPerDay must be at least 1");
+        }
+        if (minHours != null && maxHours != null && maxHours < minHours) {
+            throw new RuntimeException("maxHoursPerDay cannot be less than minHours");
+        }
+        Integer cancelHrs = req.getCancelPolicyHours();
+        if (cancelHrs != null && cancelHrs < 0) {
+            throw new RuntimeException("cancelPolicyHours cannot be negative");
+        }
+
         car.setMake(req.getMake().trim());
         car.setModel(req.getModel().trim());
         car.setYear(req.getYear());
@@ -127,6 +152,12 @@ public class OwnerService {
         car.setTransmission(req.getTransmission() != null ? req.getTransmission().trim() : null);
         car.setSeats(req.getSeats() != null ? req.getSeats() : 4);
         car.setPricePerDay(req.getPricePerDay());
+        car.setPricePerHour(req.getPricePerHour());
+        car.setPricingMode(mode);
+        car.setMinHours(minHours);
+        car.setMaxHoursPerDay(maxHours);
+        car.setSameDayOnly(req.getSameDayOnly());
+        car.setCancelPolicyHours(cancelHrs);
         car.setCity(req.getCity().trim());
         car.setDescription(req.getDescription() != null ? req.getDescription().trim() : null);
         if (req.getAvailable() != null) car.setAvailable(req.getAvailable());
@@ -164,6 +195,12 @@ public class OwnerService {
         r.setTransmission(c.getTransmission());
         r.setSeats(c.getSeats());
         r.setPricePerDay(c.getPricePerDay());
+        r.setPricePerHour(c.getPricePerHour());
+        r.setPricingMode(c.getPricingMode());
+        r.setMinHours(c.getMinHours());
+        r.setMaxHoursPerDay(c.getMaxHoursPerDay());
+        r.setSameDayOnly(c.getSameDayOnly());
+        r.setCancelPolicyHours(c.getCancelPolicyHours());
         r.setCity(c.getCity());
         r.setDescription(c.getDescription());
         r.setAvailable(c.isAvailable());
@@ -219,8 +256,15 @@ public class OwnerService {
         r.setCarImage(primaryImageOf(t.getCar()));
         r.setCustomerId(t.getCustomer() == null ? null : t.getCustomer().getId());
         r.setCustomerName(t.getCustomer() == null ? null : t.getCustomer().getName());
-        r.setStartDate(t.getStartDate() == null ? null : t.getStartDate().toString());
-        r.setEndDate(t.getEndDate() == null ? null : t.getEndDate().toString());
+        r.setRentalUnit(t.getRentalUnit());
+        r.setRentalQty(t.getRentalQty());
+        if ("HOUR".equalsIgnoreCase(t.getRentalUnit()) && t.getStartDateTime() != null) {
+            r.setStartDate(t.getStartDateTime().toString().replace('T', ' '));
+            r.setEndDate(t.getEndDateTime() == null ? null : t.getEndDateTime().toString().replace('T', ' '));
+        } else {
+            r.setStartDate(t.getStartDate() == null ? null : t.getStartDate().toString());
+            r.setEndDate(t.getEndDate() == null ? null : t.getEndDate().toString());
+        }
         r.setStartLocation(t.getStartLocation());
         r.setEndLocation(t.getEndLocation());
         r.setTotalAmount(t.getTotalAmount());
@@ -265,8 +309,37 @@ public class OwnerService {
         r.setOwnerPayout(tx.getOwnerPayout());
         r.setPaymentMethod(tx.getPaymentMethod());
         r.setStatus(tx.getStatus());
+        r.setRentalUnit(tx.getTrip() == null ? null : tx.getTrip().getRentalUnit());
+        r.setRentalQty(tx.getTrip() == null ? null : tx.getTrip().getRentalQty());
         r.setCreatedAt(tx.getCreatedAt() == null ? null : tx.getCreatedAt().toString());
         return r;
+    }
+
+    public OwnerEarningsResponse getEarningsSummary(Owner owner) {
+        OwnerEarningsResponse r = new OwnerEarningsResponse();
+        for (Transaction tx : transactionRepository.findByOwnerId(owner.getId())) {
+            // earnings only count successfully paid transactions (refunded/pending excluded)
+            if (!"paid".equalsIgnoreCase(tx.getStatus())) continue;
+            r.setTotalGross(r.getTotalGross().add(zeroSafe(tx.getAmount())));
+            r.setTotalPlatformFee(r.getTotalPlatformFee().add(zeroSafe(tx.getPlatformFee())));
+            r.setTotalPayout(r.getTotalPayout().add(zeroSafe(tx.getOwnerPayout())));
+            r.setPayouts(r.getPayouts() + 1);
+
+            boolean hourly = tx.getTrip() != null
+                    && "HOUR".equalsIgnoreCase(tx.getTrip().getRentalUnit());
+            if (hourly) {
+                r.setHourlyPayout(r.getHourlyPayout().add(zeroSafe(tx.getOwnerPayout())));
+                r.setHourlyTrips(r.getHourlyTrips() + 1);
+            } else {
+                r.setDailyPayout(r.getDailyPayout().add(zeroSafe(tx.getOwnerPayout())));
+                r.setDailyTrips(r.getDailyTrips() + 1);
+            }
+        }
+        return r;
+    }
+
+    private BigDecimal zeroSafe(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
     }
 
     /* ================= DOCUMENTS ================= */

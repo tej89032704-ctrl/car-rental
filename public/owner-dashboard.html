@@ -91,6 +91,13 @@
   .stat-card .v.amber { color: var(--amber); }
   .stat-card .v.green { color: var(--green); }
   .stat-card .v.red { color: var(--red); }
+  .split-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.1rem 1.2rem; transition: transform .25s, border-color .25s; }
+  .split-card:hover { transform: translateY(-3px); border-color: rgba(240,177,74,0.35); }
+  .split-card .k { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .split-card .v { font-size: 1.5rem; font-weight: 750; letter-spacing: -0.03em; margin-top: 0.35rem; }
+  .split-card .v.amber { color: var(--amber); }
+  .split-card .v.green { color: var(--green); }
+  .split-card .sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
 
   /* ------- Toolbar ------- */
   .toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
@@ -335,6 +342,8 @@
   <section class="view" id="view-earnings">
     <div class="view-head"><h1>Earnings</h1><p>Your payouts after the platform fee.</p></div>
     <div class="stats-grid" id="earnStats"></div>
+    <h2 style="font-size:0.85rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted);margin:0.4rem 0 0.8rem">By rental unit</h2>
+    <div class="stats-grid" id="earnSplit"></div>
     <div class="list" id="txList"></div>
     <div class="empty" id="txEmpty" style="display:none">No transactions yet — earnings will show up once your cars get booked.</div>
   </section>
@@ -391,7 +400,15 @@
         <select id="cTrans"><option value="">—</option><option>Manual</option><option>Automatic</option></select>
       </div>
       <div class="field"><label>Seats</label><input id="cSeats" type="number" min="1" max="12" placeholder="5"></div>
+      <div class="field"><label>Pricing mode</label>
+        <select id="cMode" onchange="toggleHourField()"><option value="DAILY">Daily only</option><option value="BOTH">Daily + Hourly</option><option value="HOURLY">Hourly only</option></select>
+      </div>
       <div class="field"><label>Price per day (₹) *</label><input id="cPrice" type="number" min="1" placeholder="1500"></div>
+      <div class="field" id="cHourField" style="display:none"><label>Price per hour (₹) *</label><input id="cHour" type="number" min="1" placeholder="120"></div>
+      <div class="field" id="cMinHrsField" style="display:none"><label>Minimum hours</label><input id="cMinHrs" type="number" min="1" placeholder="e.g. 2 (default 1)"></div>
+      <div class="field" id="cMaxHrsField" style="display:none"><label>Max hours per booking</label><input id="cMaxHrs" type="number" min="1" placeholder="e.g. 8 (empty = no cap)"></div>
+      <div class="field" id="cSameDayField" style="display:none"><label>Same-day only</label><select id="cSameDay"><option value="">No (allow overnight)</option><option value="true">Yes (no overnight)</option></select></div>
+      <div class="field" id="cCancelField" style="display:none"><label>Free cancel window (hours before pickup)</label><input id="cCancel" type="number" min="0" placeholder="e.g. 24 (empty = no restriction)"></div>
       <div class="field"><label>City *</label><input id="cCity" placeholder="Bengaluru"></div>
       <div class="field full">
         <label>Photos</label>
@@ -438,6 +455,7 @@
     tripList: document.getElementById('tripList'),
     tripEmpty: document.getElementById('tripEmpty'),
     earnStats: document.getElementById('earnStats'),
+    earnSplit: document.getElementById('earnSplit'),
     txList: document.getElementById('txList'),
     txEmpty: document.getElementById('txEmpty'),
     docList: document.getElementById('docList'),
@@ -536,12 +554,12 @@
 
   /* ---------- overview ---------- */
   function loadOverview() {
-    Promise.all([api('/cars'), api('/trips'), api('/transactions')]).then(function (rs) {
-      var cars = rs[0], trips = rs[1], txs = rs[2];
+    Promise.all([api('/cars'), api('/trips'), api('/transactions'), api('/earnings')]).then(function (rs) {
+      var cars = rs[0], trips = rs[1], txs = rs[2], sum = rs[3];
       state.cars = cars; state.trips = trips; state.txs = txs;
       var active = trips.filter(function (t) { return t.status === 'confirmed' || t.status === 'pending'; });
       var pending = trips.filter(function (t) { return t.status === 'pending'; });
-      var earned = txs.reduce(function (s, t) { return s + Number(t.ownerPayout || 0); }, 0);
+      var earned = Number(sum.totalPayout || 0); // matches the Earnings view (paid only)
       var completed = trips.filter(function (t) { return t.status === 'completed'; }).length;
       els.ovHello.textContent = 'Welcome back' + (state.profile && state.profile.name ? ', ' + state.profile.name.split(' ')[0] : '') + '.';
       els.ovStats.innerHTML =
@@ -572,8 +590,7 @@
           (c.verified ? '<span class="badge verified">✓ verified</span>' : '<span class="badge pending">unverified</span>') +
           '</div>' +
           '<div class="meta"><span>' + esc(c.city) + '</span><span>·</span><span>' + c.year + '</span><span>·</span><span>' + esc(c.fuelType || '-') + '</span><span>·</span><span>' + esc(c.transmission || '-') + '</span><span>·</span><span>' + c.seats + ' seats</span></div>' +
-          '<div class="price"><span class="amt">' + fmt(c.pricePerDay) + '</span><span class="per">/ day</span>' +
-          '<span class="badge ' + (c.available ? 'available' : 'unavailable') + '" style="margin-left:auto">' + (c.available ? 'Available' : 'Unavailable') + '</span></div>' +
+          '<div class="price">' + priceLabel(c) + '<span class="badge ' + (c.available ? 'available' : 'unavailable') + '" style="margin-left:auto">' + (c.available ? 'Available' : 'Unavailable') + '</span></div>' +
           '</div>' +
           '<div class="actions">' +
           '<button class="btn ghost sm" onclick="editCar(' + c.id + ')">Edit</button>' +
@@ -596,12 +613,29 @@
     api('/cars/' + id, { method: 'DELETE' }).then(function () { toast('Car deleted'); loadCars(); })
       .catch(function (e) { toast(e.message, true); });
   };
+  window.toggleHourField = function () {
+    var hourly = document.getElementById('cMode').value !== 'DAILY';
+    ['cHourField', 'cMinHrsField', 'cMaxHrsField', 'cSameDayField', 'cCancelField'].forEach(function (id) {
+      var f = document.getElementById(id);
+      if (f) f.style.display = hourly ? 'block' : 'none';
+    });
+  };
+  function priceLabel(c) {
+    var m = c.pricingMode || 'DAILY';
+    var parts = [];
+    if (m !== 'HOURLY') parts.push('<span class="amt">' + fmt(c.pricePerDay) + '</span><span class="per">/ day</span>');
+    if (m !== 'DAILY') parts.push('<span class="amt">' + fmt(c.pricePerHour) + '</span><span class="per">/ hr</span>');
+    return parts.join('<span class="sep">·</span>');
+  }
   function carPayload(car, available) {
     var p = {
       make: car.make, model: car.model, year: car.year,
       registrationNumber: car.registrationNumber, color: car.color,
       fuelType: car.fuelType, transmission: car.transmission, seats: car.seats,
-      pricePerDay: car.pricePerDay, city: car.city, description: car.description,
+      pricePerDay: car.pricePerDay, pricePerHour: car.pricePerHour, pricingMode: car.pricingMode,
+      minHours: car.minHours, maxHoursPerDay: car.maxHoursPerDay, sameDayOnly: car.sameDayOnly,
+      cancelPolicyHours: car.cancelPolicyHours,
+      city: car.city, description: car.description,
       available: available != null ? available : car.available,
       mediaUrls: car.mediaUrls || []
     };
@@ -613,11 +647,13 @@
     state.editingCarId = null;
     document.getElementById('carModalTitle').textContent = 'Add a car';
     document.getElementById('carModalSub').textContent = 'Fill in the details below. Your car will be visible to renters once listed.';
-    ['cMake','cModel','cYear','cReg','cColor','cFuel','cTrans','cSeats','cPrice','cCity','cMedia','cDesc'].forEach(function (id) {
+    ['cMake','cModel','cYear','cReg','cColor','cFuel','cTrans','cSeats','cPrice','cCity','cMedia','cDesc','cHour','cMinHrs','cMaxHrs','cSameDay','cCancel'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el.tagName === 'SELECT') el.value = ''; else el.value = '';
     });
     renderThumbs();
+    document.getElementById('cMode').value = 'DAILY';
+    toggleHourField();
     document.getElementById('carModal').classList.add('open');
   };
   window.editCar = function (id) {
@@ -635,6 +671,13 @@
     document.getElementById('cTrans').value = car.transmission || '';
     document.getElementById('cSeats').value = car.seats || '';
     document.getElementById('cPrice').value = car.pricePerDay || '';
+    document.getElementById('cHour').value = car.pricePerHour || '';
+    document.getElementById('cMinHrs').value = car.minHours || '';
+    document.getElementById('cMaxHrs').value = car.maxHoursPerDay || '';
+    document.getElementById('cSameDay').value = car.sameDayOnly ? 'true' : '';
+    document.getElementById('cCancel').value = car.cancelPolicyHours || '';
+    document.getElementById('cMode').value = car.pricingMode || 'DAILY';
+    toggleHourField();
     document.getElementById('cCity').value = car.city || '';
     document.getElementById('cMedia').value = (car.mediaUrls || []).join('\n');
     document.getElementById('cDesc').value = car.description || '';
@@ -658,6 +701,12 @@
       transmission: document.getElementById('cTrans').value || null,
       seats: parseInt(document.getElementById('cSeats').value, 10) || 4,
       pricePerDay: Number(document.getElementById('cPrice').value),
+      pricePerHour: document.getElementById('cMode').value === 'DAILY' ? null : Number(document.getElementById('cHour').value),
+      pricingMode: document.getElementById('cMode').value,
+      minHours: document.getElementById('cMode').value === 'DAILY' ? null : (parseInt(document.getElementById('cMinHrs').value, 10) || null),
+      maxHoursPerDay: document.getElementById('cMode').value === 'DAILY' ? null : (parseInt(document.getElementById('cMaxHrs').value, 10) || null),
+      sameDayOnly: document.getElementById('cSameDay').value === 'true',
+      cancelPolicyHours: parseInt(document.getElementById('cCancel').value, 10) || null,
       city: document.getElementById('cCity').value.trim(),
       description: document.getElementById('cDesc').value.trim() || null,
       mediaUrls: document.getElementById('cMedia').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean)
@@ -724,23 +773,25 @@
 
   /* ---------- earnings ---------- */
   function loadEarnings() {
-    Promise.all([api('/transactions'), api('/trips')]).then(function (rs) {
-      var txs = rs[0]; state.txs = txs;
-      var earned = txs.reduce(function (s, t) { return s + Number(t.ownerPayout || 0); }, 0);
-      var gross = txs.reduce(function (s, t) { return s + Number(t.amount || 0); }, 0);
-      var fees = txs.reduce(function (s, t) { return s + Number(t.platformFee || 0); }, 0);
-      var paid = txs.filter(function (t) { return t.status === 'paid' || t.status === 'completed'; });
+    Promise.all([api('/earnings'), api('/transactions'), api('/trips')]).then(function (rs) {
+      var sum = rs[0]; var txs = rs[1]; state.txs = txs;
       els.earnStats.innerHTML =
-        stat('Gross bookings', fmt(gross), '') +
-        stat('Platform fees', fmt(fees), '') +
-        stat('Your earnings', fmt(earned), 'green') +
-        stat('Payouts', paid.length, '');
+        stat('Gross bookings', fmt(sum.totalGross), '') +
+        stat('Platform fees', fmt(sum.totalPlatformFee), '') +
+        stat('Your earnings', fmt(sum.totalPayout), 'green') +
+        stat('Payouts', sum.payouts || 0, '');
+      els.earnSplit.innerHTML =
+        '<div class="split-card"><div class="k">Daily rentals</div><div class="v amber">' + fmt(sum.dailyPayout) + '</div><div class="sub">' + (sum.dailyTrips || 0) + ' trip' + (sum.dailyTrips === 1 ? '' : 's') + ' · payout after fee</div></div>' +
+        '<div class="split-card"><div class="k">Hourly rentals</div><div class="v green">' + fmt(sum.hourlyPayout) + '</div><div class="sub">' + (sum.hourlyTrips || 0) + ' trip' + (sum.hourlyTrips === 1 ? '' : 's') + ' · payout after fee</div></div>';
       els.txList.innerHTML = txs.map(function (t) {
+        var unit = t.rentalUnit === 'HOUR'
+          ? ' · ' + (t.rentalQty || 0) + ' hr' + (t.rentalQty > 1 ? 's' : '')
+          : (t.rentalQty ? ' · ' + t.rentalQty + ' day' + (t.rentalQty > 1 ? 's' : '') : '');
         return '<div class="row-card">' +
           '<div class="row-top">' +
           '<div class="ico">₹</div>' +
           '<div><div class="ttl">' + esc(t.carName || 'Rental') + '</div>' +
-          '<div class="st">' + (t.createdAt || '').replace('T', ' ').slice(0, 16) + ' · ' + esc(t.paymentMethod || 'card') + '</div></div>' +
+          '<div class="st">' + (t.createdAt || '').replace('T', ' ').slice(0, 16) + ' · ' + esc(t.paymentMethod || 'card') + unit + '</div></div>' +
           '<div class="row-actions"><span class="badge ' + esc(t.status) + '">' + esc(t.status) + '</span></div>' +
           '</div>' +
           '<div class="row-foot"><span>Charged <span class="amt">' + fmt(t.amount) + '</span></span>' +

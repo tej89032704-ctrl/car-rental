@@ -4,6 +4,7 @@ import com.carrental.dto.CarCreateRequest;
 import com.carrental.dto.DocumentRequest;
 import com.carrental.dto.DocumentResponse;
 import com.carrental.dto.OwnerCarResponse;
+import com.carrental.dto.OwnerEarningsResponse;
 import com.carrental.dto.OwnerProfileResponse;
 import com.carrental.dto.OwnerTripResponse;
 import com.carrental.dto.TransactionResponse;
@@ -226,6 +227,134 @@ class OwnerServiceTest {
         verify(carRepository, never()).save(any(Car.class));
     }
 
+    /* ================= HOURLY PRICING ================= */
+
+    @Test
+    void addCar_savesBothDailyAndHourlyPricing() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setPricingMode("BOTH");
+        req.setPricePerHour(new BigDecimal("50.00"));
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> {
+            Car c = inv.getArgument(0);
+            c.setId(11L);
+            return c;
+        });
+
+        ownerService.addCar(o, req);
+
+        ArgumentCaptor<Car> carCaptor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(carCaptor.capture());
+        Car saved = carCaptor.getValue();
+        assertEquals("BOTH", saved.getPricingMode());
+        assertEquals(new BigDecimal("50.00"), saved.getPricePerHour());
+        assertEquals(new BigDecimal("500.00"), saved.getPricePerDay());
+    }
+
+    @Test
+    void addCar_throwsWhenHourlyPriceMissingForHourlyMode() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setPricingMode("HOURLY");
+        req.setPricePerHour(null);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> ownerService.addCar(o, req));
+        assertTrue(ex.getMessage().contains("pricePerHour"));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void addCar_throwsWhenInvalidPricingMode() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setPricingMode("WEEKLY");
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> ownerService.addCar(o, req));
+        assertTrue(ex.getMessage().contains("pricingMode"));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void addCar_savesHourlyLimits() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setPricingMode("BOTH");
+        req.setPricePerHour(new BigDecimal("50.00"));
+        req.setMinHours(2);
+        req.setMaxHoursPerDay(8);
+        req.setSameDayOnly(true);
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> {
+            Car c = inv.getArgument(0);
+            c.setId(12L);
+            return c;
+        });
+
+        ownerService.addCar(o, req);
+
+        ArgumentCaptor<Car> carCaptor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(carCaptor.capture());
+        Car saved = carCaptor.getValue();
+        assertEquals(2, saved.getMinHours());
+        assertEquals(8, saved.getMaxHoursPerDay());
+        assertEquals(Boolean.TRUE, saved.getSameDayOnly());
+    }
+
+    @Test
+    void addCar_throwsWhenMaxHoursLessThanMinHours() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setPricingMode("BOTH");
+        req.setPricePerHour(new BigDecimal("50.00"));
+        req.setMinHours(5);
+        req.setMaxHoursPerDay(2);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> ownerService.addCar(o, req));
+        assertTrue(ex.getMessage().contains("maxHoursPerDay"));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void addCar_throwsWhenMinHoursInvalid() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setPricingMode("HOURLY");
+        req.setPricePerHour(new BigDecimal("50.00"));
+        req.setMinHours(0);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> ownerService.addCar(o, req));
+        assertTrue(ex.getMessage().contains("minHours"));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void addCar_savesCancelPolicyHours() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setCancelPolicyHours(24);
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> {
+            Car c = inv.getArgument(0);
+            c.setId(99L);
+            return c;
+        });
+
+        ownerService.addCar(o, req);
+
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertEquals(24, captor.getValue().getCancelPolicyHours());
+    }
+
+    @Test
+    void addCar_throwsWhenCancelPolicyHoursNegative() {
+        Owner o = owner(5L);
+        CarCreateRequest req = validCarRequest();
+        req.setCancelPolicyHours(-1);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> ownerService.addCar(o, req));
+        assertTrue(ex.getMessage().contains("cancelPolicyHours"));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
     @Test
     void updateCar_updatesFieldsAndReplacesMedia() {
         Owner o = owner(5L);
@@ -379,6 +508,49 @@ class OwnerServiceTest {
         assertEquals("Honda City", r.getCarName());
         assertEquals(new BigDecimal("270.00"), r.getOwnerPayout());
         assertEquals("paid", r.getStatus());
+    }
+
+    @Test
+    void getEarningsSummary_countsOnlyPaidAndSplitsByUnit() {
+        Owner o = owner(5L);
+
+        TripDetail daily1 = trip(o, 100L, "completed");
+        TripDetail daily2 = trip(o, 101L, "completed");
+        TripDetail hourly = trip(o, 102L, "completed");
+        hourly.setRentalUnit("HOUR");
+        hourly.setRentalQty(4);
+
+        Transaction txDay1 = paidTx(200L, daily1, new BigDecimal("300.00"), new BigDecimal("30.00"), new BigDecimal("270.00"));
+        Transaction txDay2 = paidTx(201L, daily2, new BigDecimal("200.00"), new BigDecimal("20.00"), new BigDecimal("180.00"));
+        Transaction txHour = paidTx(202L, hourly, new BigDecimal("100.00"), new BigDecimal("10.00"), new BigDecimal("90.00"));
+        Transaction txRefunded = paidTx(203L, daily1, new BigDecimal("999.00"), new BigDecimal("99.90"), new BigDecimal("500.00"));
+        txRefunded.setStatus("refunded");
+        Transaction txPending = paidTx(204L, daily1, new BigDecimal("555.00"), new BigDecimal("55.50"), new BigDecimal("400.00"));
+        txPending.setStatus("pending");
+        when(transactionRepository.findByOwnerId(5L)).thenReturn(List.of(txDay1, txDay2, txHour, txRefunded, txPending));
+
+        OwnerEarningsResponse r = ownerService.getEarningsSummary(o);
+
+        assertEquals(new BigDecimal("600.00"), r.getTotalGross());
+        assertEquals(new BigDecimal("60.00"), r.getTotalPlatformFee());
+        assertEquals(new BigDecimal("540.00"), r.getTotalPayout());
+        assertEquals(3, r.getPayouts());
+        assertEquals(2, r.getDailyTrips());
+        assertEquals(new BigDecimal("450.00"), r.getDailyPayout());
+        assertEquals(1, r.getHourlyTrips());
+        assertEquals(new BigDecimal("90.00"), r.getHourlyPayout());
+    }
+
+    private Transaction paidTx(Long id, TripDetail trip, BigDecimal amount, BigDecimal fee, BigDecimal payout) {
+        Transaction tx = new Transaction();
+        tx.setId(id);
+        tx.setTrip(trip);
+        tx.setAmount(amount);
+        tx.setPlatformFee(fee);
+        tx.setOwnerPayout(payout);
+        tx.setPaymentMethod("upi");
+        tx.setStatus("paid");
+        return tx;
     }
 
     /* ================= DOCUMENTS ================= */

@@ -102,6 +102,12 @@ public class CustomerService {
         resp.setTransmission(car.getTransmission());
         resp.setSeats(car.getSeats());
         resp.setPricePerDay(car.getPricePerDay());
+        resp.setPricePerHour(car.getPricePerHour());
+        resp.setPricingMode(car.getPricingMode());
+        resp.setMinHours(car.getMinHours());
+        resp.setMaxHoursPerDay(car.getMaxHoursPerDay());
+        resp.setSameDayOnly(car.getSameDayOnly());
+        resp.setCancelPolicyHours(car.getCancelPolicyHours());
         resp.setCity(car.getCity());
         resp.setDescription(car.getDescription());
         resp.setAvailable(car.isAvailable());
@@ -130,9 +136,16 @@ public class CustomerService {
                 .map(CarMedia::getMediaUrl)
                 .findFirst()
                 .orElse(null);
-        return new CarCardResponse(c.getId(), c.getMake(), c.getModel(), c.getYear(), c.getFuelType(),
+        CarCardResponse resp = new CarCardResponse(c.getId(), c.getMake(), c.getModel(), c.getYear(), c.getFuelType(),
                 c.getTransmission(), c.getSeats(), c.getPricePerDay(), c.getCity(), image,
                 c.isAvailable(), c.isVerified());
+        resp.setPricePerHour(c.getPricePerHour());
+        resp.setPricingMode(c.getPricingMode());
+        resp.setMinHours(c.getMinHours());
+        resp.setMaxHoursPerDay(c.getMaxHoursPerDay());
+        resp.setSameDayOnly(c.getSameDayOnly());
+        resp.setCancelPolicyHours(c.getCancelPolicyHours());
+        return resp;
     }
 
     /* ================= TRIPS ================= */
@@ -145,18 +158,27 @@ public class CustomerService {
         if (!car.isAvailable()) throw new RuntimeException("This car is not available for booking");
         if (!car.isVerified()) throw new RuntimeException("This car is not verified yet");
 
+        String unit = normalizeUnit(req.getRentalUnit());
+        String mode = normalizeMode(car.getPricingMode());
+
+        if ("HOUR".equals(unit)) {
+            return createHourlyTrip(customer, req, car, mode);
+        }
+        return createDailyTrip(customer, req, car, mode);
+    }
+
+    private TripResponse createDailyTrip(Customer customer, TripRequest req, Car car, String mode) {
+        if (!"DAILY".equals(mode) && !"BOTH".equals(mode)) {
+            throw new RuntimeException("This car is only available for hourly rentals");
+        }
         LocalDate start = parseDate(req.getStartDate(), "startDate");
         LocalDate end = parseDate(req.getEndDate(), "endDate");
         if (end.isBefore(start)) throw new RuntimeException("End date must be on or after start date");
         if (start.isBefore(LocalDate.now())) throw new RuntimeException("Start date cannot be in the past");
         if (start.isEqual(end)) throw new RuntimeException("Booking must be at least one day");
 
-        // Overlap check: any non-cancelled trip for this car between [start, end)
-        List<TripDetail> carTrips = tripDetailRepository.findByCarId(car.getId());
-        boolean overlap = carTrips.stream()
-                .filter(t -> !"cancelled".equalsIgnoreCase(t.getStatus()))
-                .anyMatch(t -> datesOverlap(start, end, t.getStartDate(), t.getEndDate()));
-        if (overlap) throw new RuntimeException("This car is already booked for the selected dates");
+        // Overlap check: any non-cancelled trip for this car, comparing date/date-time intervals
+        checkOverlap(car.getId(), start.atStartOfDay(), end.plusDays(1).atStartOfDay());
 
         long days = ChronoUnit.DAYS.between(start, end);
         BigDecimal total = car.getPricePerDay().multiply(BigDecimal.valueOf(days));
@@ -167,6 +189,8 @@ public class CustomerService {
         trip.setCar(car);
         trip.setCustomer(customer);
         trip.setOwner(car.getOwner());
+        trip.setRentalUnit("DAY");
+        trip.setRentalQty((int) days);
         trip.setStartDate(start);
         trip.setEndDate(end);
         trip.setStartLocation(req.getStartLocation());
@@ -176,22 +200,72 @@ public class CustomerService {
         trip.setCreatedAt(LocalDateTime.now());
         trip = tripDetailRepository.save(trip);
 
-        String paymentMethod = req.getPaymentMethod() != null && !req.getPaymentMethod().isBlank()
-                ? req.getPaymentMethod() : "card";
+        saveTransaction(trip, customer, car.getOwner(), total, platformFee, ownerPayout, req.getPaymentMethod());
 
-        Transaction tx = new Transaction();
-        tx.setTrip(trip);
-        tx.setCustomer(customer);
-        tx.setOwner(car.getOwner());
-        tx.setAmount(total);
-        tx.setPlatformFee(platformFee);
-        tx.setOwnerPayout(ownerPayout);
-        tx.setPaymentMethod(paymentMethod);
-        tx.setStatus("paid");
-        tx.setCreatedAt(LocalDateTime.now());
-        transactionRepository.save(tx);
+        return toTripResponse(trip, total, platformFee, ownerPayout,
+                req.getPaymentMethod() != null && !req.getPaymentMethod().isBlank()
+                        ? req.getPaymentMethod() : "card");
+    }
 
-        return toTripResponse(trip, total, platformFee, ownerPayout, paymentMethod);
+    private TripResponse createHourlyTrip(Customer customer, TripRequest req, Car car, String mode) {
+        if (!"HOURLY".equals(mode) && !"BOTH".equals(mode)) {
+            throw new RuntimeException("This car is only available for daily rentals");
+        }
+        if (car.getPricePerHour() == null || car.getPricePerHour().signum() <= 0) {
+            throw new RuntimeException("This car does not have an hourly price");
+        }
+        LocalDateTime start = parseDateTime(req.getStartDateTime(), "startDateTime");
+        LocalDateTime end = parseDateTime(req.getEndDateTime(), "endDateTime");
+        if (!end.isAfter(start)) throw new RuntimeException("End time must be after start time");
+        if (start.isBefore(LocalDateTime.now())) throw new RuntimeException("Start time cannot be in the past");
+
+        long minutes = ChronoUnit.MINUTES.between(start, end);
+        long hours = minutes / 60 + (minutes % 60 == 0 ? 0 : 1); // round up to the next hour
+        if (hours < 1) throw new RuntimeException("Booking must be at least one hour");
+
+        Integer minHours = car.getMinHours();
+        if (minHours != null && minHours > 0 && hours < minHours) {
+            throw new RuntimeException("This car requires a minimum of " + minHours
+                    + " hour" + (minHours > 1 ? "s" : "") + " per booking");
+        }
+        Integer maxHours = car.getMaxHoursPerDay();
+        if (maxHours != null && maxHours > 0 && hours > maxHours) {
+            throw new RuntimeException("This car can only be booked for up to " + maxHours
+                    + " hour" + (maxHours > 1 ? "s" : "") + " at a time");
+        }
+        if (Boolean.TRUE.equals(car.getSameDayOnly())
+                && !start.toLocalDate().equals(end.toLocalDate())) {
+            throw new RuntimeException("This car can only be booked within a single day (no overnight hourly rentals)");
+        }
+
+        checkOverlap(car.getId(), start, end);
+
+        BigDecimal total = car.getPricePerHour().multiply(BigDecimal.valueOf(hours)).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal platformFee = total.multiply(PLATFORM_FEE_RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal ownerPayout = total.subtract(platformFee).setScale(2, RoundingMode.HALF_UP);
+
+        TripDetail trip = new TripDetail();
+        trip.setCar(car);
+        trip.setCustomer(customer);
+        trip.setOwner(car.getOwner());
+        trip.setRentalUnit("HOUR");
+        trip.setRentalQty((int) hours);
+        trip.setStartDateTime(start);
+        trip.setEndDateTime(end);
+        trip.setStartDate(start.toLocalDate());
+        trip.setEndDate(end.toLocalDate());
+        trip.setStartLocation(req.getStartLocation());
+        trip.setEndLocation(req.getEndLocation());
+        trip.setTotalAmount(total);
+        trip.setStatus("confirmed");
+        trip.setCreatedAt(LocalDateTime.now());
+        trip = tripDetailRepository.save(trip);
+
+        saveTransaction(trip, customer, car.getOwner(), total, platformFee, ownerPayout, req.getPaymentMethod());
+
+        return toTripResponse(trip, total, platformFee, ownerPayout,
+                req.getPaymentMethod() != null && !req.getPaymentMethod().isBlank()
+                        ? req.getPaymentMethod() : "card");
     }
 
     public List<TripResponse> listTrips(Customer customer, String status) {
@@ -222,6 +296,14 @@ public class CustomerService {
         if ("cancelled".equalsIgnoreCase(t.getStatus())) {
             throw new RuntimeException("Trip is already cancelled");
         }
+        Integer policyHrs = t.getCar() == null ? null : t.getCar().getCancelPolicyHours();
+        if (policyHrs != null) {
+            LocalDateTime pickup = pickupStart(t);
+            if (pickup == null || !LocalDateTime.now().isBefore(pickup.minusHours(policyHrs))) {
+                throw new RuntimeException("Free cancellation window has passed — you must cancel at least "
+                        + policyHrs + " hours before pickup");
+            }
+        }
         t.setStatus("cancelled");
         t.setUpdatedAt(LocalDateTime.now());
         tripDetailRepository.save(t);
@@ -244,13 +326,27 @@ public class CustomerService {
         r.setCarImage(primaryImageOf(t.getCar()));
         r.setOwnerId(t.getOwner() == null ? null : t.getOwner().getId());
         r.setOwnerName(t.getOwner() == null ? null : t.getOwner().getName());
-        r.setStartDate(t.getStartDate() == null ? null : t.getStartDate().toString());
-        r.setEndDate(t.getEndDate() == null ? null : t.getEndDate().toString());
+        r.setRentalUnit(t.getRentalUnit());
+        r.setRentalQty(t.getRentalQty());
+        if ("HOUR".equalsIgnoreCase(t.getRentalUnit()) && t.getStartDateTime() != null) {
+            r.setStartDate(t.getStartDateTime().toString().replace('T', ' '));
+            r.setEndDate(t.getEndDateTime() == null ? null : t.getEndDateTime().toString().replace('T', ' '));
+        } else {
+            r.setStartDate(t.getStartDate() == null ? null : t.getStartDate().toString());
+            r.setEndDate(t.getEndDate() == null ? null : t.getEndDate().toString());
+        }
         r.setStartLocation(t.getStartLocation());
         r.setEndLocation(t.getEndLocation());
         r.setTotalAmount(total != null ? total : t.getTotalAmount());
         r.setStatus(t.getStatus());
         r.setCreatedAt(t.getCreatedAt() == null ? null : t.getCreatedAt().toString());
+        Integer policyHrs = t.getCar() == null ? null : t.getCar().getCancelPolicyHours();
+        if (policyHrs != null) {
+            LocalDateTime pickup = pickupStart(t);
+            if (pickup != null) {
+                r.setCancelDeadline(pickup.minusHours(policyHrs).toString().replace('T', ' '));
+            }
+        }
 
         // Fill fee/payout from the matching transaction when not supplied
         if (platformFee == null || ownerPayout == null) {
@@ -268,6 +364,13 @@ public class CustomerService {
             r.setPaymentMethod(paymentMethod);
         }
         return r;
+    }
+
+    private LocalDateTime pickupStart(TripDetail t) {
+        if ("HOUR".equalsIgnoreCase(t.getRentalUnit()) && t.getStartDateTime() != null) {
+            return t.getStartDateTime();
+        }
+        return t.getStartDate() == null ? null : t.getStartDate().atStartOfDay();
     }
 
     private String primaryImageOf(Car car) {
@@ -344,6 +447,8 @@ public class CustomerService {
         r.setOwnerPayout(tx.getOwnerPayout());
         r.setPaymentMethod(tx.getPaymentMethod());
         r.setStatus(tx.getStatus());
+        r.setRentalUnit(tx.getTrip() == null ? null : tx.getTrip().getRentalUnit());
+        r.setRentalQty(tx.getTrip() == null ? null : tx.getTrip().getRentalQty());
         r.setCreatedAt(tx.getCreatedAt() == null ? null : tx.getCreatedAt().toString());
         return r;
     }
@@ -359,8 +464,69 @@ public class CustomerService {
         }
     }
 
-    private boolean datesOverlap(LocalDate aStart, LocalDate aEnd, LocalDate bStart, LocalDate bEnd) {
-        return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
+    private String normalizeUnit(String unit) {
+        String u = unit == null || unit.isBlank() ? "DAY" : unit.trim().toUpperCase();
+        if (!"DAY".equals(u) && !"HOUR".equals(u)) {
+            throw new RuntimeException("rentalUnit must be DAY or HOUR");
+        }
+        return u;
+    }
+
+    private String normalizeMode(String mode) {
+        String m = mode == null || mode.isBlank() ? "DAILY" : mode.trim().toUpperCase();
+        if (!"DAILY".equals(m) && !"HOURLY".equals(m) && !"BOTH".equals(m)) {
+            throw new RuntimeException("Invalid pricing mode");
+        }
+        return m;
+    }
+
+    private LocalDateTime parseDateTime(String value, String field) {
+        if (value == null || value.isBlank()) throw new RuntimeException(field + " is required");
+        try {
+            return LocalDateTime.parse(value.trim());
+        } catch (DateTimeParseException e) {
+            throw new RuntimeException(field + " must be a valid date-time (YYYY-MM-DDTHH:mm)");
+        }
+    }
+
+    private void checkOverlap(Long carId, LocalDateTime reqStart, LocalDateTime reqEnd) {
+        List<TripDetail> carTrips = tripDetailRepository.findByCarId(carId);
+        boolean overlap = carTrips.stream()
+                .filter(t -> !"cancelled".equalsIgnoreCase(t.getStatus()))
+                .anyMatch(t -> intervalsOverlap(reqStart, reqEnd, t));
+        if (overlap) throw new RuntimeException("This car is already booked for the selected period");
+    }
+
+    private boolean intervalsOverlap(LocalDateTime reqStart, LocalDateTime reqEnd, TripDetail t) {
+        LocalDateTime tStart;
+        LocalDateTime tEnd;
+        if ("HOUR".equalsIgnoreCase(t.getRentalUnit())
+                && t.getStartDateTime() != null && t.getEndDateTime() != null) {
+            tStart = t.getStartDateTime();
+            tEnd = t.getEndDateTime();
+        } else if (t.getStartDate() != null && t.getEndDate() != null) {
+            // day trips occupy [startDate 00:00, endDate+1 00:00)
+            tStart = t.getStartDate().atStartOfDay();
+            tEnd = t.getEndDate().plusDays(1).atStartOfDay();
+        } else {
+            return false;
+        }
+        return reqStart.isBefore(tEnd) && tStart.isBefore(reqEnd);
+    }
+
+    private void saveTransaction(TripDetail trip, Customer customer, Owner owner, BigDecimal total,
+                                 BigDecimal platformFee, BigDecimal ownerPayout, String paymentMethod) {
+        Transaction tx = new Transaction();
+        tx.setTrip(trip);
+        tx.setCustomer(customer);
+        tx.setOwner(owner);
+        tx.setAmount(total);
+        tx.setPlatformFee(platformFee);
+        tx.setOwnerPayout(ownerPayout);
+        tx.setPaymentMethod(paymentMethod != null && !paymentMethod.isBlank() ? paymentMethod : "card");
+        tx.setStatus("paid");
+        tx.setCreatedAt(LocalDateTime.now());
+        transactionRepository.save(tx);
     }
 
     /* Convenience for controller: resolve customer by email */
