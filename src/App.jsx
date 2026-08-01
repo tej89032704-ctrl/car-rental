@@ -165,7 +165,7 @@ export default function App() {
         }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
-        window.location.href = d.role === 'owner' ? 'dashboard.html' : 'customer-dashboard.html';
+        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'customer-dashboard.html';
       } catch (_) {
         showErr('Cannot connect to server.');
         signinBtn.disabled = false;
@@ -205,7 +205,7 @@ export default function App() {
         }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
-        window.location.href = d.role === 'owner' ? 'dashboard.html' : 'customer-dashboard.html';
+        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'customer-dashboard.html';
       } catch (_) {
         showErr('Cannot connect to server.');
         signinBtn.disabled = false;
