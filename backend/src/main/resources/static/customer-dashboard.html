@@ -95,7 +95,17 @@
   .car-card {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     overflow: hidden; cursor: pointer; transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s, box-shadow 0.3s;
+    position: relative;
   }
+  .watch-btn {
+    position: absolute; top: 10px; right: 10px; z-index: 5;
+    width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(23,24,29,0.85); color: var(--muted); font-size: 0.95rem;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; backdrop-filter: blur(4px);
+  }
+  .watch-btn:hover { color: var(--amber); border-color: rgba(240,177,74,0.4); }
+  .watch-btn.on { color: #17181d; background: linear-gradient(135deg, var(--amber), var(--amber-2)); border-color: transparent; }
   .car-card:hover { transform: translateY(-4px); border-color: rgba(240,177,74,0.4); box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
   .car-card .img {
     height: 140px; background: linear-gradient(135deg, #23252e, #17181d);
@@ -213,6 +223,76 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.err { border-color: rgba(255,93,93,0.5); color: var(--red); }
 
+  /* ------- Notifications ------- */
+  .notif-wrap { position: fixed; top: 1rem; right: 1rem; z-index: 70; }
+  .notif-bell {
+    width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; position: relative;
+    transition: all 0.2s;
+  }
+  .notif-bell:hover { color: var(--amber); border-color: rgba(240,177,74,0.4); }
+  .notif-bell svg { width: 20px; height: 20px; }
+  .notif-pill {
+    position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 999px;
+    background: var(--red); color: #fff; font-size: 0.62rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    border: 2px solid #17181d;
+  }
+  .notif-panel {
+    position: fixed; top: 4.2rem; right: 1rem; width: 360px; max-width: calc(100vw - 2rem);
+    max-height: 70vh; overflow-y: auto; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 16px; box-shadow: 0 18px 50px rgba(0,0,0,0.55); z-index: 71;
+    animation: modalIn 0.2s cubic-bezier(0.16,1,0.3,1);
+  }
+  .notif-panel .np-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.9rem 1rem; border-bottom: 1px solid var(--line); position: sticky; top: 0;
+    background: var(--panel-2); border-radius: 16px 16px 0 0;
+  }
+  .notif-panel .np-head h4 { font-size: 0.85rem; font-weight: 700; }
+  .notif-panel .np-head .mark { font-size: 0.72rem; color: var(--amber); cursor: pointer; background: none; border: none; }
+  .notif-panel .np-head .mark:hover { text-decoration: underline; }
+  .notif-item {
+    display: flex; gap: 0.7rem; padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .notif-item:hover { background: rgba(255,255,255,0.03); }
+  .notif-item.unread { background: rgba(240,177,74,0.06); }
+  .notif-item .n-ico {
+    width: 34px; height: 34px; border-radius: 10px; flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 1rem;
+  }
+  .notif-item.approved .n-ico, .notif-item.confirmed .n-ico { background: rgba(74,222,128,0.15); }
+  .notif-item.rejected .n-ico, .notif-item.cancelled .n-ico { background: rgba(255,93,93,0.15); }
+  .notif-item.completed .n-ico { background: rgba(96,165,250,0.15); }
+  .notif-item .n-body { min-width: 0; }
+  .notif-item .n-t { font-size: 0.8rem; font-weight: 700; }
+  .notif-item .n-m { font-size: 0.74rem; color: var(--muted); margin-top: 0.15rem; line-height: 1.4; }
+  .notif-item .n-when { font-size: 0.64rem; color: var(--muted); margin-top: 0.25rem; }
+  .notif-item .n-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); flex: none; margin-top: 0.3rem; }
+  .notif-empty { padding: 2rem 1rem; text-align: center; color: var(--muted); font-size: 0.82rem; }
+
+  /* ------- Review modal ------- */
+  .rv-overlay { position: fixed; inset: 0; background: rgba(5,6,9,0.7); backdrop-filter: blur(4px); z-index: 90; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+  .rv-box {
+    width: 100%; max-width: 420px; background: linear-gradient(180deg, #17181d, #121318);
+    border: 1px solid var(--line); border-radius: 20px; padding: 1.6rem 1.7rem;
+    animation: modalIn 0.25s cubic-bezier(0.16,1,0.3,1);
+  }
+  .rv-box h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem; }
+  .rv-box .sub { font-size: 0.82rem; color: var(--muted); margin-bottom: 1.2rem; }
+  .rv-stars { display: flex; gap: 0.4rem; margin-bottom: 1.1rem; }
+  .rv-star { font-size: 2rem; cursor: pointer; color: rgba(255,255,255,0.14); transition: transform 0.15s, color 0.15s; background: none; border: none; padding: 0; line-height: 1; }
+  .rv-star:hover { transform: scale(1.2); }
+  .rv-star.on { color: var(--amber); text-shadow: 0 0 18px rgba(240,177,74,0.45); }
+  .rv-box textarea {
+    width: 100%; min-height: 84px; background: rgba(255,255,255,0.05); border: 1px solid var(--line);
+    border-radius: 12px; color: var(--text); padding: 0.7rem 0.8rem; font-size: 0.85rem; resize: vertical;
+  }
+  .rv-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.1rem; }
+  .rating-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--amber); background: rgba(240,177,74,0.1); padding: 0.2rem 0.55rem; border-radius: 999px; }
+
   @media (max-width: 860px) {
     .sidebar { width: 68px; padding: 1rem 0.5rem; }
     .sidebar .name, .nav-btn span, .user-chip .meta { display: none; }
@@ -245,6 +325,18 @@
     <span>Profile</span>
   </button>
   <div class="spacer"></div>
+
+  <div class="notif-wrap">
+    <button class="notif-bell" id="notifBell" title="Notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span class="notif-pill" id="notifPill" style="display:none">0</span>
+    </button>
+    <div class="notif-panel" id="notifPanel" style="display:none">
+      <div class="np-head"><h4>Notifications</h4><button class="mark" id="notifMarkAll">Mark all as read</button></div>
+      <div id="notifList"></div>
+      <div class="notif-empty" id="notifEmpty" style="display:none">You're all caught up 🎉</div>
+    </div>
+  </div>
   <div class="user-chip">
     <div class="avatar" id="avatar">U</div>
     <div class="meta"><div class="nm" id="chipName">User</div><div class="em" id="chipEmail">-</div></div>
@@ -260,11 +352,20 @@
   <!-- BROWSE -->
   <section class="view active" id="view-browse">
     <div class="view-head"><h1>Browse cars</h1><p>Verified cars from real owners, ready when you are.</p></div>
+    <div class="banner" id="verifyBanner" style="display:none;background:linear-gradient(135deg,rgba(240,177,74,0.14),rgba(217,138,43,0.06));border:1px solid rgba(240,177,74,0.35);border-radius:14px;padding:0.95rem 1.1rem;margin-bottom:1.3rem;display:none">
+      <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap">
+        <span style="font-size:1.2rem">🪪</span>
+        <div style="flex:1;min-width:200px"><div style="font-weight:700;font-size:0.9rem">Get verified to book</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:0.15rem">Upload your documents — once admin approves, you can start renting cars.</div></div>
+        <button class="btn" style="background:linear-gradient(135deg,var(--amber),var(--amber-2));color:#17181d" onclick="goView('documents')">Upload documents</button>
+      </div>
+    </div>
     <div class="toolbar">
       <input class="grow" id="fSearch" placeholder="Search make or model…">
       <select id="fCity"><option value="">All cities</option></select>
       <select id="fFuel"><option value="">Any fuel</option><option>Petrol</option><option>Diesel</option><option>CNG</option><option>Electric</option></select>
       <select id="fTrans"><option value="">Any transmission</option><option>Manual</option><option>Automatic</option></select>
+      <button class="btn ghost" id="fWatching" title="Show only cars you're watching">🔔 Watching</button>
       <button class="btn ghost" id="fReset">Reset</button>
     </div>
     <div class="grid" id="carGrid"></div>
@@ -307,6 +408,7 @@
   <section class="view" id="view-profile">
     <div class="view-head"><h1>Profile</h1><p>Keep your details up to date.</p></div>
     <div class="profile-grid">
+      <div class="field full"><label>Verification</label><div id="pVerify"></div></div>
       <div class="field"><label>Name</label><input id="pName"></div>
       <div class="field"><label>Email</label><input id="pEmail" readonly></div>
       <div class="field"><label>Phone</label><input id="pPhone" placeholder="+91 …"></div>
@@ -316,6 +418,20 @@
   </section>
 
 </main>
+
+<!-- REVIEW MODAL -->
+<div class="rv-overlay" id="rvOverlay" style="display:none">
+  <div class="rv-box">
+    <h3>Rate this trip</h3>
+    <div class="sub" id="rvSub">How was your experience?</div>
+    <div class="rv-stars" id="rvStars"></div>
+    <textarea id="rvComment" placeholder="Share a few words (optional)"></textarea>
+    <div class="rv-actions">
+      <button class="btn ghost" onclick="closeReview()">Cancel</button>
+      <button class="btn" style="background:linear-gradient(135deg,var(--amber),var(--amber-2));color:#17181d" onclick="submitReview()">Submit rating</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -341,8 +457,14 @@
     tripEmpty: document.getElementById('tripEmpty'),
     docList: document.getElementById('docList'),
     docEmpty: document.getElementById('docEmpty'),
+    notifBell: document.getElementById('notifBell'),
+    notifPill: document.getElementById('notifPill'),
+    notifPanel: document.getElementById('notifPanel'),
+    notifList: document.getElementById('notifList'),
+    notifEmpty: document.getElementById('notifEmpty'),
+    notifMarkAll: document.getElementById('notifMarkAll'),
   };
-  var state = { cars: [], selectedCar: null, trips: [], docs: [], profile: null, tripFilter: '' };
+  var state = { cars: [], selectedCar: null, trips: [], docs: [], profile: null, tripFilter: '', watchingOnly: false };
   var toastTimer = null;
 
   /* ---------- helpers ---------- */
@@ -415,14 +537,30 @@
   function carTile(car) {
     var img = carImg(car);
     var style = img ? 'style="background-image:url(' + esc(img) + ')"' : '';
+    var watchBtn = '<button class="watch-btn' + (car.watched ? ' on' : '') + '" title="' + (car.watched ? 'Watching — click to unfollow' : 'Watch this car — get notified when it's available') + '" onclick="event.stopPropagation();toggleWatch(' + car.id + ',this)">' + (car.watched ? '🔔' : '🔕') + '</button>';
     return '<div class="car-card" data-id="' + car.id + '" onclick="openCar(' + car.id + ')">' +
       '<div class="img" ' + style + '>' + (img ? '' : (car.make[0] || 'C') + '</div>') + '</div>' +
+      watchBtn +
       '<div class="body">' +
       '<div class="nm">' + esc(car.make) + ' ' + esc(car.model) + ' (' + car.year + ')</div>' +
       '<div class="meta"><span>' + esc(car.city) + '</span><span>·</span><span>' + esc(car.fuelType || '-') + '</span><span>·</span><span>' + esc(car.transmission || '-') + '</span><span>·</span><span>' + car.seats + ' seats</span></div>' +
       '<div class="price">' + priceLabel(car) + '</div>' +
       '</div></div>';
   }
+  window.toggleWatch = function (id, btn) {
+    var car = state.cars.find(function (c) { return c.id === id; });
+    var watching = car ? car.watched : (btn && btn.classList.contains('on'));
+    api('/watches/' + id, { method: watching ? 'DELETE' : 'POST' }).then(function () {
+      if (car) car.watched = !watching;
+      if (btn) {
+        btn.classList.toggle('on', !watching);
+        btn.innerHTML = !watching ? '🔔' : '🔕';
+        btn.title = !watching ? 'Watching — click to unfollow' : 'Watch this car — get notified when it's available';
+      }
+      toast(watching ? 'Removed from watchlist' : 'You'll be notified when this car is available');
+      if (state.watchingOnly && !watching) loadCars();
+    }).catch(function (e) { toast(e.message, true); });
+  };
 
   /* ---------- navigation ---------- */
   window.goView = function (name) {
@@ -460,8 +598,9 @@
     if (search) q.push('search=' + encodeURIComponent(search));
     api('/cars' + (q.length ? '?' + q.join('&') : '')).then(function (cars) {
       state.cars = cars;
-      els.carGrid.innerHTML = cars.map(carTile).join('');
-      els.carEmpty.style.display = cars.length ? 'none' : 'block';
+      var shown = state.watchingOnly ? cars.filter(function (c) { return c.watched; }) : cars;
+      els.carGrid.innerHTML = shown.map(carTile).join('');
+      els.carEmpty.style.display = shown.length ? 'none' : 'block';
       populateCities(cars);
     }).catch(function (e) { toast(e.message, true); });
   }
@@ -476,11 +615,19 @@
   ['fSearch', 'fCity', 'fFuel', 'fTrans'].forEach(function (id) {
     document.getElementById(id).addEventListener('input', loadCars);
   });
+  document.getElementById('fWatching').addEventListener('click', function () {
+    state.watchingOnly = !state.watchingOnly;
+    this.classList.toggle('active', state.watchingOnly);
+    loadCars();
+  });
   document.getElementById('fReset').addEventListener('click', function () {
     document.getElementById('fSearch').value = '';
     document.getElementById('fCity').value = '';
     document.getElementById('fFuel').value = '';
     document.getElementById('fTrans').value = '';
+    state.watchingOnly = false;
+    var w = document.getElementById('fWatching');
+    if (w) w.classList.remove('active');
     loadCars();
   });
 
@@ -581,6 +728,11 @@
     el('cTotal').textContent = qty ? fmt(base + fee) : '—';
   };
   window.bookCar = function () {
+    if (state.profile && !state.profile.verified) {
+      toast('Your account is not verified yet. Upload documents and wait for admin approval to book.', true);
+      goView('documents');
+      return;
+    }
     var unit = state.bookingUnit || 'DAY';
     var payload = { carId: state.selectedCar.id, paymentMethod: 'card' };
     if (unit === 'HOUR') {
@@ -626,6 +778,15 @@
     api('/trips' + (state.tripFilter ? '?status=' + state.tripFilter : '')).then(function (trips) {
       state.trips = trips;
       els.tripList.innerHTML = trips.map(function (t) {
+        var reviewAction = '';
+        if (t.status === 'completed') {
+          if (t.myReview) {
+            reviewAction = '<span class="rating-chip">⭐ ' + t.myReview.rating + '/5 rated</span>';
+          } else {
+            reviewAction = '<button class="btn sm" onclick="openReview(' + t.id + ','' + esc((t.ownerName || 'host').replace(/'/g, "\'").replace(/\/g, '\\')) + '')">Rate host</button>';
+          }
+        }
+        var hostRating = (t.hostRating && t.hostRating.count) ? '<span class="rating-chip">⭐ ' + t.hostRating.average + ' (' + t.hostRating.count + ')</span>' : '';
         return '<div class="row-card">' +
           '<div class="row-top">' +
           '<div class="ico">' + esc((t.carName || 'C').charAt(0)) + '</div>' +
@@ -633,7 +794,8 @@
           '<div class="st">' + (t.startDate || '') + ' → ' + (t.endDate || '') +
           (t.rentalUnit === 'HOUR' ? ' · ' + (t.rentalQty || 0) + ' hr' + (t.rentalQty > 1 ? 's' : '') : '') + '</div></div>' +
           '<div class="row-actions"><span class="badge ' + esc(t.status) + '">' + esc(t.status) + '</span>' +
-          (t.status !== 'cancelled' ? '<button class="btn danger" onclick="cancelTrip(' + t.id + ')">Cancel</button>' : '') +
+          (t.status !== 'cancelled' && t.status !== 'completed' ? '<button class="btn danger" onclick="cancelTrip(' + t.id + ')">Cancel</button>' : '') +
+          reviewAction + hostRating +
           (t.cancelDeadline ? '<div class="st" style="font-size:0.8rem;color:var(--muted);margin-top:4px">Free cancel until ' + esc(t.cancelDeadline) + '</div>' : '') +
           '</div></div>' +
           '<div class="row-foot"><span>' + fmt(t.totalAmount) + ' total</span>' +
@@ -660,6 +822,42 @@
     });
   });
 
+  /* ---------- reviews ---------- */
+  var rvTripId = null, rvRating = 0;
+  window.openReview = function (id, name) {
+    rvTripId = id;
+    rvRating = 0;
+    document.getElementById('rvSub').textContent = 'How was your trip with ' + name + '?';
+    document.getElementById('rvComment').value = '';
+    renderStars(0);
+    document.getElementById('rvOverlay').style.display = 'flex';
+  };
+  window.closeReview = function () {
+    document.getElementById('rvOverlay').style.display = 'none';
+  };
+  function renderStars(n) {
+    var html = '';
+    for (var i = 1; i <= 5; i++) {
+      html += '<button class="rv-star' + (i <= n ? ' on' : '') + '" onclick="window.setRvRating(' + i + ')">★</button>';
+    }
+    document.getElementById('rvStars').innerHTML = html;
+  }
+  window.setRvRating = function (n) {
+    rvRating = n;
+    renderStars(n);
+  };
+  window.submitReview = function () {
+    if (rvRating < 1) { toast('Pick a star rating first', true); return; }
+    api('/trips/' + rvTripId + '/review', {
+      method: 'POST',
+      body: JSON.stringify({ rating: rvRating, comment: document.getElementById('rvComment').value })
+    }).then(function () {
+      toast('Thanks for your review! ⭐');
+      closeReview();
+      loadTrips();
+    }).catch(function (e) { toast(e.message, true); });
+  };
+
   /* ---------- documents ---------- */
   function loadDocs() {
     api('/documents').then(function (docs) {
@@ -673,6 +871,7 @@
           '<div class="row-actions"><span class="badge ' + esc(d.verificationStatus) + '">' + esc(d.verificationStatus) + '</span>' +
           '<button class="btn danger" onclick="delDoc(' + d.id + ')">Delete</button>' +
           '</div></div>' +
+          (d.rejectionReason ? '<div class="row-foot" style="color:var(--red)">Rejected: ' + esc(d.rejectionReason) + ' — upload a clearer document and try again.</div>' : '') +
           '</div>';
       }).join('');
       els.docEmpty.style.display = docs.length ? 'none' : 'block';
@@ -693,15 +892,37 @@
   };
 
   /* ---------- profile ---------- */
+  function renderVerify(p) {
+    var el = document.getElementById('pVerify');
+    var banner = document.getElementById('verifyBanner');
+    if (el) {
+      el.innerHTML = p.verified
+        ? '<span class="badge verified" style="font-size:0.78rem;padding:0.4rem 0.9rem">✓ Verified — you can book cars</span>'
+        : '<span class="badge pending" style="font-size:0.78rem;padding:0.4rem 0.9rem">Pending verification — upload documents above</span>';
+    }
+    if (banner) banner.style.display = p.verified ? 'none' : 'block';
+  }
   function loadProfile() {
     api('/profile').then(function (p) {
       state.profile = p;
+      renderVerify(p);
       document.getElementById('pName').value = p.name || '';
       document.getElementById('pEmail').value = p.email || '';
       document.getElementById('pPhone').value = p.phone || '';
       document.getElementById('pCity').value = p.city || '';
     }).catch(function (e) { toast(e.message, true); });
   }
+  document.getElementById('pSave').addEventListener('click', function () {
+    api('/profile', {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: document.getElementById('pName').value,
+        phone: document.getElementById('pPhone').value,
+        city: document.getElementById('pCity').value,
+      })
+    }).then(function (p) {
+      state.profile = p;
+      renderVerify(p);
   document.getElementById('pSave').addEventListener('click', function () {
     api('/profile', {
       method: 'PUT',
@@ -737,6 +958,70 @@
     });
   }
 
+  /* ---------- notifications ---------- */
+  function fmtWhen(s) {
+    if (!s) return '';
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return '';
+    var diff = Date.now() - d.getTime();
+    var min = Math.floor(diff / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return min + 'm ago';
+    var hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    return d.toLocaleDateString();
+  }
+  function loadNotifications(open) {
+    api('/notifications').then(function (items) {
+      els.notifList.innerHTML = items.map(function (n) {
+        var typeCls = { 'booking_confirmed': 'confirmed', 'booking_cancelled': 'cancelled',
+          'trip_confirmed': 'confirmed', 'trip_completed': 'completed', 'trip_cancelled': 'cancelled',
+          'car_available': 'confirmed', 'review_received': 'confirmed' };
+        var typeIco = { 'booking_confirmed': '✅', 'booking_cancelled': '⚠️',
+          'trip_confirmed': '✅', 'trip_completed': '🏁', 'trip_cancelled': '⚠️',
+          'car_available': '🔔', 'review_received': '⭐' };
+        var cls = typeCls[n.type] || '';
+        var ico = typeIco[n.type] || '🔔';
+        return '<div class="notif-item ' + cls + (n.read ? '' : ' unread') + '" onclick="window.__openNotif(' + n.id + ',' + (n.carId || 0) + ')">' +
+          '<div class="n-ico">' + ico + '</div>' +
+          '<div class="n-body"><div class="n-t">' + esc(n.title) + '</div>' +
+          '<div class="n-m">' + esc(n.message) + '</div>' +
+          '<div class="n-when">' + fmtWhen(n.createdAt) + '</div></div>' +
+          (n.read ? '' : '<div class="n-dot"></div>') +
+          '</div>';
+      }).join('');
+      els.notifEmpty.style.display = items.length ? 'none' : 'block';
+      var unread = items.filter(function (n) { return !n.read; }).length;
+      els.notifPill.textContent = unread;
+      els.notifPill.style.display = unread ? 'flex' : 'none';
+      if (open) els.notifPanel.style.display = 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+  window.__openNotif = function (id, carId) {
+    api('/notifications/' + id + '/read', { method: 'PUT' }).then(function () {
+      loadNotifications(false);
+      if (carId) { goView('browse'); openCar(carId); }
+      else goView('bookings');
+    }).catch(function (e) { toast(e.message, true); });
+  };
+  els.notifBell.addEventListener('click', function () {
+    var open = els.notifPanel.style.display !== 'none';
+    els.notifPanel.style.display = open ? 'none' : 'block';
+    if (!open) loadNotifications(true);
+  });
+  els.notifMarkAll.addEventListener('click', function () {
+    api('/notifications/read-all', { method: 'PUT' }).then(function () {
+      loadNotifications(true);
+    }).catch(function (e) { toast(e.message, true); });
+  });
+  document.addEventListener('click', function (e) {
+    if (!els.notifBell.contains(e.target) && !els.notifPanel.contains(e.target)) {
+      els.notifPanel.style.display = 'none';
+    }
+  });
+  loadNotifications(false);
+  setInterval(function () { loadNotifications(false); }, 45000);
+
   /* ---------- boot ---------- */
   els.chipName.textContent = user.name || 'User';
   els.chipEmail.textContent = user.email || '';
@@ -745,6 +1030,7 @@
     localStorage.clear();
     window.location.href = '/';
   });
+  loadProfile();
   loadCars();
 })();
 </script>

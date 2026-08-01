@@ -16,13 +16,16 @@ import com.carrental.model.Document;
 import com.carrental.model.Owner;
 import com.carrental.model.Transaction;
 import com.carrental.model.TripDetail;
+import com.carrental.model.Watch;
 import com.carrental.repository.CarMediaRepository;
 import com.carrental.repository.CarRepository;
 import com.carrental.repository.CustomerRepository;
 import com.carrental.repository.DocumentRepository;
 import com.carrental.repository.OwnerRepository;
+import com.carrental.repository.ReviewRepository;
 import com.carrental.repository.TransactionRepository;
 import com.carrental.repository.TripDetailRepository;
+import com.carrental.repository.WatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -60,6 +63,12 @@ class CustomerServiceTest {
     private DocumentRepository documentRepository;
     @Mock
     private OwnerRepository ownerRepository;
+    @Mock
+    private WatchRepository watchRepository;
+    @Mock
+    private ReviewRepository reviewRepository;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private CustomerService customerService;
@@ -164,8 +173,9 @@ class CustomerServiceTest {
         Car unavailable = car(4L, "Nexon", "EV", new BigDecimal("400.00"), "Pune", false, true, owner);
         Car wrongCity = car(5L, "City", "Zeta", new BigDecimal("250.00"), "Mumbai", true, true, owner);
         when(carRepository.findAll()).thenReturn(List.of(honda, toyota, unverified, unavailable, wrongCity));
+        when(watchRepository.findByCustomerId(1L)).thenReturn(List.of());
 
-        List<CarCardResponse> result = customerService.listCars("Pune", null, null, null, null, null);
+        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), "Pune", null, null, null, null);
 
         assertEquals(2, result.size());
         // sorted by price ascending
@@ -180,12 +190,100 @@ class CustomerServiceTest {
         Car honda = car(1L, "Honda", "City", new BigDecimal("500.00"), "Pune", true, true, owner);
         Car swift = car(2L, "Maruti", "Swift", new BigDecimal("200.00"), "Pune", true, true, owner);
         when(carRepository.findAll()).thenReturn(List.of(honda, swift));
+        when(watchRepository.findByCustomerId(1L)).thenReturn(List.of());
 
-        List<CarCardResponse> result = customerService.listCars(null, null, null,
+        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), null, null, null,
                 new BigDecimal("300.00"), new BigDecimal("600.00"), "honda");
 
         assertEquals(1, result.size());
         assertEquals("Honda", result.get(0).getMake());
+    }
+
+    @Test
+    void listCars_marksWatchedCars() {
+        Owner owner = owner(5L);
+        Car honda = car(1L, "Honda", "City", new BigDecimal("500.00"), "Pune", true, true, owner);
+        Car swift = car(2L, "Maruti", "Swift", new BigDecimal("200.00"), "Pune", true, true, owner);
+        Watch watch = new Watch();
+        watch.setId(1L);
+        watch.setCustomer(customer(1L, "Amit", "amit@mail.com"));
+        watch.setCar(swift);
+        when(carRepository.findAll()).thenReturn(List.of(honda, swift));
+        when(watchRepository.findByCustomerId(1L)).thenReturn(List.of(watch));
+
+        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), null, null, null, null, null);
+
+        assertEquals(2, result.size());
+        assertTrue(result.get(0).isWatched()); // swift is cheaper, listed first
+        assertFalse(result.get(1).isWatched());
+    }
+
+    /* ================= WATCHES ================= */
+
+    @Test
+    void addWatch_createsWatchWhenNotAlreadyWatching() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Owner owner = owner(5L);
+        Car car = car(10L, "Honda", "City", new BigDecimal("500.00"), "Pune", true, true, owner);
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+        when(watchRepository.findByCustomerIdAndCarId(1L, 10L)).thenReturn(Optional.empty());
+        when(watchRepository.save(any(Watch.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        customerService.addWatch(c, 10L);
+
+        ArgumentCaptor<Watch> captor = ArgumentCaptor.forClass(Watch.class);
+        verify(watchRepository).save(captor.capture());
+        assertEquals(c, captor.getValue().getCustomer());
+        assertEquals(car, captor.getValue().getCar());
+        assertNotNull(captor.getValue().getCreatedAt());
+    }
+
+    @Test
+    void addWatch_skipsWhenAlreadyWatching() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Owner owner = owner(5L);
+        Car car = car(10L, "Honda", "City", new BigDecimal("500.00"), "Pune", true, true, owner);
+        Watch existing = new Watch();
+        existing.setId(1L);
+        existing.setCustomer(c);
+        existing.setCar(car);
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+        when(watchRepository.findByCustomerIdAndCarId(1L, 10L)).thenReturn(Optional.of(existing));
+
+        customerService.addWatch(c, 10L);
+
+        verify(watchRepository, never()).save(any(Watch.class));
+    }
+
+    @Test
+    void addWatch_throwsWhenCarNotFound() {
+        when(carRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> customerService.addWatch(customer(1L, "Amit", "amit@mail.com"), 99L));
+    }
+
+    @Test
+    void removeWatch_deletesWatch() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        customerService.removeWatch(c, 10L);
+        verify(watchRepository).deleteByCustomerIdAndCarId(1L, 10L);
+    }
+
+    @Test
+    void listWatches_returnsOnlyWatchedCars() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        Owner owner = owner(5L);
+        Car honda = car(1L, "Honda", "City", new BigDecimal("500.00"), "Pune", true, true, owner);
+        Watch watch = new Watch();
+        watch.setId(1L);
+        watch.setCustomer(c);
+        watch.setCar(honda);
+        when(watchRepository.findByCustomerId(1L)).thenReturn(List.of(watch));
+
+        List<CarCardResponse> result = customerService.listWatches(c);
+
+        assertEquals(1, result.size());
+        assertEquals("Honda", result.get(0).getMake());
+        assertTrue(result.get(0).isWatched());
     }
 
     @Test
@@ -264,6 +362,23 @@ class CustomerServiceTest {
         assertEquals("paid", tx.getStatus());
         assertEquals("upi", tx.getPaymentMethod());
         assertEquals(car, tx.getTrip().getCar());
+        verify(notificationService).create(eq(c), eq("booking_confirmed"), any(String.class), any(String.class), eq(10L), eq(100L));
+        verify(notificationService).create(eq(owner), eq("new_booking"), any(String.class), any(String.class), eq(10L), eq(100L));
+    }
+
+    @Test
+    void createTrip_throwsWhenCustomerUnverified() {
+        Customer c = customer(1L, "Amit", "amit@mail.com");
+        c.setVerified(false);
+        Owner owner = owner(5L);
+        Car car = car(10L, "Honda", "City", new BigDecimal("100.00"), "Pune", true, true, owner);
+        when(carRepository.findById(10L)).thenReturn(Optional.of(car));
+
+        TripRequest req = tripRequest(10L, LocalDate.now().plusDays(2), LocalDate.now().plusDays(3));
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> customerService.createTrip(c, req));
+
+        assertTrue(ex.getMessage().contains("not verified"));
+        verify(tripDetailRepository, never()).save(any(TripDetail.class));
     }
 
     @Test
@@ -379,6 +494,8 @@ class CustomerServiceTest {
         assertEquals("refunded", tx.getStatus());
         assertNotNull(t.getUpdatedAt());
         verify(tripDetailRepository).save(t);
+        verify(notificationService).create(eq(c), eq("booking_cancelled"), any(String.class), any(String.class), any(), eq(100L));
+        verify(notificationService).create(eq(t.getOwner()), eq("booking_cancelled_by_customer"), any(String.class), any(String.class), eq(10L), eq(100L));
     }
 
     @Test

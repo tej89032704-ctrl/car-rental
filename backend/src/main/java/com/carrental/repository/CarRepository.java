@@ -8,4 +8,5 @@ public interface CarRepository extends JpaRepository<Car, Long> {
     List<Car> findByOwnerId(Long ownerId);
     List<Car> findByCity(String city);
     List<Car> findByIsAvailable(boolean isAvailable);
+    List<Car> findByIsVerified(boolean isVerified);
 }

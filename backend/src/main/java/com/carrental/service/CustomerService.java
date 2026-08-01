@@ -29,11 +29,15 @@ public class CustomerService {
     private final TransactionRepository transactionRepository;
     private final DocumentRepository documentRepository;
     private final OwnerRepository ownerRepository;
+    private final WatchRepository watchRepository;
+    private final ReviewRepository reviewRepository;
+    private final NotificationService notificationService;
 
     public CustomerService(CustomerRepository customerRepository, CarRepository carRepository,
                            CarMediaRepository carMediaRepository, TripDetailRepository tripDetailRepository,
                            TransactionRepository transactionRepository, DocumentRepository documentRepository,
-                           OwnerRepository ownerRepository) {
+                           OwnerRepository ownerRepository, WatchRepository watchRepository,
+                           ReviewRepository reviewRepository, NotificationService notificationService) {
         this.customerRepository = customerRepository;
         this.carRepository = carRepository;
         this.carMediaRepository = carMediaRepository;
@@ -41,6 +45,9 @@ public class CustomerService {
         this.transactionRepository = transactionRepository;
         this.documentRepository = documentRepository;
         this.ownerRepository = ownerRepository;
+        this.watchRepository = watchRepository;
+        this.reviewRepository = reviewRepository;
+        this.notificationService = notificationService;
     }
 
     /* ================= PROFILE ================= */
@@ -69,9 +76,10 @@ public class CustomerService {
 
     /* ================= CARS ================= */
 
-    public List<CarCardResponse> listCars(String city, String fuelType, String transmission,
+    public List<CarCardResponse> listCars(Customer customer, String city, String fuelType, String transmission,
                                           BigDecimal minPrice, BigDecimal maxPrice, String search) {
         List<Car> all = carRepository.findAll();
+        java.util.Set<Long> watched = watchedCarIds(customer);
         return all.stream()
                 .filter(Car::isAvailable)
                 .filter(Car::isVerified)
@@ -83,8 +91,55 @@ public class CustomerService {
                 .filter(c -> search == null || search.isBlank()
                         || (c.getMake() + " " + c.getModel()).toLowerCase().contains(search.toLowerCase()))
                 .sorted(Comparator.comparing(Car::getPricePerDay))
-                .map(this::toCarCard)
+                .map(c -> {
+                    CarCardResponse card = toCarCard(c);
+                    card.setWatched(watched.contains(c.getId()));
+                    return card;
+                })
                 .collect(Collectors.toList());
+    }
+
+    /* ================= WATCHES ================= */
+
+    public List<CarCardResponse> listWatches(Customer customer) {
+        List<Watch> watches = watchRepository.findByCustomerId(customer.getId());
+        List<Car> cars = watches.stream()
+                .map(Watch::getCar)
+                .collect(Collectors.toList());
+        java.util.Set<Long> watched = watchedCarIds(customer);
+        return cars.stream()
+                .sorted(Comparator.comparing(Car::getPricePerDay))
+                .map(c -> {
+                    CarCardResponse card = toCarCard(c);
+                    card.setWatched(watched.contains(c.getId()));
+                    return card;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public java.util.Set<Long> watchedCarIds(Customer customer) {
+        return watchRepository.findByCustomerId(customer.getId()).stream()
+                .map(w -> w.getCar().getId())
+                .collect(Collectors.toSet());
+    }
+
+    @Transactional
+    public void addWatch(Customer customer, Long carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new RuntimeException("Car not found"));
+        if (watchRepository.findByCustomerIdAndCarId(customer.getId(), carId).isPresent()) {
+            return; // already watching
+        }
+        Watch w = new Watch();
+        w.setCustomer(customer);
+        w.setCar(car);
+        w.setCreatedAt(LocalDateTime.now());
+        watchRepository.save(w);
+    }
+
+    @Transactional
+    public void removeWatch(Customer customer, Long carId) {
+        watchRepository.deleteByCustomerIdAndCarId(customer.getId(), carId);
     }
 
     public CarDetailResponse getCarDetail(Long carId) {
@@ -152,6 +207,9 @@ public class CustomerService {
 
     @Transactional
     public TripResponse createTrip(Customer customer, TripRequest req) {
+        if (!customer.isVerified()) {
+            throw new RuntimeException("Your account is not verified yet. Upload your documents and wait for admin approval before booking.");
+        }
         if (req.getCarId() == null) throw new RuntimeException("carId is required");
         Car car = carRepository.findById(req.getCarId())
                 .orElseThrow(() -> new RuntimeException("Car not found"));
@@ -199,6 +257,17 @@ public class CustomerService {
         trip.setStatus("confirmed");
         trip.setCreatedAt(LocalDateTime.now());
         trip = tripDetailRepository.save(trip);
+
+        notificationService.create(customer, "booking_confirmed", "Booking confirmed 🎉",
+                "Your " + car.getMake() + " " + car.getModel() + " booking is confirmed and waiting for the owner.",
+                car.getId(), trip.getId());
+        if (car.getOwner() != null) {
+            notificationService.create(car.getOwner(), "new_booking", "New booking 🚗",
+                    customer.getName() + " booked your " + car.getMake() + " " + car.getModel()
+                            + (trip.getRentalUnit() != null && "HOUR".equalsIgnoreCase(trip.getRentalUnit())
+                            ? " (hourly). Review it in your bookings." : ". Review it in your bookings."),
+                    car.getId(), trip.getId());
+        }
 
         saveTransaction(trip, customer, car.getOwner(), total, platformFee, ownerPayout, req.getPaymentMethod());
 
@@ -261,6 +330,17 @@ public class CustomerService {
         trip.setCreatedAt(LocalDateTime.now());
         trip = tripDetailRepository.save(trip);
 
+        notificationService.create(customer, "booking_confirmed", "Booking confirmed 🎉",
+                "Your " + car.getMake() + " " + car.getModel() + " booking is confirmed and waiting for the owner.",
+                car.getId(), trip.getId());
+        if (car.getOwner() != null) {
+            notificationService.create(car.getOwner(), "new_booking", "New booking 🚗",
+                    customer.getName() + " booked your " + car.getMake() + " " + car.getModel()
+                            + (trip.getRentalUnit() != null && "HOUR".equalsIgnoreCase(trip.getRentalUnit())
+                            ? " (hourly). Review it in your bookings." : ". Review it in your bookings."),
+                    car.getId(), trip.getId());
+        }
+
         saveTransaction(trip, customer, car.getOwner(), total, platformFee, ownerPayout, req.getPaymentMethod());
 
         return toTripResponse(trip, total, platformFee, ownerPayout,
@@ -308,6 +388,18 @@ public class CustomerService {
         t.setUpdatedAt(LocalDateTime.now());
         tripDetailRepository.save(t);
 
+        if (t.getCar() != null) {
+            notificationService.create(customer, "booking_cancelled", "Booking cancelled",
+                    "Your " + t.getCar().getMake() + " " + t.getCar().getModel() + " booking was cancelled"
+                            + (t.getTotalAmount() != null ? ". Amount will be refunded as per policy." : "."),
+                    t.getCar().getId(), tripId);
+            if (t.getCar().getOwner() != null) {
+                notificationService.create(t.getCar().getOwner(), "booking_cancelled_by_customer", "Booking cancelled by customer",
+                        customer.getName() + " cancelled their " + t.getCar().getMake() + " " + t.getCar().getModel() + " booking.",
+                        t.getCar().getId(), tripId);
+            }
+        }
+
         // Refund-style: mark transaction cancelled
         transactionRepository.findByTripId(tripId).forEach(tx -> {
             tx.setStatus("refunded");
@@ -348,6 +440,17 @@ public class CustomerService {
             }
         }
 
+        // Reviews: the customer's own review + the host's aggregate rating
+        r.setMyReview(reviewRepository.findByTripIdAndReviewerType(t.getId(), "customer")
+                .map(this::toReviewResponse)
+                .orElse(null));
+        if (t.getOwner() != null) {
+            r.setHostRating(RatingSummaryResponse.of(
+                    reviewRepository.findByTripOwnerIdAndReviewerType(t.getOwner().getId(), "customer").stream()
+                            .map(Review::getRating)
+                            .collect(Collectors.toList())));
+        }
+
         // Fill fee/payout from the matching transaction when not supplied
         if (platformFee == null || ownerPayout == null) {
             transactionRepository.findByTripId(t.getId()).stream()
@@ -364,6 +467,17 @@ public class CustomerService {
             r.setPaymentMethod(paymentMethod);
         }
         return r;
+    }
+
+    private ReviewResponse toReviewResponse(Review r) {
+        String reviewerName = r.getTrip() == null ? null :
+                ("customer".equals(r.getReviewerType())
+                        ? (r.getTrip().getCustomer() == null ? null : r.getTrip().getCustomer().getName())
+                        : (r.getTrip().getOwner() == null ? null : r.getTrip().getOwner().getName()));
+        return new ReviewResponse(r.getId(),
+                r.getTrip() == null ? null : r.getTrip().getId(),
+                r.getReviewerType(), reviewerName, r.getRating(), r.getComment(),
+                r.getCreatedAt() == null ? null : r.getCreatedAt().toString());
     }
 
     private LocalDateTime pickupStart(TripDetail t) {

@@ -52,4 +52,8 @@ public class OwnerTripResponse {
     public void setStatus(String status) { this.status = status; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public ReviewResponse getMyReview() { return myReview; }
+    public void setMyReview(ReviewResponse myReview) { this.myReview = myReview; }
+    public RatingSummaryResponse getGuestRating() { return guestRating; }
+    public void setGuestRating(RatingSummaryResponse guestRating) { this.guestRating = guestRating; }
 }

@@ -3,6 +3,8 @@ package com.carrental.controller;
 import com.carrental.dto.*;
 import com.carrental.model.Customer;
 import com.carrental.service.CustomerService;
+import com.carrental.service.NotificationService;
+import com.carrental.service.ReviewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,9 +19,14 @@ import java.util.Map;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final NotificationService notificationService;
+    private final ReviewService reviewService;
 
-    public CustomerController(CustomerService customerService) {
+    public CustomerController(CustomerService customerService, NotificationService notificationService,
+                              ReviewService reviewService) {
         this.customerService = customerService;
+        this.notificationService = notificationService;
+        this.reviewService = reviewService;
     }
 
     private Customer currentCustomer() {
@@ -69,7 +76,7 @@ public class CustomerController {
             @RequestParam(required = false) BigDecimal maxPrice,
             @RequestParam(required = false) String search) {
         try {
-            return ok(customerService.listCars(city, fuelType, transmission, minPrice, maxPrice, search));
+            return ok(customerService.listCars(currentCustomer(), city, fuelType, transmission, minPrice, maxPrice, search));
         } catch (Exception e) {
             return err(e);
         }
@@ -79,6 +86,37 @@ public class CustomerController {
     public ResponseEntity<?> carDetail(@PathVariable Long carId) {
         try {
             return ok(customerService.getCarDetail(carId));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    /* ---------------- WATCHES ---------------- */
+
+    @GetMapping("/watches")
+    public ResponseEntity<?> listWatches() {
+        try {
+            return ok(customerService.listWatches(currentCustomer()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @PostMapping("/watches/{carId}")
+    public ResponseEntity<?> addWatch(@PathVariable Long carId) {
+        try {
+            customerService.addWatch(currentCustomer(), carId);
+            return ok(Map.of("message", "Car added to your watchlist"));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @DeleteMapping("/watches/{carId}")
+    public ResponseEntity<?> removeWatch(@PathVariable Long carId) {
+        try {
+            customerService.removeWatch(currentCustomer(), carId);
+            return ok(Map.of("message", "Car removed from your watchlist"));
         } catch (Exception e) {
             return err(e);
         }
@@ -122,6 +160,24 @@ public class CustomerController {
         }
     }
 
+    @PostMapping("/trips/{tripId}/review")
+    public ResponseEntity<?> reviewTrip(@PathVariable Long tripId, @RequestBody ReviewRequest req) {
+        try {
+            return ok(reviewService.submitCustomerReview(currentCustomer(), tripId, req));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @GetMapping("/reviews")
+    public ResponseEntity<?> myReviews() {
+        try {
+            return ok(reviewService.receivedByCustomer(currentCustomer().getId()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
     /* ---------------- DOCUMENTS ---------------- */
 
     @GetMapping("/documents")
@@ -158,6 +214,45 @@ public class CustomerController {
     public ResponseEntity<?> transactions() {
         try {
             return ok(customerService.listTransactions(currentCustomer()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    /* ---------------- NOTIFICATIONS ---------------- */
+
+    @GetMapping("/notifications")
+    public ResponseEntity<?> notifications() {
+        try {
+            return ok(notificationService.list(currentCustomer()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @GetMapping("/notifications/unread-count")
+    public ResponseEntity<?> unreadCount() {
+        try {
+            return ok(Map.of("count", notificationService.unreadCount(currentCustomer())));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @PutMapping("/notifications/{notifId}/read")
+    public ResponseEntity<?> markRead(@PathVariable Long notifId) {
+        try {
+            return ok(notificationService.markRead(currentCustomer(), notifId));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @PutMapping("/notifications/read-all")
+    public ResponseEntity<?> markAllRead() {
+        try {
+            notificationService.markAllRead(currentCustomer());
+            return ok(Map.of("message", "All notifications marked as read"));
         } catch (Exception e) {
             return err(e);
         }

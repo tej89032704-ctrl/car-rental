@@ -24,6 +24,7 @@ public class OwnerCarResponse {
     private String description;
     private boolean available;
     private boolean verified;
+    private String rejectionReason;
     private String primaryImage;
     private List<String> mediaUrls;
 
@@ -69,6 +70,8 @@ public class OwnerCarResponse {
     public void setAvailable(boolean available) { this.available = available; }
     public boolean isVerified() { return verified; }
     public void setVerified(boolean verified) { this.verified = verified; }
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
     public String getPrimaryImage() { return primaryImage; }
     public void setPrimaryImage(String primaryImage) { this.primaryImage = primaryImage; }
     public List<String> getMediaUrls() { return mediaUrls; }

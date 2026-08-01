@@ -16,12 +16,15 @@ import com.carrental.model.Document;
 import com.carrental.model.Owner;
 import com.carrental.model.Transaction;
 import com.carrental.model.TripDetail;
+import com.carrental.model.Watch;
 import com.carrental.repository.CarMediaRepository;
 import com.carrental.repository.CarRepository;
 import com.carrental.repository.DocumentRepository;
 import com.carrental.repository.OwnerRepository;
+import com.carrental.repository.ReviewRepository;
 import com.carrental.repository.TransactionRepository;
 import com.carrental.repository.TripDetailRepository;
+import com.carrental.repository.WatchRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,6 +40,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,6 +61,12 @@ class OwnerServiceTest {
     private TransactionRepository transactionRepository;
     @Mock
     private DocumentRepository documentRepository;
+    @Mock
+    private WatchRepository watchRepository;
+    @Mock
+    private ReviewRepository reviewRepository;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private OwnerService ownerService;
@@ -170,6 +181,17 @@ class OwnerServiceTest {
         assertEquals(2, result.size());
         assertEquals("Honda", result.get(0).getMake());
         verify(carRepository).findByOwnerId(5L);
+    }
+
+    @Test
+    void addCar_throwsWhenOwnerUnverified() {
+        Owner o = owner(5L);
+        o.setVerified(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> ownerService.addCar(o, validCarRequest()));
+
+        assertTrue(ex.getMessage().contains("not verified"));
+        verify(carRepository, never()).save(any(Car.class));
     }
 
     @Test
@@ -385,6 +407,69 @@ class OwnerServiceTest {
     }
 
     @Test
+    void updateCar_notifiesWatchersWhenCarBecomesAvailable() {
+        Owner o = owner(5L);
+        Car car = car(7L, o);
+        car.setAvailable(false);
+        car.setVerified(true);
+        Customer watcher = new Customer();
+        watcher.setId(1L);
+        watcher.setName("Amit");
+        watcher.setEmail("amit@mail.com");
+        Watch watch = new Watch();
+        watch.setId(1L);
+        watch.setCustomer(watcher);
+        watch.setCar(car);
+        when(carRepository.findById(7L)).thenReturn(Optional.of(car));
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(watchRepository.findByCarId(7L)).thenReturn(List.of(watch));
+        when(carMediaRepository.findByCarId(7L)).thenReturn(List.of());
+
+        CarCreateRequest req = validCarRequest();
+        req.setAvailable(true);
+        ownerService.updateCar(o, 7L, req);
+
+        assertTrue(car.isAvailable());
+        verify(notificationService).create(eq(watcher), eq("car_available"), any(String.class), any(String.class), eq(7L), isNull());
+    }
+
+    @Test
+    void updateCar_doesNotNotifyWatchersWhenStillUnavailable() {
+        Owner o = owner(5L);
+        Car car = car(7L, o);
+        car.setAvailable(false);
+        car.setVerified(true);
+        when(carRepository.findById(7L)).thenReturn(Optional.of(car));
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(carMediaRepository.findByCarId(7L)).thenReturn(List.of());
+
+        CarCreateRequest req = validCarRequest();
+        req.setAvailable(false);
+        ownerService.updateCar(o, 7L, req);
+
+        assertFalse(car.isAvailable());
+        verify(notificationService, never()).create(any(Customer.class), any(String.class), any(String.class), any(String.class), any(), any());
+    }
+
+    @Test
+    void updateCar_doesNotNotifyWatchersWhenPausedFromAvailable() {
+        Owner o = owner(5L);
+        Car car = car(7L, o);
+        car.setAvailable(true);
+        car.setVerified(true);
+        when(carRepository.findById(7L)).thenReturn(Optional.of(car));
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(carMediaRepository.findByCarId(7L)).thenReturn(List.of());
+
+        CarCreateRequest req = validCarRequest();
+        req.setAvailable(false);
+        ownerService.updateCar(o, 7L, req);
+
+        assertFalse(car.isAvailable());
+        verify(notificationService, never()).create(any(Customer.class), any(String.class), any(String.class), any(String.class), any(), any());
+    }
+
+    @Test
     void updateCar_throwsWhenNotOwnersCar() {
         Owner o = owner(5L);
         Car car = car(7L, owner(9L));
@@ -470,6 +555,7 @@ class OwnerServiceTest {
         assertNotNull(t.getUpdatedAt());
         verify(tripDetailRepository).save(t);
         assertEquals("confirmed", resp.getStatus());
+        verify(notificationService).create(any(Customer.class), eq("trip_confirmed"), any(String.class), any(String.class), eq(10L), eq(100L));
     }
 
     @Test

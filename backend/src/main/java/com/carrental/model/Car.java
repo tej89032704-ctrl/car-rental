@@ -68,6 +68,9 @@ public class Car {
     @Column(name = "is_verified")
     private boolean isVerified = false;
 
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -116,6 +119,8 @@ public class Car {
     public void setAvailable(boolean available) { isAvailable = available; }
     public boolean isVerified() { return isVerified; }
     public void setVerified(boolean verified) { isVerified = verified; }
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

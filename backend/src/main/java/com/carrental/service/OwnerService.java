@@ -22,16 +22,24 @@ public class OwnerService {
     private final TripDetailRepository tripDetailRepository;
     private final TransactionRepository transactionRepository;
     private final DocumentRepository documentRepository;
+    private final WatchRepository watchRepository;
+    private final ReviewRepository reviewRepository;
+    private final NotificationService notificationService;
 
     public OwnerService(OwnerRepository ownerRepository, CarRepository carRepository,
                         CarMediaRepository carMediaRepository, TripDetailRepository tripDetailRepository,
-                        TransactionRepository transactionRepository, DocumentRepository documentRepository) {
+                        TransactionRepository transactionRepository, DocumentRepository documentRepository,
+                        WatchRepository watchRepository, ReviewRepository reviewRepository,
+                        NotificationService notificationService) {
         this.ownerRepository = ownerRepository;
         this.carRepository = carRepository;
         this.carMediaRepository = carMediaRepository;
         this.tripDetailRepository = tripDetailRepository;
         this.transactionRepository = transactionRepository;
         this.documentRepository = documentRepository;
+        this.watchRepository = watchRepository;
+        this.reviewRepository = reviewRepository;
+        this.notificationService = notificationService;
     }
 
     /* ================= PROFILE ================= */
@@ -69,6 +77,9 @@ public class OwnerService {
 
     @Transactional
     public OwnerCarResponse addCar(Owner owner, CarCreateRequest req) {
+        if (!owner.isVerified()) {
+            throw new RuntimeException("Your account is not verified yet. Upload your documents and wait for admin approval before listing cars.");
+        }
         Car car = new Car();
         car.setOwner(owner);
         applyCarFields(car, req);
@@ -85,7 +96,13 @@ public class OwnerService {
         if (car.getOwner() == null || !car.getOwner().getId().equals(owner.getId())) {
             throw new RuntimeException("Car not found");
         }
+        boolean wasAvailable = car.isAvailable();
         applyCarFields(car, req);
+        // Editing a rejected car re-submits it for admin review.
+        if (car.getRejectionReason() != null && !car.getRejectionReason().isBlank()) {
+            car.setRejectionReason(null);
+            car.setVerified(false);
+        }
         car.setUpdatedAt(LocalDateTime.now());
         car = carRepository.save(car);
 
@@ -94,6 +111,18 @@ public class OwnerService {
             List<CarMedia> existing = carMediaRepository.findByCarId(carId);
             carMediaRepository.deleteAll(existing);
             saveMedia(car, req.getMediaUrls());
+        }
+
+        // Notify watchers when a previously-unavailable car goes live again
+        if (!wasAvailable && car.isAvailable() && car.isVerified()) {
+            String carName = car.getMake() + " " + car.getModel();
+            watchRepository.findByCarId(carId).forEach(w -> {
+                if (w.getCustomer() != null) {
+                    notificationService.create(w.getCustomer(), "car_available", "Car is available again 🚗",
+                            "The " + carName + " you're watching is back on the market. Book it before it's gone!",
+                            carId, null);
+                }
+            });
         }
         return toOwnerCarResponse(car);
     }
@@ -205,6 +234,7 @@ public class OwnerService {
         r.setDescription(c.getDescription());
         r.setAvailable(c.isAvailable());
         r.setVerified(c.isVerified());
+        r.setRejectionReason(c.getRejectionReason());
         r.setMediaUrls(urls);
         r.setPrimaryImage(media.stream()
                 .filter(CarMedia::isPrimary)
@@ -245,6 +275,32 @@ public class OwnerService {
         t.setStatus(normalized);
         t.setUpdatedAt(LocalDateTime.now());
         tripDetailRepository.save(t);
+
+        // Notify the customer about their trip status update
+        if (t.getCustomer() != null) {
+            String carName = t.getCar() == null ? "your car"
+                    : t.getCar().getMake() + " " + t.getCar().getModel();
+            String title, message;
+            switch (normalized) {
+                case "confirmed":
+                    title = "Booking confirmed ✅";
+                    message = "The owner confirmed your " + carName + " booking. See you at pickup!";
+                    break;
+                case "completed":
+                    title = "Trip completed 🏁";
+                    message = "Your " + carName + " trip is marked as completed. Thanks for riding with us!";
+                    break;
+                case "cancelled":
+                    title = "Booking cancelled by owner";
+                    message = "The owner cancelled your " + carName + " booking. Amount will be refunded as per policy.";
+                    break;
+                default:
+                    title = "Booking " + normalized;
+                    message = "Your " + carName + " booking status changed to " + normalized + ".";
+            }
+            notificationService.create(t.getCustomer(), "trip_" + normalized, title, message,
+                    t.getCar() == null ? null : t.getCar().getId(), tripId);
+        }
         return toOwnerTripResponse(t);
     }
 
@@ -275,7 +331,29 @@ public class OwnerService {
                 .filter(tx -> !"refunded".equalsIgnoreCase(tx.getStatus()))
                 .findFirst()
                 .ifPresent(tx -> r.setOwnerPayout(tx.getOwnerPayout()));
+
+        // Reviews: the owner's own review + the guest's aggregate rating
+        r.setMyReview(reviewRepository.findByTripIdAndReviewerType(t.getId(), "owner")
+                .map(this::toReviewResponse)
+                .orElse(null));
+        if (t.getCustomer() != null) {
+            r.setGuestRating(RatingSummaryResponse.of(
+                    reviewRepository.findByTripCustomerIdAndReviewerType(t.getCustomer().getId(), "owner").stream()
+                            .map(Review::getRating)
+                            .collect(Collectors.toList())));
+        }
         return r;
+    }
+
+    private ReviewResponse toReviewResponse(Review r) {
+        String reviewerName = r.getTrip() == null ? null :
+                ("owner".equals(r.getReviewerType())
+                        ? (r.getTrip().getOwner() == null ? null : r.getTrip().getOwner().getName())
+                        : (r.getTrip().getCustomer() == null ? null : r.getTrip().getCustomer().getName()));
+        return new ReviewResponse(r.getId(),
+                r.getTrip() == null ? null : r.getTrip().getId(),
+                r.getReviewerType(), reviewerName, r.getRating(), r.getComment(),
+                r.getCreatedAt() == null ? null : r.getCreatedAt().toString());
     }
 
     private String primaryImageOf(Car car) {

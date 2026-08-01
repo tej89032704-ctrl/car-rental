@@ -21,6 +21,7 @@ public class CarCardResponse {
     private String primaryImage;
     private boolean available;
     private boolean verified;
+    private boolean watched;
 
     public CarCardResponse() {}
 
@@ -77,4 +78,6 @@ public class CarCardResponse {
     public void setAvailable(boolean available) { this.available = available; }
     public boolean isVerified() { return verified; }
     public void setVerified(boolean verified) { this.verified = verified; }
+    public boolean isWatched() { return watched; }
+    public void setWatched(boolean watched) { this.watched = watched; }
 }

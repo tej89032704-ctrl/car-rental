@@ -2,7 +2,9 @@ package com.carrental.controller;
 
 import com.carrental.dto.*;
 import com.carrental.model.Owner;
+import com.carrental.service.NotificationService;
 import com.carrental.service.OwnerService;
+import com.carrental.service.ReviewService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,9 +17,14 @@ import java.util.Map;
 public class OwnerController {
 
     private final OwnerService ownerService;
+    private final NotificationService notificationService;
+    private final ReviewService reviewService;
 
-    public OwnerController(OwnerService ownerService) {
+    public OwnerController(OwnerService ownerService, NotificationService notificationService,
+                           ReviewService reviewService) {
         this.ownerService = ownerService;
+        this.notificationService = notificationService;
+        this.reviewService = reviewService;
     }
 
     private Owner currentOwner() {
@@ -115,6 +122,24 @@ public class OwnerController {
         }
     }
 
+    @PostMapping("/trips/{tripId}/review")
+    public ResponseEntity<?> reviewTrip(@PathVariable Long tripId, @RequestBody ReviewRequest req) {
+        try {
+            return ok(reviewService.submitOwnerReview(currentOwner(), tripId, req));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @GetMapping("/reviews")
+    public ResponseEntity<?> myReviews() {
+        try {
+            return ok(reviewService.receivedByOwner(currentOwner().getId()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
     /* ---------------- TRANSACTIONS / EARNINGS ---------------- */
 
     @GetMapping("/transactions")
@@ -160,6 +185,45 @@ public class OwnerController {
         try {
             ownerService.deleteDocument(currentOwner(), docId);
             return ok(Map.of("message", "Document deleted"));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    /* ---------------- NOTIFICATIONS ---------------- */
+
+    @GetMapping("/notifications")
+    public ResponseEntity<?> notifications() {
+        try {
+            return ok(notificationService.list(currentOwner()));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @GetMapping("/notifications/unread-count")
+    public ResponseEntity<?> unreadCount() {
+        try {
+            return ok(Map.of("count", notificationService.unreadCount(currentOwner())));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @PutMapping("/notifications/{notifId}/read")
+    public ResponseEntity<?> markRead(@PathVariable Long notifId) {
+        try {
+            return ok(notificationService.markRead(currentOwner(), notifId));
+        } catch (Exception e) {
+            return err(e);
+        }
+    }
+
+    @PutMapping("/notifications/read-all")
+    public ResponseEntity<?> markAllRead() {
+        try {
+            notificationService.markAllRead(currentOwner());
+            return ok(Map.of("message", "All notifications marked as read"));
         } catch (Exception e) {
             return err(e);
         }

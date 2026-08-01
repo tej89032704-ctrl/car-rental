@@ -814,6 +814,11 @@ export default function App() {
                 Create one
               </a>
             </div>
+            <div className="admin-link">
+              <a href="admin-dashboard.html" style={{ color: 'rgba(245,245,247,0.4)', fontSize: '0.75rem', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                Super admin? Sign in here
+              </a>
+            </div>
             <div className="err" id="errorMsg" role="alert" aria-live="polite" />
           </div>
         </section>

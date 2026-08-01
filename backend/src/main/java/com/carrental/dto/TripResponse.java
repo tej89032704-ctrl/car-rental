@@ -22,6 +22,8 @@ public class TripResponse {
     private String cancelDeadline;
     private String status;
     private String createdAt;
+    private ReviewResponse myReview;
+    private RatingSummaryResponse hostRating;
 
     public TripResponse() {}
 
@@ -63,4 +65,8 @@ public class TripResponse {
     public void setStatus(String status) { this.status = status; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public ReviewResponse getMyReview() { return myReview; }
+    public void setMyReview(ReviewResponse myReview) { this.myReview = myReview; }
+    public RatingSummaryResponse getHostRating() { return hostRating; }
+    public void setHostRating(RatingSummaryResponse hostRating) { this.hostRating = hostRating; }
 }
