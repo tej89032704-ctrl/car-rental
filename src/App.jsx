@@ -165,7 +165,7 @@ export default function App() {
         }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
-        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
+        window.location.href = d.role === 'owner' ? 'dashboard.html' : 'customer-dashboard.html';
       } catch (_) {
         showErr('Cannot connect to server.');
         signinBtn.disabled = false;
@@ -205,7 +205,7 @@ export default function App() {
         }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
-        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
+        window.location.href = d.role === 'owner' ? 'dashboard.html' : 'customer-dashboard.html';
       } catch (_) {
         showErr('Cannot connect to server.');
         signinBtn.disabled = false;
@@ -215,30 +215,30 @@ export default function App() {
 
     /* Car facts rotation */
     const facts = [
-      'The first speeding ticket was issued in 1896 — the driver was going just 8 mph.',
-      'Cruise control was invented by Ralph Teetor, a blind engineer.',
-      'The windshield wiper was invented by Mary Anderson in 1903.',
-      'Most cars spend about 95% of their life parked.',
-      'A Formula 1 car can generate enough downforce to drive upside down at 120 mph.',
-      'A modern car has roughly 30,000 individual parts.',
-      "Dubai's police fleet includes a Bugatti Veyron that tops 253 mph.",
-      'The VW Beetle was in production for over 65 years.',
-      'Car horns are tuned to a musical note — usually F.',
-      'Over 60% of all Rolls-Royce cars ever built are still on the road.',
-      'Volkswagen once sold more currywurst sausages than cars in a single year.',
-      'The Bugatti Chiron has a second key that unlocks a 420 km/h top speed.',
-      'A road trip to the moon at highway speed would take about six months.',
-      'Electric cars existed decades before gasoline-powered ones.',
-      "'New car smell' is actually 50+ chemicals off-gassing from plastics.",
-      'White is the most popular car color worldwide — it stays cooler in the sun.',
-      "Many modern car engine sounds are played through speakers — they're fake.",
-      'Some cars have active hoods that pop up during a crash to protect pedestrians.',
-      'Early cars used tillers for steering, like a boat.',
-      'EV tires wear out 20–30% faster due to the extra weight of batteries.',
-      "Your car's dashboard clock flickering can predict battery failure.",
-      "The average car's VIN number is like a DNA sequence — it reveals the full history.",
-      'Braking too gently can actually glaze your rotors and reduce stopping power.',
-      'The Koenigsegg Gemera can hit 248 mph — the fastest production car on record.',
+      "The first speeding ticket was issued in 1896 — the driver was going just 8 mph. Even the horse next door was unimpressed.",
+      "Cruise control was invented by a blind engineer. He couldn't see the road, but he definitely saw the bigger picture.",
+      "Car horns are tuned to the note F. So when someone honks at you, they're technically singing a very angry song.",
+      "Most cars spend about 95% of their life parked. Yours is basically an expensive nap pod with wheels.",
+      "'New car smell' is 50+ chemicals off-gassing. You're not smelling freshness — you're sniffing science.",
+      "Volkswagen once sold more currywurst sausages than cars in a single year. The car factory doubles as a deli.",
+      "White is the most popular car color — it stays cooler in the sun and hides our parking-lot shame best.",
+      "A modern car has roughly 30,000 parts. As a Lego set, the instructions would be banned in 40 countries.",
+      "EV tires wear out 20–30% faster because battery packs are heavy. Tires on an electric car are basically a gym membership.",
+      "Dubai's police fleet includes a Bugatti Veyron that tops 253 mph. The local speed limit is 80 km/h — it's the world's most expensive paperweight.",
+      "A Formula 1 car can generate enough downforce to drive upside down at 120 mph. Physics is the only thing keeping it honest.",
+      "The VW Beetle was in production for 65+ years. It outlived several entire music genres.",
+      "Early cars steered with tillers — like a boat. Then drivers realized boats belong in the water.",
+      "Some modern cars play fake engine sounds through speakers. Your car is not a car, it's an actor.",
+      "Your dashboard clock flickering can predict battery failure. That's the car's way of saying 'I'm dying, call my people.'",
+      "Braking too gently can actually glaze your rotors. Being too polite to your brakes is a mechanical crime.",
+      "The first car accident happened in 1891, and the culprit was a tree. Trees have hated cars since day one.",
+      "Over 60% of all Rolls-Royces ever built are still on the road. The rest are in garages being gently breathed on.",
+      "The Bugatti Chiron has a second key that unlocks a 420 km/h top speed. It's the adult version of a cheat code.",
+      "A road trip to the moon at highway speed would take about six months. Pack snacks.",
+      "Windshields were added to cars partly because people kept catching bugs with their teeth.",
+      "Electric cars existed decades before gasoline ones. The 1900s saw the future and said 'nah, give me the loud one.'",
+      "The average person spends about 4.3 years of their life driving. Make it count — or at least make it funny.",
+      "The Koenigsegg Gemera hits 248 mph and still comes with cup holders, because priorities.",
     ];
     const heroFact = document.getElementById('heroFact');
     let factsTimer = null;
@@ -251,7 +251,7 @@ export default function App() {
           heroFact.textContent = facts[idx];
           heroFact.style.opacity = 1;
         }, 500);
-      }, 60000);
+      }, 12000);
     }
 
     /* Butterfly password visibility toggle */
@@ -714,6 +714,10 @@ export default function App() {
 
         <section className="login-section" id="login">
           <div className="login-box reveal reveal-up reveal-d2">
+            <div className="lb-brand">
+              <span className="lb-brand-dot" />
+              <span className="lb-brand-name">CAR-ENT</span>
+            </div>
             <h2 id="loginTitle">Welcome back.</h2>
             <p className="sub" id="loginSub">
               Sign in to continue.
@@ -738,12 +742,24 @@ export default function App() {
             </div>
 
             <div className="ig" id="nameField" style={{ display: 'none' }}>
+              <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-3.5 3.6-5.5 8-5.5s8 2 8 5.5" />
+              </svg>
               <input id="name" type="text" placeholder="Full name" autoComplete="name" />
             </div>
             <div className="ig">
+              <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
               <input id="email" type="email" placeholder="Email" autoComplete="email" />
             </div>
             <div className="ig pw-wrap">
+              <svg className="ig-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="4" y="11" width="16" height="9" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
               <input id="password" type="password" placeholder="Password" autoComplete="current-password" />
               <button type="button" className="pw-toggle" id="pwToggle" aria-label="Toggle password visibility">
                 <svg className="bf-closed" viewBox="0 0 24 24" fill="currentColor">
@@ -762,6 +778,10 @@ export default function App() {
 
             <button type="button" className="subbtn" id="signinBtn">
               <span id="btnText">Continue</span>
+              <svg className="subbtn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
             </button>
 
             <div className="or">or continue with</div>
