@@ -175,7 +175,7 @@ class CustomerServiceTest {
         when(carRepository.findAll()).thenReturn(List.of(honda, toyota, unverified, unavailable, wrongCity));
         when(watchRepository.findByCustomerId(1L)).thenReturn(List.of());
 
-        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), "Pune", null, null, null, null);
+        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), "Pune", null, null, null, null, null);
 
         assertEquals(2, result.size());
         // sorted by price ascending
@@ -211,7 +211,7 @@ class CustomerServiceTest {
         when(carRepository.findAll()).thenReturn(List.of(honda, swift));
         when(watchRepository.findByCustomerId(1L)).thenReturn(List.of(watch));
 
-        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), null, null, null, null, null);
+        List<CarCardResponse> result = customerService.listCars(customer(1L, "Amit", "amit@mail.com"), null, null, null, null, null, null);
 
         assertEquals(2, result.size());
         assertTrue(result.get(0).isWatched()); // swift is cheaper, listed first
