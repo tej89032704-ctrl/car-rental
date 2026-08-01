@@ -214,6 +214,19 @@
   .modal-grid .full { grid-column: 1 / -1; }
   .modal-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.4rem; }
 
+  /* ------- Upload previews ------- */
+  .upload-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.6rem; }
+  .thumb { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2); flex: none; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb .rm {
+    position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+    background: rgba(8,9,12,0.8); color: #fff; border: none; cursor: pointer;
+    font-size: 12px; line-height: 20px; text-align: center; padding: 0;
+  }
+  .thumb .rm:hover { background: var(--red); }
+  .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.35rem; }
+
   /* ------- Empty / toast ------- */
   .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
   .toast {
@@ -337,8 +350,10 @@
         <option>PAN Card</option>
         <option>Insurance</option>
       </select>
-      <input class="grow" id="docUrl" placeholder="Paste a document URL (e.g. a Cloudinary/S3 link)">
-      <button class="btn" id="docAdd">Upload</button>
+      <input class="grow" id="docUrl" placeholder="Paste a document URL, or use Choose file below">
+      <button type="button" class="btn ghost" id="docPick">⬆ Choose file</button>
+      <input type="file" id="docFiles" accept="image/*,.pdf" hidden>
+      <button class="btn" id="docAdd">Add</button>
     </div>
     <div class="list" id="docList"></div>
     <div class="empty" id="docEmpty" style="display:none">No documents yet.</div>
@@ -378,7 +393,16 @@
       <div class="field"><label>Seats</label><input id="cSeats" type="number" min="1" max="12" placeholder="5"></div>
       <div class="field"><label>Price per day (₹) *</label><input id="cPrice" type="number" min="1" placeholder="1500"></div>
       <div class="field"><label>City *</label><input id="cCity" placeholder="Bengaluru"></div>
-      <div class="field full"><label>Photos (image URLs, one per line)</label><textarea id="cMedia" placeholder="https://…&#10;https://…"></textarea></div>
+      <div class="field full">
+        <label>Photos</label>
+        <div class="upload-row">
+          <button type="button" class="btn ghost sm" id="cMediaPick">⬆ Upload photos</button>
+          <span class="hint" style="margin:0">or paste URLs below (one per line)</span>
+        </div>
+        <input type="file" id="cMediaFiles" accept="image/*" multiple hidden>
+        <div class="thumbs" id="cMediaThumbs"></div>
+        <textarea id="cMedia" placeholder="https://…&#10;https://…"></textarea>
+      </div>
       <div class="field full"><label>Description</label><textarea id="cDesc" placeholder="Well-maintained, AC, service history…"></textarea></div>
     </div>
     <div class="modal-actions">
@@ -449,6 +473,47 @@
     var u = (url || '').trim();
     return u ? 'style="background-image:url(' + esc(u) + ')"' : '';
   }
+
+  /* ---------- Cloudinary upload ---------- */
+  function cloudCfg() {
+    var c = null, p = null;
+    try { c = localStorage.getItem('cloudinary_cloud'); } catch (e) {}
+    try { p = localStorage.getItem('cloudinary_preset'); } catch (e) {}
+    if (!c) { c = window.prompt('Enter your Cloudinary cloud name (dashboard.cloudinary.com)'); if (c) { try { localStorage.setItem('cloudinary_cloud', c); } catch (e) {} } }
+    if (!p) { p = window.prompt('Enter your Cloudinary unsigned upload preset name (Settings > Upload > Upload presets, mode: Unsigned)'); if (p) { try { localStorage.setItem('cloudinary_preset', p); } catch (e) {} } }
+    return { cloud: c, preset: p };
+  }
+  function uploadFiles(files, resourceType, cb) {
+    if (!files || !files.length) { cb([]); return; }
+    var cfg = cloudCfg();
+    if (!cfg.cloud || !cfg.preset) { toast('Cloudinary not configured — cloud name & unsigned preset required', true); cb([]); return; }
+    var urls = [], done = 0, arr = Array.prototype.slice.call(files);
+    arr.forEach(function (file) {
+      var fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', cfg.preset);
+      fd.append('folder', 'car-rental');
+      fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cfg.cloud) + '/' + (resourceType || 'image') + '/upload', { method: 'POST', body: fd })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (d) { if (d.secure_url) urls.push(d.secure_url); done++; if (done === arr.length) cb(urls); })
+        .catch(function () { done++; if (done === arr.length) cb(urls); });
+    });
+  }
+  function renderThumbs() {
+    var wrap = document.getElementById('cMediaThumbs');
+    if (!wrap) return;
+    var urls = document.getElementById('cMedia').value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    wrap.innerHTML = urls.map(function (u, i) {
+      return '<div class="thumb"><img src="' + esc(u) + '" alt="photo ' + (i + 1) + '" onerror="this.style.display=\'none\'"><button type="button" class="rm" onclick="removeMedia(' + i + ')">×</button></div>';
+    }).join('');
+  }
+  window.removeMedia = function (i) {
+    var ta = document.getElementById('cMedia');
+    var urls = ta.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    urls.splice(i, 1);
+    ta.value = urls.join('\n');
+    renderThumbs();
+  };
 
   /* ---------- navigation ---------- */
   window.goView = function (name) {
@@ -552,6 +617,7 @@
       var el = document.getElementById(id);
       if (el.tagName === 'SELECT') el.value = ''; else el.value = '';
     });
+    renderThumbs();
     document.getElementById('carModal').classList.add('open');
   };
   window.editCar = function (id) {
@@ -572,6 +638,7 @@
     document.getElementById('cCity').value = car.city || '';
     document.getElementById('cMedia').value = (car.mediaUrls || []).join('\n');
     document.getElementById('cDesc').value = car.description || '';
+    renderThumbs();
     document.getElementById('carModal').classList.add('open');
   };
   window.closeCarModal = function () {
@@ -747,6 +814,36 @@
       toast('Profile updated');
     }).catch(function (e) { toast(e.message, true); });
   });
+
+  /* ---------- upload wiring ---------- */
+  var cMediaPick = document.getElementById('cMediaPick');
+  var cMediaFiles = document.getElementById('cMediaFiles');
+  if (cMediaPick && cMediaFiles) {
+    cMediaPick.addEventListener('click', function () { cMediaFiles.click(); });
+    cMediaFiles.addEventListener('change', function () {
+      uploadFiles(cMediaFiles.files, 'image', function (urls) {
+        cMediaFiles.value = '';
+        if (!urls.length) { toast('Photo upload failed', true); return; }
+        var ta = document.getElementById('cMedia');
+        ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + urls.join('\n');
+        renderThumbs();
+        toast('Uploaded ' + urls.length + ' photo' + (urls.length > 1 ? 's' : ''));
+      });
+    });
+  }
+  var docPick = document.getElementById('docPick');
+  var docFiles = document.getElementById('docFiles');
+  if (docPick && docFiles) {
+    docPick.addEventListener('click', function () { docFiles.click(); });
+    docFiles.addEventListener('change', function () {
+      uploadFiles(docFiles.files, 'auto', function (urls) {
+        docFiles.value = '';
+        if (!urls.length) { toast('File upload failed', true); return; }
+        document.getElementById('docUrl').value = urls[0];
+        toast('File uploaded — click Add to submit');
+      });
+    });
+  }
 
   /* ---------- boot ---------- */
   els.chipName.textContent = user.name || 'Owner';

@@ -194,6 +194,10 @@
   .profile-grid .full { grid-column: 1 / -1; }
   .profile-grid .btn { justify-self: start; margin-top: 0.4rem; }
 
+  /* ------- Upload ------- */
+  .upload-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.35rem; }
+
   /* ------- Empty / toast ------- */
   .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
   .toast {
@@ -286,7 +290,9 @@
     <div class="view-head"><h1>Documents</h1><p>Upload your license &amp; ID for verification.</p></div>
     <div class="toolbar">
       <select id="docType"><option>Driving License</option><option>Aadhaar</option><option>PAN Card</option><option>Passport</option></select>
-      <input class="grow" id="docUrl" placeholder="Paste a document URL (e.g. a Cloudinary/S3 link)">
+      <input class="grow" id="docUrl" placeholder="Paste a document URL, or use Choose file below">
+      <button type="button" class="btn ghost" id="docPick">⬆ Choose file</button>
+      <input type="file" id="docFiles" accept="image/*,.pdf" hidden>
       <button class="btn" id="docAdd">Upload</button>
     </div>
     <div class="list" id="docList"></div>
@@ -341,6 +347,32 @@
   }
   function fmt(n) { return '\u20B9' + Number(n || 0).toLocaleString('en-IN'); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+
+  /* ---------- Cloudinary upload ---------- */
+  function cloudCfg() {
+    var c = null, p = null;
+    try { c = localStorage.getItem('cloudinary_cloud'); } catch (e) {}
+    try { p = localStorage.getItem('cloudinary_preset'); } catch (e) {}
+    if (!c) { c = window.prompt('Enter your Cloudinary cloud name (dashboard.cloudinary.com)'); if (c) { try { localStorage.setItem('cloudinary_cloud', c); } catch (e) {} } }
+    if (!p) { p = window.prompt('Enter your Cloudinary unsigned upload preset name (Settings > Upload > Upload presets, mode: Unsigned)'); if (p) { try { localStorage.setItem('cloudinary_preset', p); } catch (e) {} } }
+    return { cloud: c, preset: p };
+  }
+  function uploadFiles(files, resourceType, cb) {
+    if (!files || !files.length) { cb([]); return; }
+    var cfg = cloudCfg();
+    if (!cfg.cloud || !cfg.preset) { toast('Cloudinary not configured — cloud name & unsigned preset required', true); cb([]); return; }
+    var urls = [], done = 0, arr = Array.prototype.slice.call(files);
+    arr.forEach(function (file) {
+      var fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', cfg.preset);
+      fd.append('folder', 'car-rental');
+      fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(cfg.cloud) + '/' + (resourceType || 'image') + '/upload', { method: 'POST', body: fd })
+        .then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (d) { if (d.secure_url) urls.push(d.secure_url); done++; if (done === arr.length) cb(urls); })
+        .catch(function () { done++; if (done === arr.length) cb(urls); });
+    });
+  }
   function toast(msg, isErr) {
     els.toast.textContent = msg;
     els.toast.classList.toggle('err', !!isErr);
@@ -601,6 +633,21 @@
       toast('Profile updated');
     }).catch(function (e) { toast(e.message, true); });
   });
+
+  /* ---------- upload wiring ---------- */
+  var docPick = document.getElementById('docPick');
+  var docFiles = document.getElementById('docFiles');
+  if (docPick && docFiles) {
+    docPick.addEventListener('click', function () { docFiles.click(); });
+    docFiles.addEventListener('change', function () {
+      uploadFiles(docFiles.files, 'auto', function (urls) {
+        docFiles.value = '';
+        if (!urls.length) { toast('File upload failed', true); return; }
+        document.getElementById('docUrl').value = urls[0];
+        toast('File uploaded — click Upload to submit');
+      });
+    });
+  }
 
   /* ---------- boot ---------- */
   els.chipName.textContent = user.name || 'User';
