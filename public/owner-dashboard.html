@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAR-ENT - Owner Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  .loader-overlay {
+    position: fixed; inset: 0; z-index: 100000;
+    background: #111;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2rem;
+    transition: opacity .6s ease, visibility .6s ease;
+  }
+  .loader-overlay.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .loader-brand { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; text-shadow: 0 0 24px rgba(220,38,38,.25); color: #fff; }
+  .loader-brand .red { color: #DC2626; }
+  .loader-tyre-wrap { width: 120px; height: 120px; }
+  .loader-tyre { width: 100%; height: 100%; animation: tyreSpin 1.2s linear infinite; }
+  @keyframes tyreSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .loader-text { font-size: 0.85rem; color: #9CA3AF; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+  .loader-dots span {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: #DC2626; margin: 0 4px;
+    animation: dotPulse 1.4s ease-in-out infinite;
+  }
+  .loader-dots span:nth-child(2) { animation-delay: .2s; }
+  .loader-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dotPulse { 0%, 80%, 100% { transform: scale(0.6); opacity: .4; } 40% { transform: scale(1); opacity: 1; } }
+</style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <!-- LOADING SCREEN -->
+  <div class="loader-overlay" id="loader">
+    <div class="loader-brand">CAR<span class="red">-</span>ENT</div>
+    <div class="loader-tyre-wrap">
+      <svg class="loader-tyre" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="60" r="54" stroke="#DC2626" stroke-width="6" opacity="0.9"/>
+        <circle cx="60" cy="60" r="42" stroke="#555" stroke-width="2"/>
+        <circle cx="60" cy="60" r="20" stroke="#DC2626" stroke-width="4"/>
+        <circle cx="60" cy="60" r="8" fill="#DC2626"/>
+        <line x1="60" y1="16" x2="60" y2="40" stroke="#666" stroke-width="3" stroke-linecap="round"/>
+        <line x1="60" y1="80" x2="60" y2="104" stroke="#666" stroke-width="3" stroke-linecap="round"/>
+        <line x1="16" y1="60" x2="40" y2="60" stroke="#666" stroke-width="3" stroke-linecap="round"/>
+        <line x1="80" y1="60" x2="104" y2="60" stroke="#666" stroke-width="3" stroke-linecap="round"/>
+        <line x1="28.9" y1="28.9" x2="45.9" y2="45.9" stroke="#666" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="74.1" y1="74.1" x2="91.1" y2="91.1" stroke="#666" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="91.1" y1="28.9" x2="74.1" y2="45.9" stroke="#666" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="45.9" y1="74.1" x2="28.9" y2="91.1" stroke="#666" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="loader-text">Buckle up</div>
+    <div class="loader-dots"><span></span><span></span><span></span></div>
+  </div>
+  <nav class="flex items-center justify-between px-8 py-4 bg-gray-800">
+    <span class="font-bold text-xl text-yellow-400">CAR-ENT</span>
+    <span class="text-xs uppercase tracking-widest text-gray-400 hidden sm:inline">Owner Portal</span>
+    <button onclick="logout()" class="bg-orange-500 px-4 py-2 rounded hover:bg-orange-400">Logout</button>
+  </nav>
+  <div class="max-w-4xl mx-auto mt-12 px-4">
+    <h1 class="text-3xl font-bold mb-2" id="welcome"></h1>
+    <p class="text-gray-400 mb-8" id="roleDisplay"></p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <h2 class="text-xl font-semibold mb-2">My Cars</h2>
+        <p class="text-gray-400 text-sm">List your car and start earning. Manage availability, pricing and photos.</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <h2 class="text-xl font-semibold mb-2">Bookings</h2>
+        <p class="text-gray-400 text-sm">Review trip requests on your cars and track upcoming rentals.</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <h2 class="text-xl font-semibold mb-2">Earnings</h2>
+        <p class="text-gray-400 text-sm">See payouts from your rentals and how much your car has earned.</p>
+      </div>
+      <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <h2 class="text-xl font-semibold mb-2">Verification</h2>
+        <p class="text-gray-400 text-sm">Upload documents to get your cars verified and attract more renters.</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() { document.getElementById('loader').classList.add('is-hidden'); }, 800);
+    });
+    const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('token');
+    if (!token || !user) { window.location.href = '/'; }
+    document.getElementById('welcome').textContent = 'Welcome, ' + user.name;
+    document.getElementById('roleDisplay').textContent = 'You are here to give cars for rent';
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+  </script>
+</body>
+</html>
