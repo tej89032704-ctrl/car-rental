@@ -19,6 +19,8 @@ public class OwnerTripResponse {
     private Integer rentalQty;
     private String status;
     private String createdAt;
+    private ReviewResponse myReview;
+    private RatingSummaryResponse guestRating;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
