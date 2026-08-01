@@ -41,7 +41,7 @@ jobs:
           if-no-files-found: error
 
   backend:
-    name: Backend · Maven package
+    name: Backend · Maven build + tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -54,9 +54,9 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Package backend (same command as Dockerfile)
+      - name: Build + test backend (same command as Dockerfile, tests enabled)
         working-directory: backend
-        run: mvn -B clean package -DskipTests -Dmaven.compiler.release=21
+        run: mvn -B clean package -Dmaven.compiler.release=21
 
       - name: Upload jar artifact
         uses: actions/upload-artifact@v4
