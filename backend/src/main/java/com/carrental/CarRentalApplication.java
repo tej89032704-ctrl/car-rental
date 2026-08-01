@@ -18,8 +18,16 @@ public class CarRentalApplication {
                     URI uri = new URI(dbUrl);
                     String host = uri.getHost();
                     int port = uri.getPort() == -1 ? 5432 : uri.getPort();
-                    String path = uri.getPath();
-                    String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path;
+                    String path = uri.getPath() == null ? "" : uri.getPath();
+                    // Render (and most managed Postgres) require an encrypted connection.
+                    // Preserve any query params already in DATABASE_URL and force sslmode=require.
+                    String query = uri.getQuery();
+                    if (query == null || query.isEmpty()) {
+                        query = "sslmode=require";
+                    } else if (!query.contains("sslmode=")) {
+                        query = query + "&sslmode=require";
+                    }
+                    String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path + "?" + query;
                     System.setProperty("spring.datasource.url", jdbcUrl);
                     System.setProperty("spring.datasource.hikari.jdbc-url", jdbcUrl);
                 } catch (Exception e) {
