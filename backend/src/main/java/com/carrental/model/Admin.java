@@ -19,8 +19,9 @@ public class Admin {
     @Column(nullable = false)
     private String password;
 
-    /** "admin" = super admin (full business oversight), "agent" = verification agent. */
-    @Column(nullable = false)
+    /** "admin" = super admin (full business oversight), "agent" = verification agent.
+     *  Nullable so Hibernate's ALTER TABLE succeeds on existing databases (backfilled by the seeder). */
+    @Column
     private String role = "admin";
 
     @Column(name = "created_at")
