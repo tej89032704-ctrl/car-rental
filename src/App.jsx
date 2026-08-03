@@ -674,15 +674,15 @@ export default function App() {
             style={{
               transition: 'opacity 0.5s',
               fontSize: 'clamp(1.8rem,3.5vw,2.8rem)',
-              color: '#1d1d1f',
+              color: '#f5f5f7',
               fontWeight: 700,
               lineHeight: 1.2,
               maxWidth: 520,
               letterSpacing: '-0.03em',
-              background: 'rgba(0,0,0,0.04)',
+              background: 'rgba(255,255,255,0.06)',
               padding: '1.2rem 1.6rem',
               borderRadius: 16,
-              border: '1px solid rgba(0,0,0,0.06)',
+              border: '1px solid rgba(255,255,255,0.12)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
             }}

@@ -12,8 +12,8 @@
     --line: rgba(255,255,255,0.08);
     --text: #f5f5f7;
     --muted: rgba(245,245,247,0.55);
-    --amber: #f0b14a;
-    --amber-2: #d98a2b;
+    --amber: #f5f5f7;
+    --amber-2: #b3b3ba;
     --red: #ff5d5d;
     --green: #4ade80;
     --radius: 16px;
@@ -41,7 +41,7 @@
   .brand .dot {
     width: 9px; height: 9px; border-radius: 50%;
     background: linear-gradient(135deg, var(--amber), var(--amber-2));
-    box-shadow: 0 0 12px rgba(240,177,74,0.7);
+    box-shadow: 0 0 12px rgba(255,255,255,0.7);
   }
   .brand .name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); }
   .nav-btn {
@@ -85,14 +85,14 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     padding: 1.1rem 1.2rem; transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s;
   }
-  .stat-card:hover { transform: translateY(-3px); border-color: rgba(240,177,74,0.35); }
+  .stat-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.35); }
   .stat-card .k { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .stat-card .v { font-size: 1.7rem; font-weight: 750; letter-spacing: -0.03em; margin-top: 0.35rem; }
   .stat-card .v.amber { color: var(--amber); }
   .stat-card .v.green { color: var(--green); }
   .stat-card .v.red { color: var(--red); }
   .split-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.1rem 1.2rem; transition: transform .25s, border-color .25s; }
-  .split-card:hover { transform: translateY(-3px); border-color: rgba(240,177,74,0.35); }
+  .split-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.35); }
   .split-card .k { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .split-card .v { font-size: 1.5rem; font-weight: 750; letter-spacing: -0.03em; margin-top: 0.35rem; }
   .split-card .v.amber { color: var(--amber); }
@@ -107,7 +107,7 @@
     padding: 0.6rem 0.85rem; outline: none; transition: border-color 0.2s;
   }
   .toolbar input::placeholder { color: rgba(245,245,247,0.3); }
-  .toolbar input:focus, .toolbar select:focus { border-color: rgba(240,177,74,0.6); }
+  .toolbar input:focus, .toolbar select:focus { border-color: rgba(255,255,255,0.6); }
   .toolbar .grow { flex: 1; min-width: 180px; }
 
   /* ------- Buttons ------- */
@@ -118,11 +118,11 @@
     font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;
     transition: filter 0.2s, transform 0.15s, box-shadow 0.25s;
   }
-  .btn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(240,177,74,0.3); }
+  .btn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(255,255,255,0.3); }
   .btn:active { transform: scale(0.97); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn.ghost { background: transparent; border: 1.5px solid var(--line); color: var(--text); }
-  .btn.ghost:hover { border-color: rgba(240,177,74,0.5); box-shadow: none; }
+  .btn.ghost:hover { border-color: rgba(255,255,255,0.5); box-shadow: none; }
   .btn.danger { background: transparent; border: 1.5px solid rgba(255,93,93,0.4); color: var(--red); }
   .btn.danger:hover { background: rgba(255,93,93,0.1); box-shadow: none; }
   .btn.sm { padding: 0.42rem 0.8rem; font-size: 0.78rem; border-radius: 10px; }
@@ -135,11 +135,11 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
     overflow: hidden; transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s, box-shadow 0.3s;
   }
-  .car-card:hover { transform: translateY(-4px); border-color: rgba(240,177,74,0.4); box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
+  .car-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.4); box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
   .car-card .img {
     height: 140px; background: linear-gradient(135deg, #23252e, #17181d);
     display: flex; align-items: center; justify-content: center;
-    font-size: 2.6rem; font-weight: 800; color: rgba(240,177,74,0.7);
+    font-size: 2.6rem; font-weight: 800; color: rgba(255,255,255,0.7);
     background-size: cover; background-position: center;
   }
   .car-card .body { padding: 0.9rem 1rem 1rem; }
@@ -153,7 +153,7 @@
 
   .badge { display: inline-block; padding: 0.22rem 0.6rem; border-radius: 980px; font-size: 0.68rem; font-weight: 600; }
   .badge.confirmed { background: rgba(74,222,128,0.15); color: var(--green); }
-  .badge.pending { background: rgba(240,177,74,0.15); color: var(--amber); }
+  .badge.pending { background: rgba(255,255,255,0.15); color: var(--amber); }
   .badge.cancelled, .badge.refunded { background: rgba(255,93,93,0.15); color: var(--red); }
   .badge.completed { background: rgba(96,165,250,0.15); color: #60a5fa; }
   .badge.verified { background: rgba(74,222,128,0.15); color: var(--green); }
@@ -194,7 +194,7 @@
     color: var(--text); font-family: inherit; padding: 0.7rem 0.9rem; font-size: 0.88rem; outline: none;
   }
   .field textarea { resize: vertical; min-height: 70px; }
-  .field input:focus, .field textarea:focus, .field select:focus { border-color: rgba(240,177,74,0.6); }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: rgba(255,255,255,0.6); }
   .field input[readonly] { opacity: 0.6; }
   .profile-grid .full { grid-column: 1 / -1; }
   .profile-grid .btn { justify-self: start; margin-top: 0.4rem; }
@@ -253,7 +253,7 @@
     display: flex; align-items: center; justify-content: center; position: relative;
     transition: all 0.2s;
   }
-  .notif-bell:hover { color: var(--amber); border-color: rgba(240,177,74,0.4); }
+  .notif-bell:hover { color: var(--amber); border-color: rgba(255,255,255,0.4); }
   .notif-bell svg { width: 20px; height: 20px; }
   .notif-pill {
     position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 999px;
@@ -280,7 +280,7 @@
     cursor: pointer; transition: background 0.15s;
   }
   .notif-item:hover { background: rgba(255,255,255,0.03); }
-  .notif-item.unread { background: rgba(240,177,74,0.06); }
+  .notif-item.unread { background: rgba(255,255,255,0.06); }
   .notif-item .n-ico {
     width: 34px; height: 34px; border-radius: 10px; flex: none;
     display: flex; align-items: center; justify-content: center; font-size: 1rem;
@@ -307,13 +307,13 @@
   .rv-stars { display: flex; gap: 0.4rem; margin-bottom: 1.1rem; }
   .rv-star { font-size: 2rem; cursor: pointer; color: rgba(255,255,255,0.14); transition: transform 0.15s, color 0.15s; background: none; border: none; padding: 0; line-height: 1; }
   .rv-star:hover { transform: scale(1.2); }
-  .rv-star.on { color: var(--amber); text-shadow: 0 0 18px rgba(240,177,74,0.45); }
+  .rv-star.on { color: var(--amber); text-shadow: 0 0 18px rgba(255,255,255,0.45); }
   .rv-box textarea {
     width: 100%; min-height: 84px; background: rgba(255,255,255,0.05); border: 1px solid var(--line);
     border-radius: 12px; color: var(--text); padding: 0.7rem 0.8rem; font-size: 0.85rem; resize: vertical;
   }
   .rv-actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1.1rem; }
-  .rating-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--amber); background: rgba(240,177,74,0.1); padding: 0.2rem 0.55rem; border-radius: 999px; }
+  .rating-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; color: var(--amber); background: rgba(255,255,255,0.1); padding: 0.2rem 0.55rem; border-radius: 999px; }
 
   @media (max-width: 860px) {
     .sidebar { width: 68px; padding: 1rem 0.5rem; }
@@ -323,11 +323,14 @@
     .main { padding: 1.25rem 1rem; }
     .profile-grid, .modal-grid { grid-template-columns: 1fr; }
   }
-  /* ===== Exact login-card look ===== */
+    /* ===== Black & white login-card look ===== */
+  :root {
+    --amber: #f5f5f7;
+    --amber-2: #b3b3ba;
+  }
   body {
     background:
-      radial-gradient(60vmax 34vmax at 50% -8%, rgba(240,177,74,0.13), transparent 70%),
-      radial-gradient(42vmax 26vmax at 100% 100%, rgba(217,138,43,0.10), transparent 70%),
+      radial-gradient(60vmax 34vmax at 50% -8%, rgba(255,255,255,0.045), transparent 70%),
       linear-gradient(180deg, #17181d 0%, #0f1014 100%) fixed;
   }
   .sidebar { background: linear-gradient(180deg, #1a1b21 0%, #17181d 100%); }
@@ -338,7 +341,36 @@
     box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 12px 34px rgba(10,12,18,0.42);
   }
   .modal-box, .rv-box { border-radius: 26px; }
-  .nav-btn.active, .tab.active { box-shadow: 0 6px 20px rgba(240,177,74,0.35); }
+  .brand .dot {
+    background: linear-gradient(135deg, #f5f5f7, #b3b3ba);
+    box-shadow: 0 0 12px rgba(255,255,255,0.5);
+  }
+  .avatar {
+    background: linear-gradient(135deg, #f5f5f7, #c7c7cc);
+    color: #17181d;
+  }
+  .nav-btn.active, .tab.active {
+    background: #17181d;
+    color: #f5f5f7;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.22), 0 2px 10px rgba(0,0,0,0.5);
+    font-weight: 600;
+  }
+  .btn {
+    background: #17181d;
+    color: #f5f5f7;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.16);
+  }
+  .btn:hover { background: #1e2027; box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 6px 18px rgba(0,0,0,0.45); filter: none; }
+  .stat-card .v.amber, .split-card .v.amber, .car-card .price .amt { color: #f5f5f7; }
+  .row-top .ico { color: #f5f5f7; }
+  .car-card .img { color: rgba(255,255,255,0.5); }
+  .badge.pending, .rating-chip { background: rgba(255,255,255,0.12); color: #f5f5f7; }
+  .rv-star.on { color: #f5f5f7; text-shadow: 0 0 18px rgba(255,255,255,0.35); }
+  .notif-item .n-dot { background: #f5f5f7; }
+  .notif-panel .np-head .mark { color: #f5f5f7; }
+  .notif-item.unread { background: rgba(255,255,255,0.06); }
+  .notif-bell:hover { color: #f5f5f7; border-color: rgba(255,255,255,0.3); }
+  .stat-card:hover, .split-card:hover, .car-card:hover { border-color: rgba(255,255,255,0.22); }
   .toolbar input, .toolbar select,
   .field input, .field textarea, .field select {
     background: rgba(255,255,255,0.04);
@@ -350,8 +382,8 @@
   }
   .toolbar input:focus, .toolbar select:focus,
   .field input:focus, .field textarea:focus, .field select:focus {
-    border-color: rgba(240,177,74,0.6);
-    box-shadow: 0 0 0 3px rgba(240,177,74,0.12);
+    border-color: #f5f5f7;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.14);
     background: rgba(255,255,255,0.06);
   }
   .notif-panel .np-head { background: transparent; }
@@ -421,7 +453,7 @@
 
   <!-- OVERVIEW -->
   <section class="view active" id="view-overview">
-    <div class="banner" id="verifyBanner" style="display:none;background:linear-gradient(135deg,rgba(240,177,74,0.14),rgba(217,138,43,0.06));border:1px solid rgba(240,177,74,0.35);border-radius:14px;padding:0.95rem 1.1rem;margin-bottom:1.3rem">
+    <div class="banner" id="verifyBanner" style="display:none;background:linear-gradient(135deg,rgba(255,255,255,0.14),rgba(255,255,255,0.06));border:1px solid rgba(255,255,255,0.35);border-radius:14px;padding:0.95rem 1.1rem;margin-bottom:1.3rem">
       <div style="display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap">
         <span style="font-size:1.2rem">🪪</span>
         <div style="flex:1;min-width:200px"><div style="font-weight:700;font-size:0.9rem">Get verified to list cars</div>

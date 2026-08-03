@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <style>
-    .icon-primary { fill: var(--icon-primary, #1E293B); }
-    .icon-secondary { fill: var(--icon-secondary, #7DD3FC); }
-    .icon-primary-stroke { stroke: var(--icon-primary, #1E293B); }
+    .icon-primary { fill: var(--icon-primary, #e8e8ed); }
+    .icon-secondary { fill: var(--icon-secondary, #8e8e93); }
+    .icon-primary-stroke { stroke: var(--icon-primary, #e8e8ed); }
   </style>
   <!-- frame -->
   <path class="icon-primary-stroke" d="M18 44l10-16h10l6 16M28 28l6-8h8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>

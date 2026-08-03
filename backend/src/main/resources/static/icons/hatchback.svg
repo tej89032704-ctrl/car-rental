@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
   <style>
-    .icon-primary { fill: var(--icon-primary, #1E293B); }
-    .icon-secondary { fill: var(--icon-secondary, #7DD3FC); }
+    .icon-primary { fill: var(--icon-primary, #e8e8ed); }
+    .icon-secondary { fill: var(--icon-secondary, #8e8e93); }
   </style>
   <!-- body -->
   <path class="icon-primary" d="M6 44c0-7 4-11 10-12l6-10c2-3 6-5 10-5h6c4 0 8 2 10 5l6 10c5 1 8 5 8 11v3c0 1.5-1.5 3-3 3H9c-1.5 0-3-1.5-3-3z"/>
