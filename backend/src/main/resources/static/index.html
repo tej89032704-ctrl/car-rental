@@ -825,7 +825,7 @@
         if (!res.ok) { showErr(d.message || 'Something went wrong.'); signinBtn.disabled = false; up(); return; }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
-        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
+        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'customer-dashboard.html';
       } catch (_) { showErr('Cannot connect to server.'); signinBtn.disabled = false; up(); }
     });
 
@@ -848,7 +848,7 @@
         if (!res.ok) { showErr(d.message || 'Google sign-in failed.'); signinBtn.disabled = false; up(); return; }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
-        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'dashboard.html';
+        window.location.href = d.role === 'owner' ? 'owner-dashboard.html' : 'customer-dashboard.html';
       } catch (_) { showErr('Cannot connect to server.'); signinBtn.disabled = false; up(); }
     }
 
