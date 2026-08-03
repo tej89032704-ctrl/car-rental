@@ -19,6 +19,10 @@ public class Admin {
     @Column(nullable = false)
     private String password;
 
+    /** "admin" = super admin (full business oversight), "agent" = verification agent. */
+    @Column(nullable = false)
+    private String role = "admin";
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -30,6 +34,8 @@ public class Admin {
     public void setEmail(String email) { this.email = email; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

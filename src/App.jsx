@@ -897,6 +897,8 @@ export default function App() {
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Service</a>
           <a href="#">Sitemap</a>
+          <a href="super-admin-dashboard.html">Super admin</a>
+          <a href="agent-dashboard.html">Agent</a>
         </div>
       </footer>
     </>

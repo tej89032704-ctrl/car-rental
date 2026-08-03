@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAR-ENT · Super Admin</title>
+<style>
+  :root {
+    --bg: #0f1014;
+    --panel: #17181d;
+    --panel-2: #1e2027;
+    --line: rgba(255,255,255,0.08);
+    --text: #f5f5f7;
+    --muted: rgba(245,245,247,0.55);
+    --amber: #f5f5f7;
+    --amber-2: #b3b3ba;
+    --red: #ff5d5d;
+    --green: #4ade80;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Geist', -apple-system, system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex; min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* ------- Login screen ------- */
+  .login-wrap {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 1.25rem;
+    background:
+      radial-gradient(60vmax 34vmax at 50% -8%, rgba(255,255,255,0.05), transparent 70%),
+      linear-gradient(180deg, #17181d 0%, #0f1014 100%);
+  }
+  .login-wrap.is-hidden { display: none; }
+  .login-card {
+    width: 100%; max-width: 400px;
+    background: linear-gradient(180deg, #17181d 0%, #121318 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 26px;
+    padding: 2.2rem 2rem;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 60px rgba(0,0,0,0.55);
+    animation: fade 0.35s ease;
+  }
+  .login-card .brand { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.6rem; }
+  .login-card .brand .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: linear-gradient(135deg, #f5f5f7, #b3b3ba);
+    box-shadow: 0 0 12px rgba(255,255,255,0.5);
+  }
+  .login-card .brand .name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
+  .login-card h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .login-card .sub { font-size: 0.85rem; color: var(--muted); margin: 0.3rem 0 1.5rem; }
+  .ig { margin-bottom: 0.85rem; }
+  .ig input {
+    width: 100%; background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.09);
+    border-radius: 12px; color: var(--text); font-family: inherit; font-size: 0.9rem;
+    padding: 0.8rem 0.95rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .ig input::placeholder { color: rgba(245,245,247,0.35); }
+  .ig input:focus { border-color: #f5f5f7; box-shadow: 0 0 0 3px rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); }
+  .rbtn {
+    width: 100%; background: linear-gradient(135deg, #f5f5f7, #b3b3ba); color: #17181d;
+    border: none; border-radius: 12px; padding: 0.85rem; margin-top: 0.4rem;
+    font-family: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer;
+    transition: filter 0.2s, box-shadow 0.25s;
+  }
+  .rbtn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(255,255,255,0.2); }
+  .login-card .err { color: var(--red); font-size: 0.8rem; margin-top: 0.8rem; min-height: 1.1em; text-align: center; }
+  .login-card .hint { font-size: 0.72rem; color: var(--muted); text-align: center; margin-top: 1.1rem; line-height: 1.6; }
+  .login-card .hint code { color: var(--text); background: rgba(255,255,255,0.08); padding: 0.1rem 0.35rem; border-radius: 6px; }
+
+  /* ------- Sidebar ------- */
+  .sidebar {
+    width: 240px; flex: none; background: linear-gradient(180deg, #1a1b21 0%, #17181d 100%);
+    border-right: 1px solid var(--line); display: flex; flex-direction: column;
+    padding: 1.5rem 1rem; gap: 0.25rem; position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 0.5rem; padding: 0 0.75rem 1.25rem; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(135deg, var(--amber), var(--amber-2)); box-shadow: 0 0 12px rgba(255,255,255,0.5); }
+  .brand .name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; }
+  .nav-btn {
+    display: flex; align-items: center; gap: 0.65rem; padding: 0.7rem 0.75rem; border-radius: 12px;
+    border: none; background: transparent; color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 500; cursor: pointer; text-align: left; transition: background 0.2s, color 0.2s;
+  }
+  .nav-btn svg { width: 17px; height: 17px; flex: none; }
+  .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+  .nav-btn.active {
+    background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3); font-weight: 600;
+  }
+  .sidebar .spacer { flex: 1; }
+  .user-chip {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.7rem 0.75rem; border-top: 1px solid var(--line); margin-top: 0.5rem;
+  }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d;
+    font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+  }
+  .user-chip .meta { min-width: 0; }
+  .user-chip .meta .nm { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-chip .meta .em { font-size: 0.68rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-chip .meta .role { font-size: 0.62rem; color: var(--amber); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* ------- Main ------- */
+  .main { flex: 1; padding: 2rem 2.5rem; overflow-y: auto; }
+  .view { display: none; animation: fade 0.3s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .view-head { margin-bottom: 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .view-head h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .view-head p { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+
+  /* ------- Stat cards ------- */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-card {
+    background: linear-gradient(180deg, #17181d 0%, #131418 100%);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+    padding: 1.1rem 1.2rem;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 12px 34px rgba(10,12,18,0.42);
+    transition: transform 0.25s cubic-bezier(0.16,1,0.3,1), border-color 0.25s;
+  }
+  .stat-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.3); }
+  .stat-card .k { font-size: 0.66rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stat-card .v { font-size: 1.6rem; font-weight: 750; letter-spacing: -0.03em; margin-top: 0.35rem; }
+  .stat-card .v.amber { color: var(--amber); }
+  .stat-card .v.green { color: var(--green); }
+  .stat-card .v.red { color: var(--red); }
+
+  /* ------- Toolbar / tabs ------- */
+  .toolbar { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+  .tab {
+    background: var(--panel); border: 1.5px solid var(--line); color: var(--muted);
+    border-radius: 980px; padding: 0.45rem 1rem; font-family: inherit; font-size: 0.8rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .tab.active { background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d; border-color: transparent; font-weight: 600; }
+
+  /* ------- List rows ------- */
+  .list { display: flex; flex-direction: column; gap: 0.8rem; }
+  .row-card {
+    background: linear-gradient(180deg, #17181d 0%, #131418 100%);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.03) inset, 0 12px 34px rgba(10,12,18,0.42);
+  }
+  .row-top { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+  .row-top .ico {
+    width: 42px; height: 42px; border-radius: 12px; flex: none;
+    background: var(--panel-2); display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; font-weight: 800; color: var(--amber);
+  }
+  .doc-img {
+    width: 46px; height: 46px; border-radius: 12px; flex: none; object-fit: cover;
+    border: 1px solid var(--line); background: var(--panel-2);
+  }
+  .row-top .ttl { font-size: 0.95rem; font-weight: 650; }
+  .row-top .st { font-size: 0.7rem; color: var(--muted); margin-top: 0.15rem; }
+  .row-actions { margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+  .row-foot { display: flex; gap: 1rem; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--muted); flex-wrap: wrap; }
+  .row-foot .amt { color: var(--text); font-weight: 600; }
+  .row-foot .amt.green { color: var(--green); }
+  .row-foot.red { color: var(--red); }
+
+  /* ------- Badges ------- */
+  .badge { display: inline-block; padding: 0.22rem 0.6rem; border-radius: 980px; font-size: 0.68rem; font-weight: 600; }
+  .badge.approved, .badge.confirmed, .badge.completed, .badge.available { background: rgba(74,222,128,0.15); color: var(--green); }
+  .badge.pending { background: rgba(255,255,255,0.15); color: var(--amber); }
+  .badge.rejected, .badge.cancelled, .badge.refunded { background: rgba(255,93,93,0.15); color: var(--red); }
+  .badge.customer, .badge.owner { background: rgba(255,255,255,0.1); color: var(--text); }
+  .badge.verified { background: rgba(74,222,128,0.15); color: var(--green); }
+
+  /* ------- Buttons ------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    background: linear-gradient(135deg, var(--amber), var(--amber-2)); color: #17181d;
+    border: none; border-radius: 12px; padding: 0.72rem 1.2rem;
+    font-family: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer;
+    transition: filter 0.2s, transform 0.15s, box-shadow 0.25s;
+  }
+  .btn:hover { filter: brightness(1.06); box-shadow: 0 8px 22px rgba(255,255,255,0.2); }
+  .btn:active { transform: scale(0.97); }
+  .btn.sm { padding: 0.42rem 0.8rem; font-size: 0.78rem; border-radius: 10px; }
+  .btn.approve { background: transparent; border: 1.5px solid rgba(74,222,128,0.45); color: var(--green); }
+  .btn.approve:hover { background: rgba(74,222,128,0.12); box-shadow: none; }
+  .btn.reject { background: transparent; border: 1.5px solid rgba(255,93,93,0.45); color: var(--red); }
+  .btn.reject:hover { background: rgba(255,93,93,0.12); box-shadow: none; }
+
+  /* ------- Empty / toast ------- */
+  .empty { text-align: center; color: var(--muted); padding: 3rem 1rem; font-size: 0.9rem; }
+  .toast {
+    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 0.7rem 1.2rem; border-radius: 12px; font-size: 0.85rem; z-index: 80;
+    opacity: 0; transition: all 0.3s cubic-bezier(0.16,1,0.3,1); box-shadow: 0 12px 34px rgba(0,0,0,0.5);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { border-color: rgba(255,93,93,0.5); color: var(--red); }
+
+  @media (max-width: 860px) {
+    .sidebar { width: 68px; padding: 1rem 0.5rem; }
+    .sidebar .name, .nav-btn span, .user-chip .meta { display: none; }
+    .nav-btn { justify-content: center; padding: 0.7rem 0; }
+    .brand { justify-content: center; padding: 0 0 1rem; }
+    .main { padding: 1.25rem 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="brand"><span class="dot"></span><span class="name">CAR-ENT</span></div>
+    <h2>Business console</h2>
+    <p class="sub">Sign in as super admin to see every detail of the marketplace.</p>
+    <div class="ig"><input id="aEmail" type="email" placeholder="Email" autocomplete="email"></div>
+    <div class="ig"><input id="aPass" type="password" placeholder="Password" autocomplete="current-password"></div>
+    <button class="rbtn" id="aLogin">Continue</button>
+    <div class="err" id="aErr"></div>
+    <div class="hint">Super admin: <code>admin@carrental.app</code> / <code>admin123</code><br>Agents: <code>agent@carrental.app</code> / <code>agent123</code></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar" style="display:none">
+  <div class="brand"><span class="dot"></span><span class="name">CAR-ENT</span></div>
+  <button class="nav-btn active" data-view="overview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z"/></svg>
+    <span>Overview</span>
+  </button>
+  <button class="nav-btn" data-view="bookings">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+    <span>Bookings</span>
+  </button>
+  <button class="nav-btn" data-view="cars">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l1.5-4.5A2 2 0 0 1 6.4 7h11.2a2 2 0 0 1 1.9 1.5L21 13"/><rect x="3" y="13" width="18" height="6" rx="1.5"/><circle cx="7.5" cy="19" r="1.3"/><circle cx="16.5" cy="19" r="1.3"/></svg>
+    <span>Cars</span>
+  </button>
+  <button class="nav-btn" data-view="users">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.5 3.6-5.5 7-5.5s7 2 7 5.5"/><path d="M16 4a4 4 0 0 1 0 8"/><path d="M18 15.5c2.5.5 4 2 4 4.5"/></svg>
+    <span>Users</span>
+  </button>
+  <button class="nav-btn" data-view="transactions">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    <span>Transactions</span>
+  </button>
+  <button class="nav-btn" data-view="documents">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+    <span>Documents</span>
+  </button>
+  <div class="spacer"></div>
+  <div class="user-chip">
+    <div class="avatar" id="avatar">A</div>
+    <div class="meta"><div class="nm" id="chipName">Super Admin</div><div class="em" id="chipEmail">-</div><div class="role" id="chipRole">Super admin</div></div>
+  </div>
+  <button class="nav-btn" id="logoutBtn" style="color:var(--red)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+    <span>Logout</span>
+  </button>
+</aside>
+
+<!-- MAIN -->
+<main class="main" id="main" style="display:none">
+
+  <!-- OVERVIEW -->
+  <section class="view active" id="view-overview">
+    <div class="view-head"><h1>Business overview</h1><p>Every detail of the marketplace at a glance.</p></div>
+    <div class="stats-grid" id="ovStats"></div>
+    <div class="view-head" style="margin-bottom:0.8rem"><h1 style="font-size:1.1rem">Latest bookings</h1></div>
+    <div class="list" id="ovTrips"></div>
+    <div class="empty" id="ovEmpty" style="display:none">No bookings yet — trips will appear once customers start renting.</div>
+  </section>
+
+  <!-- BOOKINGS -->
+  <section class="view" id="view-bookings">
+    <div class="view-head"><h1>Bookings</h1><p>Every trip on the platform — customer, owner, car and amount.</p></div>
+    <div class="tabs">
+      <button class="tab active" data-st="">All</button>
+      <button class="tab" data-st="pending">Pending</button>
+      <button class="tab" data-st="confirmed">Confirmed</button>
+      <button class="tab" data-st="completed">Completed</button>
+      <button class="tab" data-st="cancelled">Cancelled</button>
+    </div>
+    <div class="list" id="tripList"></div>
+    <div class="empty" id="tripEmpty" style="display:none">No bookings here yet.</div>
+  </section>
+
+  <!-- CARS -->
+  <section class="view" id="view-cars">
+    <div class="view-head"><h1>Cars</h1><p>All listings across the marketplace with approval status.</p></div>
+    <div class="tabs">
+      <button class="tab active" data-st="pending">Pending</button>
+      <button class="tab" data-st="">All</button>
+      <button class="tab" data-st="approved">Approved</button>
+      <button class="tab" data-st="rejected">Rejected</button>
+    </div>
+    <div class="list" id="carList"></div>
+    <div class="empty" id="carEmpty" style="display:none">No cars here.</div>
+  </section>
+
+  <!-- USERS -->
+  <section class="view" id="view-users">
+    <div class="view-head"><h1>Users</h1><p>Customers and owners with their verification status.</p></div>
+    <div class="list" id="userList"></div>
+    <div class="empty" id="userEmpty" style="display:none">No users yet.</div>
+  </section>
+
+  <!-- TRANSACTIONS -->
+  <section class="view" id="view-transactions">
+    <div class="view-head"><h1>Platform transactions</h1><p>Every payment — amount, platform fee and owner payout.</p></div>
+    <div class="list" id="txList"></div>
+    <div class="empty" id="txEmpty" style="display:none">No transactions yet.</div>
+  </section>
+
+  <!-- DOCUMENTS -->
+  <section class="view" id="view-documents">
+    <div class="view-head"><h1>Documents</h1><p>All verification documents — customers and owners.</p></div>
+    <div class="tabs">
+      <button class="tab active" data-st="pending">Pending</button>
+      <button class="tab" data-st="">All</button>
+      <button class="tab" data-st="approved">Approved</button>
+      <button class="tab" data-st="rejected">Rejected</button>
+    </div>
+    <div class="list" id="docList"></div>
+    <div class="empty" id="docEmpty" style="display:none">No documents here.</div>
+  </section>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var token = null, user = null;
+  try { user = JSON.parse(localStorage.getItem('admin_user')); } catch (e) { user = null; }
+  token = localStorage.getItem('admin_token');
+  if (token && user) {
+    if (user.role === 'agent') { window.location.replace('agent-dashboard.html'); return; }
+    if (user.role === 'admin') { showApp(); }
+  }
+
+  var API = (window.location.port === '5173' ? 'http://localhost:8081' : '') + '/api/admin';
+  var els = {
+    loginWrap: document.getElementById('loginWrap'),
+    sidebar: document.getElementById('sidebar'),
+    main: document.getElementById('main'),
+    aEmail: document.getElementById('aEmail'),
+    aPass: document.getElementById('aPass'),
+    aErr: document.getElementById('aErr'),
+    chipName: document.getElementById('chipName'),
+    chipEmail: document.getElementById('chipEmail'),
+    chipRole: document.getElementById('chipRole'),
+    avatar: document.getElementById('avatar'),
+    toast: document.getElementById('toast'),
+    ovStats: document.getElementById('ovStats'),
+    ovTrips: document.getElementById('ovTrips'),
+    ovEmpty: document.getElementById('ovEmpty'),
+    tripList: document.getElementById('tripList'),
+    tripEmpty: document.getElementById('tripEmpty'),
+    carList: document.getElementById('carList'),
+    carEmpty: document.getElementById('carEmpty'),
+    userList: document.getElementById('userList'),
+    userEmpty: document.getElementById('userEmpty'),
+    txList: document.getElementById('txList'),
+    txEmpty: document.getElementById('txEmpty'),
+    docList: document.getElementById('docList'),
+    docEmpty: document.getElementById('docEmpty')
+  };
+  var state = { docFilter: 'pending', carFilter: 'pending', tripFilter: '' };
+  var toastTimer = null;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+  function toast(msg, isErr) {
+    els.toast.textContent = msg;
+    els.toast.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { els.toast.className = 'toast'; }, 2800);
+  }
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, opts.headers || {});
+    return fetch(API + path, opts).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) { throw new Error(d.message || d.error || 'Request failed'); }
+        return d;
+      });
+    });
+  }
+  function initals(name) {
+    return String(name || 'A').trim().split(/\s+/).map(function (w) { return w[0]; }).slice(0, 2).join('').toUpperCase();
+  }
+  function stat(k, v, cls) {
+    return '<div class="stat-card"><div class="k">' + esc(k) + '</div><div class="v ' + (cls || '') + '">' + esc(v) + '</div></div>';
+  }
+  function fmt(n) {
+    return '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+  function statusBadge(status) {
+    var st = String(status || 'pending').toLowerCase();
+    return '<span class="badge ' + esc(st) + '">' + esc(st) + '</span>';
+  }
+  function carRow(c) {
+    var img = '';
+    if (c.primaryImage) {
+      img = '<img class="doc-img" src="' + esc(c.primaryImage) + '" alt="" onerror="this.style.display=\'none\'">';
+    } else {
+      img = '<div class="ico">🚗</div>';
+    }
+    var status = c.verified ? 'approved' : (c.rejectionReason ? 'rejected' : 'pending');
+    var price = c.pricingMode === 'HOURLY' ? fmt(c.pricePerHour) + '/hr' :
+      (c.pricingMode === 'BOTH' ? fmt(c.pricePerDay) + '/day · ' + fmt(c.pricePerHour) + '/hr' : fmt(c.pricePerDay) + '/day');
+    var actions = '';
+    if (!c.verified) { actions += '<button class="btn approve sm" onclick="window.__approveCar(' + c.id + ')">Approve</button>'; }
+    if (status !== 'rejected') { actions += '<button class="btn reject sm" onclick="window.__rejectCar(' + c.id + ')">Reject</button>'; }
+    return '<div class="row-card">' +
+      '<div class="row-top">' + img +
+      '<div style="min-width:0"><div class="ttl">' + esc(c.make) + ' ' + esc(c.model) + ' ' + statusBadge(status) + '</div>' +
+      '<div class="st">' + esc(c.ownerName || '-') + ' · ' + esc(c.ownerEmail || '-') + '</div>' +
+      '<div class="st">' + esc(c.city || '-') + ' · ' + c.year + ' · ' + esc(c.transmission || '-') + ' · ' + esc(c.fuelType || '-') + ' · ' + price + '</div></div>' +
+      '<div class="row-actions">' + actions + '</div></div>' +
+      (c.rejectionReason ? '<div class="row-foot red">Rejected: ' + esc(c.rejectionReason) + '</div>' : '') +
+      '</div>';
+  }
+  function docRow(d) {
+    var img = '';
+    if (d.docUrl && /\.(png|jpe?g|gif|webp|svg)(\?|$)/i.test(d.docUrl)) {
+      img = '<img class="doc-img" src="' + esc(d.docUrl) + '" alt="" onerror="this.style.display=\'none\'">';
+    } else {
+      img = '<div class="ico">📄</div>';
+    }
+    var actions = '';
+    if (d.verificationStatus !== 'approved') { actions += '<button class="btn approve sm" onclick="window.__approve(' + d.id + ')">Approve</button>'; }
+    if (d.verificationStatus !== 'rejected') { actions += '<button class="btn reject sm" onclick="window.__reject(' + d.id + ')">Reject</button>'; }
+    return '<div class="row-card">' +
+      '<div class="row-top">' + img +
+      '<div style="min-width:0"><div class="ttl">' + esc(d.docType) + ' <span class="badge ' + esc(d.role || 'doc') + '">' + esc(d.role || '-') + '</span></div>' +
+      '<div class="st">' + esc(d.userName || '-') + ' · ' + esc(d.userEmail || '-') + '</div>' +
+      '<div class="st"><a href="' + esc(d.docUrl) + '" target="_blank" rel="noopener" style="color:var(--amber)">' + esc(d.docUrl) + '</a></div></div>' +
+      '<div class="row-actions">' + statusBadge(d.verificationStatus) + actions + '</div></div>' +
+      (d.rejectionReason ? '<div class="row-foot red">Rejected: ' + esc(d.rejectionReason) + '</div>' : '') +
+      '</div>';
+  }
+  function userRow(u) {
+    var v = u.verified ? '<span class="badge verified">✓ verified</span>' : (u.pendingDocs ? '<span class="badge pending">' + u.pendingDocs + ' pending</span>' : '<span class="badge pending">unverified</span>');
+    return '<div class="row-card"><div class="row-top">' +
+      '<div class="ico">' + esc((u.name || 'U').charAt(0).toUpperCase()) + '</div>' +
+      '<div style="min-width:0"><div class="ttl">' + esc(u.name || '-') + ' <span class="badge ' + esc(u.role) + '">' + esc(u.role) + '</span></div>' +
+      '<div class="st">' + esc(u.email || '-') + (u.city ? ' · ' + esc(u.city) : '') + '</div></div>' +
+      '<div class="row-actions">' + v + '</div></div></div>';
+  }
+  function tripRow(t) {
+    return '<div class="row-card"><div class="row-top">' +
+      '<div class="ico">🚘</div>' +
+      '<div style="min-width:0"><div class="ttl">' + esc(t.carName || '-') + ' ' + statusBadge(t.status) + '</div>' +
+      '<div class="st">' + esc(t.customerName || '-') + ' → ' + esc(t.ownerName || '-') + '</div>' +
+      '<div class="st">' + esc(t.startDate || '-') + ' → ' + esc(t.endDate || '-') + ' · ' + esc(t.rentalUnit || '') + (t.rentalQty ? ' × ' + t.rentalQty : '') + '</div></div>' +
+      '<div class="row-actions"><span class="amt">' + fmt(t.totalAmount) + '</span></div></div></div>';
+  }
+  function txRow(t) {
+    return '<div class="row-card"><div class="row-top">' +
+      '<div class="ico">💳</div>' +
+      '<div style="min-width:0"><div class="ttl">' + esc(t.carName || '-') + ' ' + statusBadge(t.status) + '</div>' +
+      '<div class="st">' + esc(t.customerName || '-') + ' → ' + esc(t.ownerName || '-') + (t.paymentMethod ? ' · ' + esc(t.paymentMethod) : '') + '</div></div>' +
+      '<div class="row-actions"><span class="amt">' + fmt(t.amount) + '</span></div></div>' +
+      '<div class="row-foot"><span>Fee: <span class="amt">' + fmt(t.platformFee) + '</span></span><span>Payout: <span class="amt green">' + fmt(t.ownerPayout) + '</span></span></div></div>';
+  }
+
+  /* ---------- login ---------- */
+  document.getElementById('aLogin').addEventListener('click', function () {
+    var email = els.aEmail.value.trim();
+    var pass = els.aPass.value;
+    if (!email || !pass) { els.aErr.textContent = 'Enter email and password'; return; }
+    fetch(API + '/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: pass })
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) { throw new Error(d.message || d.error || 'Login failed'); }
+        return d;
+      });
+    }).then(function (d) {
+      token = d.token;
+      user = { name: d.name, email: d.email, role: d.role };
+      try { localStorage.setItem('admin_token', token); localStorage.setItem('admin_user', JSON.stringify(user)); } catch (e) {}
+      if (d.role === 'agent') { window.location.replace('agent-dashboard.html'); return; }
+      if (d.role !== 'admin') { els.aErr.textContent = 'Admin access only'; return; }
+      showApp();
+      toast('Welcome, ' + d.name + '!');
+    }).catch(function (e) {
+      els.aErr.textContent = e.message;
+    });
+  });
+  els.aPass.addEventListener('keydown', function (e) { if (e.key === 'Enter') { document.getElementById('aLogin').click(); } });
+
+  function showApp() {
+    els.loginWrap.classList.add('is-hidden');
+    els.sidebar.style.display = 'flex';
+    els.main.style.display = 'block';
+    els.chipName.textContent = (user && user.name) || 'Super Admin';
+    els.chipEmail.textContent = (user && user.email) || '';
+    els.chipRole.textContent = 'Super admin';
+    els.avatar.textContent = initals(user && user.name);
+    loadOverview();
+  }
+
+  /* ---------- navigation ---------- */
+  window.goView = function (name) {
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
+    var v = document.getElementById('view-' + name);
+    if (v) v.classList.add('active');
+    document.querySelectorAll('.nav-btn[data-view]').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.view === name);
+    });
+    if (name === 'overview') loadOverview();
+    if (name === 'bookings') loadTrips();
+    if (name === 'cars') loadCars();
+    if (name === 'users') loadUsers();
+    if (name === 'transactions') loadTransactions();
+    if (name === 'documents') loadDocs();
+  };
+  document.querySelectorAll('.nav-btn[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () { goView(b.dataset.view); });
+  });
+
+  /* ---------- overview ---------- */
+  function loadOverview() {
+    api('/stats').then(function (s) {
+      els.ovStats.innerHTML =
+        stat('Customers', s.customers, '') +
+        stat('Owners', s.owners, '') +
+        stat('Cars listed', s.cars, '') +
+        stat('Trips', s.trips, 'amber') +
+        stat('Platform revenue', fmt(s.platformRevenue), 'green') +
+        stat('Owner payouts', fmt(s.totalPayouts), '') +
+        stat('Pending docs', s.pendingDocuments, s.pendingDocuments ? 'amber' : '') +
+        stat('Pending cars', s.pendingCars, s.pendingCars ? 'amber' : '') +
+        stat('Pending trips', s.pendingTrips, s.pendingTrips ? 'amber' : '');
+    }).catch(function (e) { toast(e.message, true); });
+    api('/bookings').then(function (trips) {
+      els.ovTrips.innerHTML = trips.slice(0, 5).map(tripRow).join('');
+      els.ovEmpty.style.display = trips.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- bookings ---------- */
+  function loadTrips() {
+    api('/bookings').then(function (trips) {
+      var shown = state.tripFilter ? trips.filter(function (t) { return t.status === state.tripFilter; }) : trips;
+      els.tripList.innerHTML = shown.map(tripRow).join('');
+      els.tripEmpty.style.display = shown.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- cars ---------- */
+  function loadCars() {
+    api('/cars?status=' + encodeURIComponent(state.carFilter)).then(function (cars) {
+      els.carList.innerHTML = cars.map(carRow).join('');
+      els.carEmpty.style.display = cars.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- users ---------- */
+  function loadUsers() {
+    api('/users').then(function (users) {
+      els.userList.innerHTML = users.map(userRow).join('');
+      els.userEmpty.style.display = users.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- transactions ---------- */
+  function loadTransactions() {
+    api('/transactions').then(function (txs) {
+      els.txList.innerHTML = txs.map(txRow).join('');
+      els.txEmpty.style.display = txs.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- documents ---------- */
+  function loadDocs() {
+    api('/documents?status=' + encodeURIComponent(state.docFilter)).then(function (docs) {
+      els.docList.innerHTML = docs.map(docRow).join('');
+      els.docEmpty.style.display = docs.length ? 'none' : 'block';
+    }).catch(function (e) { toast(e.message, true); });
+  }
+
+  /* ---------- tab switching ---------- */
+  document.querySelectorAll('.tabs').forEach(function (wrap) {
+    wrap.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        wrap.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var view = tab.closest('.view');
+        var st = tab.dataset.st;
+        if (view && view.id === 'view-bookings') { state.tripFilter = st; loadTrips(); }
+        if (view && view.id === 'view-cars') { state.carFilter = st; loadCars(); }
+        if (view && view.id === 'view-documents') { state.docFilter = st; loadDocs(); }
+      });
+    });
+  });
+
+  /* ---------- approve / reject ---------- */
+  window.__approve = function (id) {
+    api('/documents/' + id + '/approve', { method: 'PUT' }).then(function () {
+      toast('Document approved ✓'); loadDocs(); loadOverview();
+    }).catch(function (e) { toast(e.message, true); });
+  };
+  window.__reject = function (id) {
+    var reason = prompt('Rejection reason (optional)');
+    if (reason === null) return;
+    api('/documents/' + id + '/reject', { method: 'PUT', body: JSON.stringify({ reason: reason || '' }) }).then(function () {
+      toast('Document rejected'); loadDocs(); loadOverview();
+    }).catch(function (e) { toast(e.message, true); });
+  };
+  window.__approveCar = function (id) {
+    api('/cars/' + id + '/approve', { method: 'PUT' }).then(function () {
+      toast('Car approved ✓'); loadCars(); loadOverview();
+    }).catch(function (e) { toast(e.message, true); });
+  };
+  window.__rejectCar = function (id) {
+    var reason = prompt('Rejection reason (optional)');
+    if (reason === null) return;
+    api('/cars/' + id + '/reject', { method: 'PUT', body: JSON.stringify({ reason: reason || '' }) }).then(function () {
+      toast('Car rejected'); loadCars(); loadOverview();
+    }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ---------- logout ---------- */
+  document.getElementById('logoutBtn').addEventListener('click', function () {
+    try { localStorage.removeItem('admin_token'); localStorage.removeItem('admin_user'); } catch (e) {}
+    window.location.href = '/';
+  });
+})();
+</script>
+</body>
+</html>

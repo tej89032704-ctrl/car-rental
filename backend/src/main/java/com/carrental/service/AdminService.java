@@ -66,8 +66,9 @@ public class AdminService {
         if (!passwordEncoder.matches(req.getPassword(), admin.getPassword())) {
             throw new RuntimeException("Invalid admin credentials");
         }
-        String token = jwtUtil.generateToken(admin.getEmail(), admin.getId(), "admin");
-        return new AuthResponse(token, admin.getName(), admin.getEmail(), "admin", admin.getId());
+        String role = admin.getRole() == null ? "admin" : admin.getRole();
+        String token = jwtUtil.generateToken(admin.getEmail(), admin.getId(), role);
+        return new AuthResponse(token, admin.getName(), admin.getEmail(), role, admin.getId());
     }
 
     /* ================= DOCUMENTS ================= */
@@ -266,6 +267,30 @@ public class AdminService {
         r.setRentalQty(tx.getTrip() == null ? null : tx.getTrip().getRentalQty());
         r.setCreatedAt(tx.getCreatedAt() == null ? null : tx.getCreatedAt().toString());
         return r;
+    }
+
+    /* ================= BOOKINGS (super admin oversight) ================= */
+
+    public List<AdminTripResponse> listTrips() {
+        return tripDetailRepository.findAll().stream()
+                .sorted(Comparator.comparing(TripDetail::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(t -> {
+                    AdminTripResponse r = new AdminTripResponse();
+                    r.setId(t.getId());
+                    r.setCarName(t.getCar() == null ? null : t.getCar().getMake() + " " + t.getCar().getModel());
+                    r.setCustomerName(t.getCustomer() == null ? null : t.getCustomer().getName());
+                    r.setCustomerEmail(t.getCustomer() == null ? null : t.getCustomer().getEmail());
+                    r.setOwnerName(t.getOwner() == null ? null : t.getOwner().getName());
+                    r.setStartDate(t.getStartDate() == null ? null : t.getStartDate().toString());
+                    r.setEndDate(t.getEndDate() == null ? null : t.getEndDate().toString());
+                    r.setRentalUnit(t.getRentalUnit());
+                    r.setRentalQty(t.getRentalQty());
+                    r.setTotalAmount(t.getTotalAmount());
+                    r.setStatus(t.getStatus());
+                    r.setCreatedAt(t.getCreatedAt() == null ? null : t.getCreatedAt().toString());
+                    return r;
+                })
+                .collect(Collectors.toList());
     }
 
     /* ================= STATS ================= */
