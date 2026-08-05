@@ -93,6 +93,181 @@ function DotField() {
   );
 }
 
+/* ===== Cloth banner with CAR-ENT text (waving in the air) ===== */
+function ClothBanner() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const COLS = 16;
+    const ROWS = 9;
+    let points = [];
+    let constraints = [];
+    let tex = null;
+    let w = 0;
+    let h = 0;
+    let gapX = 0;
+    let gapY = 0;
+    let dpr = 1;
+    let raf = 0;
+
+    function buildTexture() {
+      tex = document.createElement('canvas');
+      tex.width = Math.max(2, Math.round(w));
+      tex.height = Math.max(2, Math.round(h));
+      const tc = tex.getContext('2d');
+      const g = tc.createLinearGradient(0, 0, 0, tex.height);
+      g.addColorStop(0, '#f1e8d4');
+      g.addColorStop(1, '#e8dcc4');
+      tc.fillStyle = g;
+      tc.fillRect(0, 0, tex.width, tex.height);
+      tc.strokeStyle = 'rgba(124, 22, 34, 0.28)';
+      tc.lineWidth = Math.max(1, Math.round(w * 0.0035));
+      tc.strokeRect(tc.lineWidth / 2, tc.lineWidth / 2, tex.width - tc.lineWidth, tex.height - tc.lineWidth);
+
+      const fs = Math.round(w * 0.14);
+      const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif';
+      tc.textAlign = 'center';
+      tc.textBaseline = 'middle';
+      tc.fillStyle = '#7c1622';
+      tc.font = '700 ' + fs + 'px ' + font;
+      if ('letterSpacing' in tc) tc.letterSpacing = Math.round(fs * 0.08) + 'px';
+      tc.fillText('CAR-ENT', tex.width / 2, tex.height * 0.42);
+      if ('letterSpacing' in tc) tc.letterSpacing = '0px';
+
+      tc.fillStyle = 'rgba(124, 22, 34, 0.35)';
+      tc.fillRect(tex.width / 2 - fs * 1.15, tex.height * 0.42 + fs * 0.42, fs * 2.3, 1);
+
+      tc.font = '600 ' + Math.round(fs * 0.3) + 'px ' + font;
+      tc.fillStyle = '#b99a8f';
+      tc.fillText('CARS · ON DEMAND', tex.width / 2, tex.height * 0.42 + fs * 0.78);
+    }
+
+    function init() {
+      points = [];
+      for (let y = 0; y <= ROWS; y++) {
+        const row = [];
+        for (let x = 0; x <= COLS; x++) {
+          const pin = y === 0;
+          row.push({ x: x * gapX, y: y * gapY, px: x * gapX, py: y * gapY, pin });
+        }
+        points.push(row);
+      }
+      constraints = [];
+      for (let yy = 0; yy <= ROWS; yy++) {
+        for (let xx = 0; xx <= COLS; xx++) {
+          if (xx < COLS) constraints.push({ a: points[yy][xx], b: points[yy][xx + 1], rest: gapX });
+          if (yy < ROWS) constraints.push({ a: points[yy][xx], b: points[yy + 1][xx], rest: gapY });
+        }
+      }
+      buildTexture();
+    }
+
+    function step(t) {
+      for (let y = 0; y <= ROWS; y++) {
+        for (let x = 0; x <= COLS; x++) {
+          const p = points[y][x];
+          if (p.pin) continue;
+          const vx = (p.x - p.px) * 0.9;
+          const vy = (p.y - p.py) * 0.9;
+          p.px = p.x;
+          p.py = p.y;
+          p.x += vx;
+          p.y += vy;
+          p.y += 0.6;
+          const wind = Math.sin(t * 0.0011 + p.y * 0.03) * 1.7 + Math.sin(t * 0.0017 + p.x * 0.018) * 0.9;
+          p.x += wind;
+          p.y += Math.sin(t * 0.0019 + p.x * 0.025) * 0.2;
+        }
+      }
+      for (let i = 0; i < 3; i++) {
+        for (let c = 0; c < constraints.length; c++) {
+          const cn = constraints[c];
+          const dx = cn.b.x - cn.a.x;
+          const dy = cn.b.y - cn.a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+          const diff = ((dist - cn.rest) / dist) * 0.5;
+          if (!cn.a.pin) { cn.a.x += dx * diff; cn.a.y += dy * diff; }
+          if (!cn.b.pin) { cn.b.x -= dx * diff; cn.b.y -= dy * diff; }
+        }
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, w, h);
+      for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+          const p0 = points[y][x];
+          const p1 = points[y][x + 1];
+          const p2 = points[y + 1][x + 1];
+          const p3 = points[y + 1][x];
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p3.x, p3.y);
+          ctx.closePath();
+          ctx.clip();
+          ctx.setTransform(
+            (p1.x - p0.x) / tex.width, (p1.y - p0.y) / tex.width,
+            (p3.x - p0.x) / tex.height, (p3.y - p0.y) / tex.height,
+            p0.x, p0.y
+          );
+          ctx.drawImage(tex, 0, 0);
+          ctx.restore();
+        }
+      }
+    }
+
+    function resize() {
+      const parent = canvas.parentElement;
+      const cw = Math.min(parent ? parent.clientWidth : 560, 560);
+      w = Math.max(280, cw);
+      h = Math.round(w * 0.42);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      gapX = w / COLS;
+      gapY = h / ROWS;
+      init();
+    }
+
+    function loop(t) {
+      step(t);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+      raf = requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    if (reduce) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.drawImage(tex, 0, 0);
+    } else {
+      raf = requestAnimationFrame(loop);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+
+  return (
+    <div className="cloth-wrap" aria-hidden="true">
+      <canvas ref={canvasRef} />
+    </div>
+  );
+}
+
 export default function App() {
   const [isRegister, setIsRegister] = useState(false);
   const [currentRole, setCurrentRole] = useState('pick');
@@ -253,6 +428,7 @@ export default function App() {
       </nav>
 
       <section className="hero" id="how">
+        <ClothBanner />
         <span className="badge">
           <span className="badge-dot" /> Now in 12 cities across India
         </span>
