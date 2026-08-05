@@ -102,8 +102,8 @@ function ClothBanner() {
     if (!canvas || !canvas.getContext) return;
     const ctx = canvas.getContext('2d');
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const COLS = 16;
-    const ROWS = 9;
+    const COLS = 22;
+    const ROWS = 10;
     let points = [];
     let constraints = [];
     let tex = null;
@@ -119,31 +119,72 @@ function ClothBanner() {
       tex.width = Math.max(2, Math.round(w));
       tex.height = Math.max(2, Math.round(h));
       const tc = tex.getContext('2d');
+
+      // cream woven ground
       const g = tc.createLinearGradient(0, 0, 0, tex.height);
-      g.addColorStop(0, '#f1e8d4');
-      g.addColorStop(1, '#e8dcc4');
+      g.addColorStop(0, '#f3ead6');
+      g.addColorStop(1, '#e6d9c0');
       tc.fillStyle = g;
       tc.fillRect(0, 0, tex.width, tex.height);
-      tc.strokeStyle = 'rgba(124, 22, 34, 0.28)';
-      tc.lineWidth = Math.max(1, Math.round(w * 0.0035));
-      tc.strokeRect(tc.lineWidth / 2, tc.lineWidth / 2, tex.width - tc.lineWidth, tex.height - tc.lineWidth);
 
-      const fs = Math.round(w * 0.14);
-      const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif';
+      // faint weave
+      const s = Math.max(5, Math.round(w * 0.006));
+      tc.strokeStyle = 'rgba(128, 35, 48, 0.045)';
+      tc.lineWidth = 1;
+      for (let wy = s; wy < tex.height; wy += s) {
+        tc.beginPath(); tc.moveTo(0, wy); tc.lineTo(tex.width, wy); tc.stroke();
+      }
+      for (let wx = s; wx < tex.width; wx += s) {
+        tc.beginPath(); tc.moveTo(wx, 0); tc.lineTo(wx, tex.height); tc.stroke();
+      }
+
+      // double-line maroon border
+      const i1 = w * 0.014;
+      const i2 = w * 0.027;
+      tc.strokeStyle = '#802330';
+      tc.lineWidth = Math.max(2, Math.round(w * 0.008));
+      tc.strokeRect(i1, i1, tex.width - i1 * 2, tex.height - i1 * 2);
+      tc.lineWidth = Math.max(1.5, Math.round(w * 0.004));
+      tc.strokeRect(i2, i2, tex.width - i2 * 2, tex.height - i2 * 2);
+
+      const serif = '"Playfair Display", Georgia, "Times New Roman", serif';
+      const sans = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const fs = Math.round(w * 0.15);
+      const wmY = tex.height * 0.47;
       tc.textAlign = 'center';
       tc.textBaseline = 'middle';
-      tc.fillStyle = '#7c1622';
-      tc.font = '700 ' + fs + 'px ' + font;
-      if ('letterSpacing' in tc) tc.letterSpacing = Math.round(fs * 0.08) + 'px';
-      tc.fillText('CAR-ENT', tex.width / 2, tex.height * 0.42);
+
+      // top label
+      tc.fillStyle = '#802330';
+      tc.font = '600 ' + Math.max(10, Math.round(w * 0.026)) + 'px ' + sans;
+      if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.008) + 'px';
+      tc.fillText('EST. 2026 · 12 CITIES', tex.width / 2, tex.height * 0.17);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
-      tc.fillStyle = 'rgba(124, 22, 34, 0.35)';
-      tc.fillRect(tex.width / 2 - fs * 1.15, tex.height * 0.42 + fs * 0.42, fs * 2.3, 1);
+      // big serif wordmark
+      tc.fillStyle = '#802330';
+      tc.font = '800 ' + fs + 'px ' + serif;
+      if ('letterSpacing' in tc) tc.letterSpacing = Math.round(fs * 0.04) + 'px';
+      tc.fillText('CAR-ENT', tex.width / 2, wmY);
+      if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
-      tc.font = '600 ' + Math.round(fs * 0.3) + 'px ' + font;
+      // rule
+      tc.fillStyle = 'rgba(128, 35, 48, 0.5)';
+      tc.fillRect(tex.width / 2 - fs * 0.9, wmY + fs * 0.6, fs * 1.8, Math.max(1, Math.round(w * 0.0025)));
+
+      // sub label
       tc.fillStyle = '#b99a8f';
-      tc.fillText('CARS · ON DEMAND', tex.width / 2, tex.height * 0.42 + fs * 0.78);
+      tc.font = '600 ' + Math.max(10, Math.round(w * 0.03)) + 'px ' + sans;
+      if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.006) + 'px';
+      tc.fillText('CARS · ON DEMAND', tex.width / 2, wmY + fs * 0.82);
+      if ('letterSpacing' in tc) tc.letterSpacing = '0px';
+
+      // bottom label
+      tc.fillStyle = '#802330';
+      tc.font = '600 ' + Math.max(10, Math.round(w * 0.024)) + 'px ' + sans;
+      if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.007) + 'px';
+      tc.fillText('PEER-TO-PEER · DRIVE FREE', tex.width / 2, tex.height * 0.9);
+      if ('letterSpacing' in tc) tc.letterSpacing = '0px';
     }
 
     function init() {
@@ -227,7 +268,7 @@ function ClothBanner() {
       const parent = canvas.parentElement;
       const cw = Math.min(parent ? parent.clientWidth : 560, 560);
       w = Math.max(280, cw);
-      h = Math.round(w * 0.42);
+      h = Math.round(w * 0.36);
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
@@ -253,6 +294,12 @@ function ClothBanner() {
       ctx.drawImage(tex, 0, 0);
     } else {
       raf = requestAnimationFrame(loop);
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        buildTexture();
+      });
     }
 
     return () => {
