@@ -1,792 +1,453 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CAR-ENT â€” Cars, on demand.</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <title>CAR-ENT — Cars, on demand.</title>
+  <meta name="description" content="Rent verified cars from real owners. Or list yours and earn. Simple, transparent, yours." />
+  <meta name="theme-color" content="#b02330" />
+  <link rel="icon" href="/icons/sedan.svg" type="image/svg+xml" />
   <style>
+    /* CAR-ENT — Carmine Mills design system
+       Primary #B02330 · Secondary #E8DCC4 · Tertiary #B99A8F · Neutral #FFFFFF
+       Radii 1px/2px · 4px rhythm · Elevated surfaces · Dot-matrix particle field */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Geist', -apple-system, system-ui, sans-serif;
-      background: linear-gradient(180deg, #17181d 0%, #0f1014 100%) fixed;
-      color: #f5f5f7;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #b02330;
+      color: #e8dcc4;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
     }
 
-    .noise {
-      position: fixed; inset: 0; z-index: -2;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-      background-repeat: repeat;
-      background-size: 256px 256px;
-      pointer-events: none;
+    ::selection { background: rgba(232, 220, 196, 0.28); color: #fff; }
+    :focus-visible { outline: 1px solid rgba(232, 220, 196, 0.8); outline-offset: 2px; }
+
+    /* ===== STAGE / BACKGROUND (dot-matrix field + vignette) ===== */
+    .stage {
+      position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+      background: linear-gradient(180deg, #e03848 0%, #b02330 42%, #7c1622 100%);
     }
-    .ambient-bg {
-      position: fixed; inset: 0; z-index: -1;
-      background: linear-gradient(135deg, #141519 0%, #17181d 25%, #0f1014 55%, #121318 75%, #0f1014 100%);
-    }
-    .ambient-bg .blob {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.09;
-      will-change: transform;
-    }
-    .ambient-bg .blob:nth-child(1) {
-      width: 50vmax; height: 50vmax;
-      background: radial-gradient(circle, rgba(255,255,255,0.07), transparent 70%);
-      top: -15vmax; left: -10vmax;
-      animation: floatA 28s ease-in-out infinite;
-    }
-    .ambient-bg .blob:nth-child(2) {
-      width: 40vmax; height: 40vmax;
-      background: radial-gradient(circle, rgba(255,255,255,0.05), transparent 70%);
-      bottom: -10vmax; right: -8vmax;
-      animation: floatB 32s ease-in-out infinite reverse;
-    }
-    .ambient-bg .blob:nth-child(3) {
-      width: 30vmax; height: 30vmax;
-      background: radial-gradient(circle, rgba(255,255,255,0.06), transparent 70%);
-      top: 40%; left: 55%;
-      animation: floatC 24s ease-in-out infinite;
-    }
-    .ambient-bg .blob:nth-child(4) {
-      width: 35vmax; height: 35vmax;
-      background: radial-gradient(circle, rgba(255,255,255,0.04), transparent 70%);
-      bottom: 20%; left: -5vmax;
-      animation: floatB 26s ease-in-out infinite;
-    }
-    .ambient-bg .blob:nth-child(5) {
-      width: 25vmax; height: 25vmax;
-      background: radial-gradient(circle, rgba(255,255,255,0.05), transparent 70%);
-      top: 10%; right: 10%;
-      animation: floatA 30s ease-in-out infinite reverse;
-    }
-    @keyframes floatA {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      25% { transform: translate(50px, -40px) scale(1.08); }
-      50% { transform: translate(-30px, 30px) scale(0.92); }
-      75% { transform: translate(40px, 20px) scale(1.04); }
-    }
-    @keyframes floatB {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(-40px, -30px) scale(1.06); }
-      66% { transform: translate(30px, 40px) scale(0.94); }
-    }
-    @keyframes floatC {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      20% { transform: translate(20px, -50px) scale(1.1); }
-      40% { transform: translate(-40px, -10px) scale(0.9); }
-      60% { transform: translate(10px, 30px) scale(1.05); }
-      80% { transform: translate(-30px, -20px) scale(0.95); }
+    .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .stage-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(90% 80% at 50% 46%, rgba(0,0,0,0) 55%, rgba(10,5,6,0.72) 100%);
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      .ambient-bg .blob { animation: none !important; }
-    }
-
-    .grid-overlay {
-      position: fixed; inset: 0; z-index: -1;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 60px 60px;
-      pointer-events: none;
-    }
-
-    .reveal {
-      opacity: 0;
-      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .reveal-up { transform: translateY(40px); }
-    .reveal-down { transform: translateY(-30px); }
-    .reveal-left { transform: translateX(-40px); }
-    .reveal-right { transform: translateX(40px); }
-    .reveal-scale { transform: scale(0.92); }
-    .reveal.is-visible { opacity: 1; transform: translate(0) scale(1); }
-    .reveal-d1 { transition-delay: 0.06s; }
-    .reveal-d2 { transition-delay: 0.14s; }
-    .reveal-d3 { transition-delay: 0.22s; }
-    .reveal-d4 { transition-delay: 0.3s; }
-    .reveal-d5 { transition-delay: 0.38s; }
-    .reveal-d6 { transition-delay: 0.46s; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .reveal { opacity: 1; transform: none; transition: none; }
-      .ambient-bg .blob { animation: none !important; }
-      .noise { display: none; }
-      .grid-overlay { display: none; }
-    }
-
+    /* ===== TOP NAV ===== */
     nav {
+      position: relative; z-index: 2;
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 3rem; height: 56px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      position: sticky; top: 0;
-      background: rgba(15,16,20,0.72);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      z-index: 100;
-      transition: box-shadow 0.4s;
+      border-bottom: 1px solid rgba(232, 220, 196, 0.12);
     }
-    nav.is-scrolled { box-shadow: 0 1px 0 rgba(255,255,255,0.06); }
-
-    .nav-logo {
-      font-size: 1.1rem; font-weight: 700; letter-spacing: -0.03em;
-      display: flex; align-items: center; gap: 0.4rem;
-      opacity: 0; animation: navIn 0.6s 0.1s forwards;
-    }
-    .nav-logo .dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: #f5f5f7; box-shadow: 0 0 10px rgba(255,255,255,0.5); display: inline-block;
-      animation: pulseDot 3s ease-in-out infinite;
-    }
-    @keyframes navIn { to { opacity: 1; } }
-    @keyframes pulseDot {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(1.5); }
-    }
-
-    .nav-links {
-      display: flex; gap: 0.25rem; align-items: center;
-      opacity: 0; animation: navIn 0.6s 0.2s forwards;
-    }
+    .nav-logo { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.08em; color: #e8dcc4; }
+    .nav-logo span { color: #fff; }
+    .nav-links { display: flex; gap: 2rem; align-items: center; }
     .nav-links a {
-      font-size: 0.8rem; font-weight: 400; color: rgba(245,245,247,0.6);
-      text-decoration: none; padding: 0.4rem 0.8rem; border-radius: 6px;
-      transition: background 0.2s, color 0.2s;
+      font-size: 0.78rem; letter-spacing: 0.05em;
+      color: rgba(232, 220, 196, 0.75); text-decoration: none;
+      transition: color 0.3s ease;
     }
-    .nav-links a:hover { background: rgba(255,255,255,0.08); color: #f5f5f7; }
+    .nav-links a:hover { color: #fff; }
     .nav-cta {
-      font-size: 0.8rem !important; font-weight: 500 !important;
-      color: #f5f5f7 !important; background: #17181d; box-shadow: 0 0 0 1px rgba(255,255,255,0.16);
-      padding: 0.45rem 1rem !important; border-radius: 980px !important;
-      margin-left: 0.75rem;
-      transition: background 0.25s, transform 0.2s !important;
+      color: #e8dcc4 !important;
+      border: 1px solid rgba(232, 220, 196, 0.35); border-radius: 1px;
+      padding: 0.5rem 1.25rem;
+      text-transform: uppercase; font-size: 0.68rem !important; font-weight: 600; letter-spacing: 0.12em;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .nav-cta:hover { filter: none; background: #1e2027; box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 6px 18px rgba(0,0,0,0.5); transform: scale(1.02) !important; }
+    .nav-cta:hover { background: #e8dcc4; color: #7c1622 !important; }
 
-    .top {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      align-items: center;
-      gap: 4rem;
-      max-width: 1150px;
-      margin: 0 auto;
-      padding: 4.5rem 2rem 3rem;
+    /* ===== HERO ===== */
+    .hero { position: relative; z-index: 2; max-width: 1200px; margin: 0 auto; padding: 6rem 2rem 2rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 0.9rem;
+      border: 1px solid rgba(232, 220, 196, 0.2); border-radius: 1px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      color: #e8dcc4;
     }
-    .hero {
-      text-align: left; overflow: hidden; position: relative;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      font-size: 0.7rem; font-weight: 500; color: #f5f5f7;
-      background: rgba(255,255,255,0.1); padding: 0.3rem 0.75rem;
-      border-radius: 980px; margin-bottom: 1.5rem;
-      border: 1px solid rgba(255,255,255,0.15);
-      transition: background 0.25s, transform 0.25s;
-    }
-    .hero-badge:hover { background: rgba(255,255,255,0.14); transform: translateY(-1px); }
-    .hero-badge .pulse {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #f5f5f7; animation: pulseDot 2s ease-in-out infinite;
-    }
-
+    .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #fff; animation: breathe-dot 2.4s ease-in-out infinite; }
     .hero h1 {
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      font-weight: 700; letter-spacing: -0.05em; line-height: 1.04;
+      font-size: clamp(2.5rem, 5.6vw, 4rem);
+      font-weight: 700; letter-spacing: -0.03em; line-height: 1.04;
+      max-width: 760px; margin: 1.5rem 0 1.25rem;
+      color: #e8dcc4;
     }
-    .hero h1 .line {
-      display: block;
-      opacity: 0; transform: translateY(30px);
-      animation: lineIn 0.7s var(--d, 0.3s) cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .hero h1 .line:last-child { --d: 0.45s; }
-    .hero h1 .grad {
-      background: linear-gradient(135deg, #f5f5f7 30%, #b3b3ba);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    @keyframes lineIn { to { opacity: 1; transform: translateY(0); } }
+    .hero h1 em { font-style: italic; color: #fff; }
+    .hero p { font-size: 1.05rem; color: #b99a8f; max-width: 480px; line-height: 1.6; }
+    .hero-actions { display: flex; gap: 12px; margin-top: 2.25rem; flex-wrap: wrap; }
 
-    .hero p {
-      font-size: 1.15rem; color: rgba(245,245,247,0.6);
-      max-width: 480px; margin: 1.25rem 0 2rem; line-height: 1.6;
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 12px 24px; border-radius: 1px;
+      font-size: 0.76rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+      text-decoration: none; cursor: pointer; border: none;
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
-    .hero-actions { display: flex; align-items: center; gap: 1rem; }
+    .btn-primary { background: #e8dcc4; color: #7c1622; }
+    .btn-primary:hover { background: #fff; color: #7c1622; }
+    .btn-primary svg { width: 14px; height: 14px; transition: transform 0.3s ease; }
+    .btn-primary:hover svg { transform: translateX(4px); }
+    .btn-ghost { border: 1px solid rgba(232, 220, 196, 0.35); background: transparent; color: #e8dcc4; }
+    .btn-ghost:hover { border-color: #e8dcc4; background: rgba(232, 220, 196, 0.08); }
+    .btn-dark { background: #5e111b; color: #e8dcc4; }
+    .btn-dark:hover { background: #4a0c14; }
+    .btn-block { width: 100%; justify-content: center; margin-top: 24px; }
 
-    .hero-car {
-      position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
-      width: 120px; height: 50px;
-      perspective: 600px;
-      opacity: 0.12;
-      pointer-events: none;
+    /* ===== STATS ===== */
+    .stats { display: flex; gap: 4rem; margin-top: 4rem; flex-wrap: wrap; }
+    .stats strong { display: block; font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; color: #fff; }
+    .stats span { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #b99a8f; }
+
+    /* ===== PRICING ===== */
+    .pricing {
+      position: relative; z-index: 2;
+      max-width: 1200px; margin: 0 auto; padding: 4rem 2rem;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
     }
-    .hero-car-body {
-      width: 100%; height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-      animation: carDrive 8s ease-in-out infinite;
+    .pricing-card { border-radius: 1px; padding: 48px; }
+    .pricing-card .label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 16px; }
+    .pricing-card .amount { font-size: 3.2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; margin-bottom: 8px; }
+    .pricing-card .period { font-size: 0.85rem; letter-spacing: 0.04em; }
+    .pricing-card .note { font-size: 0.85rem; margin-top: 16px; line-height: 1.6; opacity: 0.75; }
+    .pricing-card--dark { background: rgba(20, 5, 8, 0.35); border: 1px solid rgba(232, 220, 196, 0.12); color: #e8dcc4; box-shadow: rgba(124, 22, 34, 0.4) 0px 10px 30px 0px; }
+    .pricing-card--accent { background: #e8dcc4; color: #3a0d12; }
+    .pricing-card--accent .amount { color: #b02330; }
+
+    /* ===== LOGIN (gradient-border shell) ===== */
+    .login-section { position: relative; z-index: 2; display: flex; justify-content: center; padding: 2rem 2rem 6rem; }
+    .shell {
+      width: 100%; max-width: 420px;
+      border-radius: 2px; padding: 1px;
+      background: radial-gradient(90% 80% at 50% 46%, rgba(0,0,0,0) 55%, rgba(10,5,6,0.72) 100%);
+      box-shadow: rgba(124, 22, 34, 0.4) 0px 10px 30px 0px;
     }
-    .car-top {
-      position: absolute; top: 0; left: 25px; width: 60px; height: 22px;
-      background: #f5f5f7; border-radius: 12px 12px 2px 2px;
-      transform: translateZ(8px);
+    .login-box {
+      border-radius: 1px;
+      background: rgba(38, 8, 12, 0.82);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      padding: 48px;
     }
-    .car-bottom {
-      position: absolute; top: 18px; left: 5px; width: 110px; height: 22px;
-      background: #f5f5f7; border-radius: 6px;
-      transform: translateZ(8px);
+    .login-box h2 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; text-align: center; color: #e8dcc4; margin-bottom: 8px; }
+    .login-box .sub { font-size: 0.92rem; color: #b99a8f; text-align: center; margin-bottom: 32px; }
+
+    .role-row { display: flex; gap: 8px; padding: 4px; margin-bottom: 24px; border: 1px solid rgba(232, 220, 196, 0.18); border-radius: 1px; background: rgba(0,0,0,0.22); }
+    .role-btn {
+      flex: 1; padding: 0.6rem; border: none; border-radius: 1px; background: transparent;
+      color: rgba(232, 220, 196, 0.55);
+      font-family: inherit; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      transition: background 0.3s ease, color 0.3s ease;
     }
-    .car-wheel-l, .car-wheel-r {
-      position: absolute; bottom: -4px; width: 16px; height: 16px;
-      border-radius: 50%; background: #f5f5f7;
-      border: 2px solid #fff;
+    .role-btn svg { width: 13px; height: 13px; }
+    .role-btn.is-active { background: #e8dcc4; color: #5e111b; }
+    .role-btn:hover:not(.is-active) { color: #e8dcc4; }
+
+    .input-group { margin-bottom: 12px; }
+    .input-group input {
+      width: 100%; padding: 0.8rem 1rem; border-radius: 1px;
+      border: 1px solid rgba(232, 220, 196, 0.18); outline: none;
+      background: rgba(255, 255, 255, 0.05);
+      font-family: inherit; font-size: 0.92rem; color: #e8dcc4;
+      transition: border-color 0.3s ease, background 0.3s ease;
     }
-    .car-wheel-l { left: 18px; transform: translateZ(14px); animation: wheelSpin 1.5s linear infinite; }
-    .car-wheel-r { right: 18px; transform: translateZ(14px); animation: wheelSpin 1.5s linear infinite; }
-    .car-headlight {
-      position: absolute; top: 24px; right: 2px; width: 8px; height: 6px;
-      background: #fff; border-radius: 2px;
-      transform: translateZ(10px);
-      animation: headlightBlink 3s ease-in-out infinite;
+    .input-group input::placeholder { color: rgba(232, 220, 196, 0.4); }
+    .input-group input:focus { border-color: rgba(232, 220, 196, 0.6); background: rgba(255, 255, 255, 0.08); }
+
+    .submit-btn {
+      width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 1px;
+      background: #e8dcc4; color: #5e111b;
+      font-family: inherit; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.15s ease;
     }
-    @keyframes carDrive {
-      0%, 100% { transform: translateY(0) rotateY(0deg); }
-      25% { transform: translateY(-6px) rotateY(8deg); }
-      50% { transform: translateY(0) rotateY(0deg); }
-      75% { transform: translateY(-3px) rotateY(-5deg); }
+    .submit-btn:hover { background: #fff; }
+    .submit-btn:active { transform: translateY(1px); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .or-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: rgba(232, 220, 196, 0.45); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; }
+    .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: rgba(232, 220, 196, 0.15); }
+
+    .google-btn {
+      width: 100%; padding: 11px; border-radius: 1px;
+      border: 1px solid rgba(232, 220, 196, 0.22); background: rgba(255, 255, 255, 0.06);
+      color: #e8dcc4; font-family: inherit; font-size: 0.8rem; font-weight: 500;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      transition: background 0.3s ease, border-color 0.3s ease;
     }
-    @keyframes wheelSpin { to { transform: translateZ(14px) rotate(360deg); } }
-    @keyframes headlightBlink {
-      0%, 40%, 100% { opacity: 1; }
-      50%, 90% { opacity: 0.3; }
+    .google-btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(232, 220, 196, 0.4); }
+    .google-btn svg { width: 18px; height: 18px; }
+
+    .login-foot { text-align: center; margin-top: 20px; font-size: 0.82rem; color: #b99a8f; }
+    .login-foot a { color: #e8dcc4; text-decoration: none; font-weight: 600; border-bottom: 1px solid rgba(232, 220, 196, 0.3); padding-bottom: 1px; transition: color 0.3s ease, border-color 0.3s ease; }
+    .login-foot a:hover { color: #fff; border-color: #fff; }
+
+    .error-msg { color: #ffb3b8; font-size: 0.8rem; text-align: center; margin-top: 12px; min-height: 1.3em; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      position: relative; z-index: 2; margin-top: auto;
+      padding: 48px 3rem 32px;
+      border-top: 1px solid rgba(232, 220, 196, 0.12);
+      display: grid; grid-template-columns: 1fr auto; gap: 48px;
+    }
+    .footer-brand p { margin-top: 12px; font-size: 0.82rem; color: #b99a8f; max-width: 260px; line-height: 1.6; }
+    .footer-cols { display: flex; gap: 64px; }
+    .footer-cols h4 { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: #fff; margin-bottom: 16px; }
+    .footer-cols a { display: block; font-size: 0.84rem; color: #b99a8f; text-decoration: none; margin-bottom: 10px; transition: color 0.3s ease; }
+    .footer-cols a:hover { color: #e8dcc4; }
+    .footer-bottom { grid-column: 1 / -1; font-size: 0.72rem; letter-spacing: 0.04em; color: rgba(232, 220, 196, 0.45); }
+    .footer-bottom a { color: rgba(232, 220, 196, 0.6); text-decoration: none; margin-left: 12px; }
+    .footer-bottom a:hover { color: #e8dcc4; }
+
+    /* ===== REVEAL MOTION ===== */
+    @keyframes breathe-dot { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.7s cubic-bezier(0.4,0,0.2,1), transform 0.7s cubic-bezier(0.4,0,0.2,1); }
+    .reveal.is-visible { opacity: 1; transform: none; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 720px) {
+      nav { padding: 0 1.25rem; }
+      .nav-links { display: none; }
+      .hero { padding: 4rem 1.5rem 1.5rem; }
+      .hero-actions .btn { width: 100%; justify-content: center; }
+      .stats { gap: 2.5rem; margin-top: 3rem; }
+      .pricing { grid-template-columns: 1fr; padding: 3rem 1.5rem; }
+      .pricing-card { padding: 32px; }
+      .login-section { padding: 1.5rem 1.5rem 4rem; }
+      .login-box { padding: 32px 24px; }
+      footer { padding: 32px 1.5rem 24px; grid-template-columns: 1fr; gap: 32px; }
+      .footer-cols { gap: 40px; }
+      .footer-bottom { grid-column: 1; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .hero-car-body { animation: none; }
-      .car-wheel-l, .car-wheel-r { animation: none; }
-      .car-headlight { animation: none; }
-    }
-
-    .btn-pri {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      font-size: 0.9rem; font-weight: 500; color: #f5f5f7; background: #17181d; box-shadow: 0 0 0 1px rgba(255,255,255,0.16);
-      padding: 0.65rem 1.5rem; border-radius: 980px; text-decoration: none;
-      position: relative; overflow: hidden;
-      transition: background 0.25s, transform 0.2s, box-shadow 0.3s;
-    }
-    .btn-pri::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.1) 80%);
-      opacity: 0; transition: opacity 0.3s;
-    }
-    .btn-pri:hover { background: #1e2027; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.53); }
-    .btn-pri:hover::after { opacity: 1; }
-    .btn-pri:active { transform: scale(0.97); }
-    .btn-pri svg { width: 14px; height: 14px; transition: transform 0.25s; }
-    .btn-pri:hover svg { transform: translateX(4px); }
-
-    .btn-sec {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      font-size: 0.9rem; font-weight: 500; color: rgba(245,245,247,0.6);
-      padding: 0.65rem 1rem; border-radius: 980px; text-decoration: none;
-      border: 1.5px solid rgba(0,0,0,0.4);
-      transition: border-color 0.25s, color 0.25s, transform 0.2s, background 0.25s;
-    }
-    .btn-sec:hover { border-color: rgba(255,255,255,0.17); color: #f5f5f7; transform: translateY(-2px); background: rgba(255,255,255,0.06); }
-
-    .stats { display: flex; justify-content: center; gap: 3rem; padding: 2.5rem 2rem 0; }
-    .stat { text-align: center; }
-    .stat .num {
-      font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; color: #f5f5f7;
-    }
-    .stat .label { font-size: 0.75rem; color: rgba(245,245,247,0.45); margin-top: 0.15rem; }
-
-    .pricing { display: flex; justify-content: center; gap: 1.25rem; padding: 4rem 2rem; }
-    .pricing-card {
-      background: #17181d; border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 24px; padding: 2rem 2.5rem; text-align: center;
-      width: 280px; position: relative; overflow: hidden;
-      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s, border-color 0.3s;
-    }
-    .pricing-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, transparent, rgba(0,0,0,0.4), transparent);
-      opacity: 0; transition: opacity 0.5s;
-    }
-    .pricing-card:hover::before { opacity: 1; }
-    .pricing-card:hover { transform: translateY(-10px); box-shadow: 0 24px 64px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.11); }
-    .pricing-card .label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(245,245,247,0.6); margin-bottom: 0.75rem; }
-    .pricing-card .amount { font-size: 3.2rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin-bottom: 0.2rem; transition: transform 0.4s; }
-    .pricing-card:hover .amount { transform: scale(1.05); }
-    .pricing-card .period { font-size: 0.82rem; color: rgba(245,245,247,0.45); }
-    .pricing-card .note { font-size: 0.78rem; color: rgba(245,245,247,0.45); margin-top: 0.75rem; line-height: 1.5; }
-    .pricing-card--dark { background: linear-gradient(180deg, #1e2027, #17181d); border-color: transparent; color: #fff; }
-    .pricing-card--dark .label, .pricing-card--dark .period, .pricing-card--dark .note { color: rgba(245,245,247,0.45); }
-    .pricing-card--dark::before { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent); }
-
-    .features { display: flex; justify-content: center; gap: 0.5rem; padding: 0 2rem 3.5rem; flex-wrap: wrap; }
-    .chip {
-      display: flex; align-items: center; gap: 0.35rem;
-      font-size: 0.78rem; color: rgba(245,245,247,0.6); padding: 0.4rem 0.9rem;
-      border-radius: 980px; background: #17181d; border: 1px solid rgba(255,255,255,0.09);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .chip:hover { border-color: rgba(255,255,255,0.13); color: #f5f5f7; transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.4); }
-    .chip svg { width: 13px; height: 13px; color: #f5f5f7; }
-
-    .divider-line { width: 60px; height: 1px; background: rgba(255,255,255,0.09); margin: 0 auto; }
-
-    .login-section { padding: 0; display: flex; justify-content: center; }
-    .login-box {
-      width: 100%; max-width: 360px;
-      background: rgba(255,255,255,0.72);
-      border: 1px solid rgba(255,255,255,0.11);
-      border-radius: 24px;
-      padding: 2.25rem 2rem;
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.4);
-    }
-    .login-box h2 { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.03em; text-align: center; margin-bottom: 0.2rem; }
-    .login-box .sub { font-size: 0.88rem; color: rgba(245,245,247,0.6); text-align: center; margin-bottom: 2rem; }
-
-    .row { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 0.25rem; }
-    .rbtn {
-      flex: 1; padding: 0.6rem 0.5rem; border-radius: 10px; border: none;
-      background: transparent; color: rgba(245,245,247,0.6); font-family: inherit;
-      font-size: 0.82rem; font-weight: 500; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 0.35rem;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .rbtn svg { width: 14px; height: 14px; }
-    .rbtn.is-active { background: #17181d; color: #f5f5f7; box-shadow: 0 1px 4px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.4); }
-    .rbtn:hover:not(.is-active) { color: #f5f5f7; }
-
-    .ig { margin-bottom: 0.75rem; }
-    .ig input {
-      width: 100%; padding: 0.8rem 1rem; border-radius: 12px;
-      border: 1.5px solid rgba(0,0,0,0.4); outline: none; background: #17181d;
-      font-family: inherit; font-size: 0.9rem; color: #f5f5f7;
-      transition: border-color 0.3s, box-shadow 0.3s, transform 0.15s;
-    }
-    .ig input::placeholder { color: #c7c7cc; }
-    .ig input:focus { border-color: #f5f5f7; box-shadow: 0 0 0 3px rgba(0,0,0,0.4); transform: scale(1.01); }
-    .ig input:hover:not(:focus) { border-color: rgba(255,255,255,0.15); }
-
-    .ig.pw-wrap { position: relative; }
-    .ig.pw-wrap input { padding-right: 2.8rem; }
-    .pw-toggle {
-      position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%);
-      background: none; border: none; cursor: pointer; padding: 0.2rem;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .pw-toggle svg { width: 22px; height: 22px; color: rgba(245,245,247,0.45); transition: color 0.2s; }
-    .pw-toggle:hover svg { color: #f5f5f7; }
-    .pw-toggle .bf-open { display: none; }
-    .pw-toggle.visible .bf-closed { display: none; }
-    .pw-toggle.visible .bf-open { display: block; }
-
-    .subbtn {
-      width: 100%; padding: 0.8rem; border-radius: 12px; border: none;
-      background: #1d1d1f; color: #fff; font-family: inherit;
-      font-size: 0.9rem; font-weight: 500; cursor: pointer;
-      position: relative; overflow: hidden; margin-top: 0.25rem;
-      transition: background 0.25s, transform 0.15s, box-shadow 0.3s;
-    }
-    .subbtn::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.08) 80%);
-      opacity: 0; transition: opacity 0.3s;
-    }
-    .subbtn:hover { background: #000000; box-shadow: 0 4px 20px rgba(0,0,0,0.53); }
-    .subbtn:hover::after { opacity: 1; }
-    .subbtn:active { transform: scale(0.97); }
-    .subbtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-    .or { display: flex; align-items: center; gap: 0.75rem; margin: 1.25rem 0; color: #c7c7cc; font-size: 0.72rem; }
-    .or::before, .or::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08); }
-
-    .gbtn {
-      width: 100%; padding: 0.72rem; border-radius: 12px;
-      border: 1.5px solid rgba(0,0,0,0.4); background: #17181d; color: #f5f5f7;
-      font-family: inherit; font-size: 0.88rem; font-weight: 500; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      transition: background 0.25s, border-color 0.25s, transform 0.15s, box-shadow 0.3s;
-    }
-    .gbtn:hover { background: #f5f5f7; border-color: rgba(255,255,255,0.13); box-shadow: 0 2px 12px rgba(0,0,0,0.4); transform: translateY(-1px); }
-    .gbtn:active { transform: scale(0.98); }
-    .gbtn svg { width: 18px; height: 18px; }
-
-    .foot { text-align: center; margin-top: 1.25rem; font-size: 0.82rem; color: rgba(245,245,247,0.6); }
-    .foot a { color: #f5f5f7; text-decoration: none; font-weight: 500; transition: opacity 0.2s; }
-    .foot a:hover { opacity: 0.7; }
-    .err { color: #ff3b30; font-size: 0.82rem; text-align: center; margin-top: 0.75rem; min-height: 1.3em; }
-
-    footer {
-      margin-top: auto; padding: 1.5rem 3rem;
-      border-top: 1px solid rgba(255,255,255,0.09);
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 0.72rem; color: rgba(245,245,247,0.45);
-    }
-    footer a { color: rgba(245,245,247,0.6); text-decoration: none; transition: color 0.2s; }
-    footer a:hover { color: #f5f5f7; }
-    .flinks { display: flex; gap: 1.5rem; }
-    .flinks a { position: relative; }
-    .flinks a::after {
-      content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
-      height: 1px; background: #f5f5f7;
-      transform: scaleX(0); transform-origin: right;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .flinks a:hover::after { transform: scaleX(1); transform-origin: left; }
-
-    @media (max-width: 860px) {
-      .top { grid-template-columns: 1fr; gap: 2.5rem; padding: 3rem 1.5rem 2rem; }
-      .hero { text-align: center; }
-      .hero p { margin: 1.25rem auto 2rem; }
-      .hero-actions { justify-content: center; }
-      .hero h1 { font-size: clamp(2rem, 9vw, 3rem); }
-    }
-
-    @media (max-width: 600px) {
-      nav { padding: 0 1.25rem; height: 52px; }
-      .nav-links { display: none; }
-      .hero { padding: 0; }
-      .hero-actions { flex-direction: column; gap: 0.75rem; }
-      .stats { gap: 1.5rem; flex-wrap: wrap; }
-      .stat .num { font-size: 1.4rem; }
-      .pricing { flex-direction: column; align-items: center; padding: 3rem 1.5rem; }
-      .pricing-card { width: 100%; max-width: 300px; }
-      .features { padding: 0 1.5rem 3rem; }
-      .login-section { padding: 0; }
-      .login-box { padding: 1.75rem 1.5rem; }
-      footer { padding: 1.25rem; flex-direction: column; gap: 0.75rem; text-align: center; }
-      .flinks { flex-wrap: wrap; justify-content: center; gap: 1rem; }
-    }
-
-    /* ===== Virtual keyboard — upgraded ===== */
-    .vkb-panel {
-      position: fixed; top: 50%; right: 24px; transform: translate(120%, -50%);
-      z-index: 500;
-      background: rgba(23,24,29,0.92);
-      border: 1px solid rgba(255,255,255,0.11);
-      border-radius: 20px;
-      padding: 14px 16px;
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08) inset;
-      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      width: 340px;
-    }
-    .vkb-panel.open { transform: translate(0, -50%); }
-
-    .vkb-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px; }
-    .vkb-top .vkb-title { font-size: 10px; font-weight: 600; color: rgba(245,245,247,0.45); letter-spacing: 0.05em; text-transform: uppercase; }
-    .vkb-top .vkb-close {
-      width: 18px; height: 18px; border-radius: 50%; border: none;
-      background: rgba(255,255,255,0.1); color: rgba(245,245,247,0.45); font-size: 11px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, color 0.15s;
-    }
-    .vkb-top .vkb-close:hover { background: rgba(255,255,255,0.16); color: #f5f5f7; }
-
-    .vkb-row { display: flex; gap: 4px; margin-bottom: 4px; }
-    .vkb-row:last-child { margin-bottom: 0; }
-
-    .vkb-key {
-      height: 36px; min-width: 28px; padding: 0 4px;
-      border-radius: 8px; border: 1px solid rgba(255,255,255,0.11);
-      background: #17181d; color: #f5f5f7; font-family: inherit;
-      font-size: 12px; font-weight: 500;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      line-height: 1.1; user-select: none; cursor: pointer;
-      transition: background 0.12s, color 0.12s, transform 0.1s, box-shadow 0.12s;
-      position: relative;
-    }
-    .vkb-key:active { transform: scale(0.93); }
-    .vkb-key .vkb-shift {
-      font-size: 9px; color: rgba(245,245,247,0.45); font-weight: 600;
-      line-height: 1; margin-bottom: -1px;
-    }
-    .vkb-key .vkb-main {
-      font-size: 12px; font-weight: 500; line-height: 1;
-    }
-
-    .vkb-key.fn-key {
-      background: rgba(255,255,255,0.08); color: rgba(245,245,247,0.6);
-      font-size: 10px; font-weight: 600; min-width: 32px;
-      letter-spacing: 0.02em;
-    }
-    .vkb-key.fn-key:hover { background: rgba(255,255,255,0.12); }
-
-    .vkb-key.space-key {
-      flex: 4; min-width: 120px;
-      background: #17181d; border: 1px solid rgba(255,255,255,0.11);
-    }
-
-    .vkb-key.shift-key, .vkb-key.caps-key {
-      min-width: 38px; font-size: 10px; font-weight: 600;
-      background: rgba(255,255,255,0.08); color: rgba(245,245,247,0.6);
-    }
-    .vkb-key.shift-key:hover, .vkb-key.caps-key:hover {
-      background: rgba(255,255,255,0.12);
-    }
-    .vkb-key.shift-key.on, .vkb-key.caps-key.on {
-      background: #1d1d1f; color: #fff;
-    }
-
-    .vkb-key.backspace-key, .vkb-key.enter-key {
-      min-width: 48px; font-size: 10px; font-weight: 600;
-      background: rgba(255,255,255,0.08); color: rgba(245,245,247,0.6);
-    }
-    .vkb-key.backspace-key:hover, .vkb-key.enter-key:hover {
-      background: rgba(255,255,255,0.12);
-    }
-    .vkb-key.enter-key {
-      background: #1d1d1f; color: #fff;
-    }
-    .vkb-key.enter-key:hover { background: #000; }
-
-    .vkb-key.tab-key { min-width: 38px; font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(245,245,247,0.6); }
-    .vkb-key.tab-key:hover { background: rgba(255,255,255,0.12); }
-
-    .vkb-key.esc-key { min-width: 34px; font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(245,245,247,0.6); }
-    .vkb-key.esc-key:hover { background: rgba(255,255,255,0.12); }
-
-    .vkb-key.active {
-      background: #1d1d1f; color: #fff; transform: scale(1.06);
-      box-shadow: 0 4px 14px rgba(0,0,0,0.53);
-    }
-    .vkb-key.active .vkb-shift { color: #aaa; }
-    .vkb-key.active.fn-key, .vkb-key.active.tab-key,
-    .vkb-key.active.esc-key, .vkb-key.active.shift-key,
-    .vkb-key.active.backspace-key { background: #333; color: #fff; }
-    .vkb-key.active.enter-key { background: #000; color: #fff; }
-
-    .vkb-symbols-row {
-      display: none;
-      gap: 4px; margin-bottom: 4px;
-    }
-    .vkb-symbols-row.show { display: flex; }
-    .vkb-key.sym-key {
-      height: 36px; min-width: 28px; padding: 0 4px;
-      border-radius: 8px; border: 1px solid rgba(255,255,255,0.11);
-      background: #17181d; color: #f5f5f7; font-family: inherit;
-      font-size: 13px; font-weight: 500;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      transition: background 0.12s, transform 0.1s;
-    }
-    .vkb-key.sym-key:active { transform: scale(0.93); }
-    .vkb-key.sym-key.active { background: #1d1d1f; color: #fff; }
-
-    .vkb-cursor-indicator {
-      display: flex; align-items: center; gap: 6px;
-      padding: 6px 8px; margin-bottom: 8px;
-      background: rgba(255,255,255,0.06); border-radius: 10px;
-      font-size: 10px; color: rgba(245,245,247,0.45); font-weight: 500;
-    }
-    .vkb-cursor-indicator .cursor-dot {
-      width: 5px; height: 5px; border-radius: 50%;
-      background: #f5f5f7; animation: blinkDot 1.2s step-end infinite;
-    }
-    @keyframes blinkDot { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-
-    @media (max-width: 900px) {
-      .vkb-panel { display: none !important; }
+      *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; }
+      .reveal { opacity: 1; transform: none; }
     }
   </style>
 </head>
 <body>
-  <div class="noise" aria-hidden="true"></div>
-  <div class="grid-overlay" aria-hidden="true"></div>
-  <div class="ambient-bg" aria-hidden="true">
-    <span class="blob"></span>
-    <span class="blob"></span>
-    <span class="blob"></span>
-    <span class="blob"></span>
-    <span class="blob"></span>
+  <!-- Stage / Background -->
+  <div class="stage" aria-hidden="true">
+    <canvas id="dots"></canvas>
+    <div class="stage-vignette"></div>
   </div>
-  <nav id="nav">
-    <div class="nav-logo"><span class="dot"></span> CAR-ENT</div>
+
+  <nav>
+    <div class="nav-logo">CAR<span>-</span>ENT</div>
     <div class="nav-links">
-      <a href="#">How it works</a>
-      <a href="#">Pricing</a>
-      <a href="#">Support</a>
-      <a href="#" class="nav-cta">Sign in</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#support">Support</a>
+      <a href="#login" class="nav-cta">Sign in</a>
     </div>
   </nav>
 
-  <section class="top">
-    <div class="hero">
-      <div class="hero-badge reveal reveal-down reveal-d1"><span class="pulse"></span> Now in 12 cities across India</div>
-      <p class="reveal reveal-up reveal-d2" id="heroFact" style="transition:opacity 0.5s;font-size:clamp(1.8rem,3.5vw,2.8rem);color:#f5f5f7;font-weight:700;line-height:1.2;max-width:520px;letter-spacing:-0.03em;background:rgba(255,255,255,0.06);padding:1.2rem 1.6rem;border-radius:16px;border:1px solid rgba(255,255,255,0.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">Rent verified cars from real owners. Or list yours and earn. Simple, transparent, yours.</p>
-      <div class="hero-actions reveal reveal-up reveal-d3">
-        <a href="#login" class="btn-pri">Start renting<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
-        <a href="#" class="btn-sec">List your car</a>
-      </div>
-      <div class="hero-car" aria-hidden="true">
-        <div class="hero-car-body">
-          <div class="car-top"></div>
-          <div class="car-bottom"></div>
-          <div class="car-wheel-l"></div>
-          <div class="car-wheel-r"></div>
-          <div class="car-headlight"></div>
-        </div>
-      </div>
+  <section class="hero reveal" id="how">
+    <span class="badge"><span class="badge-dot"></span> Now in 12 cities across India</span>
+    <h1>Rent verified cars from <em>real owners</em>. Or list yours and earn — simple, transparent, yours.</h1>
+    <p>No middlemen. No markups. Every car verified, every owner vetted.</p>
+    <div class="hero-actions">
+      <a href="#login" class="btn btn-primary">
+        Start renting
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="#login" class="btn btn-ghost">List your car</a>
     </div>
+    <div class="stats">
+      <div><strong data-n="2500">0</strong><span>Cars listed</span></div>
+      <div><strong data-n="12">0</strong><span>Cities</span></div>
+      <div><strong data-n="98">0</strong><span>Satisfaction</span></div>
+    </div>
+  </section>
 
-    <section class="login-section" id="login">
-      <div class="login-box reveal reveal-up reveal-d2">
+  <section class="pricing" id="pricing">
+    <div class="pricing-card pricing-card--dark reveal">
+      <div class="label">Renters</div>
+      <div class="amount">₹0</div>
+      <div class="period">Free, always</div>
+      <div class="note">Browse, book, and drive. No subscription. No hidden fees.</div>
+      <a href="#login" class="btn btn-primary btn-block">Start renting</a>
+    </div>
+    <div class="pricing-card pricing-card--accent reveal">
+      <div class="label">Car Owners</div>
+      <div class="amount">₹100</div>
+      <div class="period">per month</div>
+      <div class="note">List your car, earn on your schedule. We handle bookings &amp; payments.</div>
+      <a href="#login" class="btn btn-dark btn-block">List your car</a>
+    </div>
+  </section>
+
+  <section class="login-section" id="login">
+    <div class="shell reveal">
+      <div class="login-box">
         <h2 id="loginTitle">Welcome back.</h2>
         <p class="sub" id="loginSub">Sign in to continue.</p>
 
-        <div class="row">
-          <button class="rbtn is-active" id="btnPick">
+        <div class="role-row">
+          <button type="button" class="role-btn is-active" id="btnPick">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
             Rent a car
           </button>
-          <button class="rbtn" id="btnGive">
+          <button type="button" class="role-btn" id="btnGive">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><rect x="4" y="15" width="16" height="6" rx="1.5"/></svg>
             List your car
           </button>
         </div>
 
-        <div class="ig" id="nameField" style="display:none"><input id="name" type="text" placeholder="Full name" autocomplete="name" /></div>
-        <div class="ig"><input id="email" type="email" placeholder="Email" autocomplete="email" /></div>
-        <div class="ig pw-wrap"><input id="password" type="password" placeholder="Password" autocomplete="current-password" /><button type="button" class="pw-toggle" id="pwToggle" aria-label="Toggle password visibility"><svg class="bf-closed" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C9.5 2 7.5 4 7.5 6.5c0 1.5.7 2.8 1.8 3.7L12 12l2.7-1.8c1.1-.9 1.8-2.2 1.8-3.7C16.5 4 14.5 2 12 2zM12 14c-3 0-5.5 1.5-5.5 3.5S9 21 12 21s5.5-1.5 5.5-3.5S15 14 12 14z"/><line x1="12" y1="2" x2="12" y2="21" stroke="currentColor" stroke-width="0.5"/></svg><svg class="bf-open" viewBox="0 0 24 24" fill="currentColor"><path d="M12 11c-4.5 0-8-3-8-6.5S7.5 2 12 2s8 1.5 8 4.5S16.5 11 12 11z" opacity="0.85"/><path d="M12 13c-4.5 0-8 2.5-8 5.5S7.5 22 12 22s8-2.5 8-5.5S16.5 13 12 13z" opacity="0.85"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1"/><path d="M12 2c-1-2-3-3-4-3" fill="none" stroke="currentColor" stroke-width="0.8"/><path d="M12 2c1-2 3-3 4-3" fill="none" stroke="currentColor" stroke-width="0.8"/></svg></button></div>
+        <div class="input-group" id="nameField" style="display:none">
+          <input id="name" type="text" placeholder="Full name" autocomplete="name" />
+        </div>
+        <div class="input-group">
+          <input id="email" type="email" placeholder="Email" autocomplete="email" />
+        </div>
+        <div class="input-group">
+          <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+        </div>
 
-        <button class="subbtn" id="signinBtn"><span id="btnText">Continue</span></button>
+        <button type="button" class="submit-btn" id="signinBtn"><span id="btnText">Continue</span></button>
 
-        <div class="or">or continue with</div>
+        <div class="or-divider">or continue with</div>
 
-        <button class="gbtn" id="googleBtn" type="button">
-          <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/><path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>
-          Google
+        <button type="button" class="google-btn" id="googleBtn">
+          <svg viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3 0 5.8 1.1 7.9 2.9l5.7-5.7C34.5 6 29.5 4 24 4c-7.4 0-13.8 4.2-17 10.3z"/>
+            <path fill="#4CAF50" d="M24 44c5.4 0 10.3-1.8 14.1-5l-6.5-5.3C29.5 35.4 26.9 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.9 39.6 16.4 44 24 44z"/>
+            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.5 5.3C40.9 36.6 44 30.9 44 24c0-1.3-.1-2.7-.4-3.5z"/>
+          </svg>
+          Continue with Google
         </button>
 
-        <div class="foot">Don't have an account? <a href="#" id="toggleLink">Create one</a></div>
-        <div class="err" id="errorMsg" role="alert" aria-live="polite"></div>
+        <div class="login-foot">
+          Don't have an account? <a href="#" id="toggleLink">Create one</a>
+        </div>
+        <div class="error-msg" id="errorMsg" role="alert" aria-live="polite"></div>
       </div>
-    </section>
-  </section>
-
-  <div class="stats reveal reveal-up reveal-d5">
-    <div class="stat"><div class="num" data-n="2500">0</div><div class="label">Cars listed</div></div>
-    <div class="stat"><div class="num" data-n="12">0</div><div class="label">Cities</div></div>
-    <div class="stat"><div class="num" data-n="98">0<span style="font-size:1rem">%</span></div><div class="label">Satisfaction</div></div>
-  </div>
-
-  <section class="pricing">
-    <div class="pricing-card reveal reveal-left reveal-d3">
-      <div class="label">Renters</div>
-      <div class="amount">â‚¹0</div>
-      <div class="period">Free, always</div>
-      <div class="note">Browse, book, and drive. No subscription. No hidden fees. Pay only for what you drive.</div>
-    </div>
-    <div class="pricing-card pricing-card--dark reveal reveal-right reveal-d4">
-      <div class="label">Car Owners</div>
-      <div class="amount">â‚¹100</div>
-      <div class="period">per month</div>
-      <div class="note">List your car, set your price, earn on your schedule. We handle bookings and payments.</div>
     </div>
   </section>
 
-  <div class="features reveal reveal-up reveal-d5">
-    <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> Verified cars</div>
-    <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m16 10-4 4-4-4"/></svg> Transparent pricing</div>
-    <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg> 24x7 support</div>
-    <div class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Flexible pickup</div>
-  </div>
-
-  <footer>
-    <div>&copy; 2026 CAR-ENT. All rights reserved.</div>
-    <div class="flinks"><a href="#">Privacy Policy</a><a href="#">Terms of Service</a><a href="#">Sitemap</a><a href="super-admin-dashboard.html">Super admin</a><a href="agent-dashboard.html">Agent</a></div>
+  <footer id="support">
+    <div class="footer-brand">
+      <div class="nav-logo">CAR<span>-</span>ENT</div>
+      <p>Peer-to-peer car rental. Verified owners, verified cars, zero markups.</p>
+    </div>
+    <div class="footer-cols">
+      <div>
+        <h4>Renters</h4>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Browse cars</a>
+        <a href="#login">Sign in</a>
+      </div>
+      <div>
+        <h4>Car owners</h4>
+        <a href="#pricing">List your car</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#support">Support</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 CAR-ENT. All rights reserved.
+      <a href="agent-dashboard.html">Agent</a>
+      <a href="super-admin-dashboard.html">Admin</a>
+    </div>
   </footer>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
-    const API = window.location.port === '5173' ? 'http://localhost:8081/api/auth' : '/api/auth';
-    let isRegister = false, currentRole = 'pick', counted = false;
+    /* ===== Dot-matrix particle field (breathing pulse + pointer drift) ===== */
+    (function () {
+      var canvas = document.getElementById('dots');
+      if (!canvas || !canvas.getContext) return;
+      var ctx = canvas.getContext('2d');
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var raf = 0, w = 0, h = 0, dots = [];
+      var pointer = { x: -9999, y: -9999 };
 
-    const $ = id => document.getElementById(id);
-    const btnPick = $('btnPick'), btnGive = $('btnGive'), signinBtn = $('signinBtn');
-    const btnText = $('btnText'), nameField = $('nameField'), nameInput = $('name');
-    const email = $('email'), password = $('password'), errorMsg = $('errorMsg');
-    const toggleLink = $('toggleLink'), loginTitle = $('loginTitle'), loginSub = $('loginSub');
-    const nav = $('nav');
+      function resize() {
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth; h = window.innerHeight;
+        canvas.width = w * dpr; canvas.height = h * dpr;
+        canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var gap = 30;
+        dots = [];
+        for (var x = gap / 2; x < w; x += gap) {
+          for (var y = gap / 2; y < h; y += gap) {
+            dots.push({ x: x, y: y, base: 0.8 + Math.random() * 0.7 });
+          }
+        }
+      }
 
-    window.addEventListener('scroll', () => nav.classList.toggle('is-scrolled', window.scrollY > 10));
+      function draw(t) {
+        ctx.clearRect(0, 0, w, h);
+        var breathe = 0.5 + 0.5 * Math.sin(t / 2200); /* slow breathing pulse */
+        var cx = w / 2, cy = h * 0.42;
+        for (var i = 0; i < dots.length; i++) {
+          var d = dots[i];
+          var depth = 1 - Math.min(1, Math.hypot(d.x - cx, d.y - cy) / (w * 0.72));
+          var dx = d.x - pointer.x, dy = d.y - pointer.y;
+          var dist = Math.hypot(dx, dy);
+          var ox = 0, oy = 0;
+          if (dist < 170 && dist > 0.01) {
+            var push = (1 - dist / 170) * 9;
+            ox = (dx / dist) * push; oy = (dy / dist) * push;
+          }
+          var r = d.base * (0.75 + 0.4 * breathe) * (0.55 + 0.45 * depth);
+          ctx.beginPath();
+          ctx.arc(d.x + ox, d.y + oy, Math.max(0.3, r), 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(232, 220, 196, ' + ((0.09 + 0.05 * breathe) * (0.4 + 0.6 * depth)) + ')';
+          ctx.fill();
+        }
+        if (!reduce) raf = requestAnimationFrame(draw);
+      }
 
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(e => {
-        if (!e.isIntersecting) return;
-        e.target.classList.add('is-visible');
-        if (e.target.closest('.stats')) countUp();
-      });
-    }, { threshold: 0.2 });
-    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
-    setTimeout(() => { document.querySelectorAll('.reveal:not(.is-visible)').forEach(el => el.classList.add('is-visible')); }, 1500);
+      function onMove(e) { pointer.x = e.clientX; pointer.y = e.clientY; }
+      function onLeave() { pointer.x = -9999; pointer.y = -9999; }
 
-    function countUp() {
-      if (counted) return;
-      counted = true;
-      document.querySelectorAll('[data-n]').forEach(el => {
-        const target = parseInt(el.dataset.n);
-        let cur = 0;
-        const step = Math.max(1, Math.floor(target / 40));
-        const t = setInterval(() => {
-          cur = Math.min(cur + step, target);
-          el.textContent = target === 98 ? cur + '%' : cur.toLocaleString();
-          if (cur >= target) clearInterval(t);
-        }, 30);
-      });
-    }
+      resize();
+      window.addEventListener('resize', resize);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerleave', onLeave);
+      if (reduce) draw(0); else raf = requestAnimationFrame(draw);
+    })();
 
-    document.querySelectorAll('a[href^="#"]').forEach(a => {
-      a.addEventListener('click', e => {
-        e.preventDefault();
-        const el = document.querySelector(a.getAttribute('href'));
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      });
-    });
+    /* ===== Auth ===== */
+    var API = window.location.port === '5173' ? 'http://localhost:8081/api/auth' : '/api/auth';
+    var isRegister = false, currentRole = 'pick';
 
-    function ripple(e, el) {
-      const r = el.getBoundingClientRect();
-      const d = Math.max(r.width, r.height);
-      const span = document.createElement('span');
-      span.style.cssText = `position:absolute;border-radius:50%;background:rgba(255,255,255,0.2);width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px;transform:scale(0);animation:rip .5s forwards;pointer-events:none`;
-      el.style.position = 'relative'; el.style.overflow = 'hidden';
-      el.appendChild(span);
-      setTimeout(() => span.remove(), 600);
-    }
-    const s = document.createElement('style');
-    s.textContent = '@keyframes rip{to{transform:scale(3);opacity:0}}';
-    document.head.appendChild(s);
-    document.querySelectorAll('.btn-pri,.subbtn,.gbtn').forEach(b => b.addEventListener('click', function(e) { if (!this.disabled) ripple(e, this); }));
+    var $ = function (id) { return document.getElementById(id); };
+    var btnPick = $('btnPick'), btnGive = $('btnGive'), signinBtn = $('signinBtn');
+    var btnText = $('btnText'), nameField = $('nameField'), nameInput = $('name');
+    var email = $('email'), password = $('password'), errorMsg = $('errorMsg');
+    var toggleLink = $('toggleLink'), loginTitle = $('loginTitle'), loginSub = $('loginSub');
+
+    function showErr(m) { errorMsg.textContent = m; }
 
     function setRole(role) {
       currentRole = role;
-      const p = role === 'pick';
+      var p = role === 'pick';
       btnPick.classList.toggle('is-active', p);
       btnGive.classList.toggle('is-active', !p);
       up();
     }
+
     function up() {
-      const p = currentRole === 'pick';
+      var p = currentRole === 'pick';
       if (isRegister) {
         loginTitle.textContent = 'Create your account.';
-        loginSub.textContent = p ? 'Free for renters. No credit card needed.' : 'Start earning with your car.';
+        loginSub.textContent = p ? 'Rent cars for free. No credit card needed.' : 'Start earning with your car.';
         btnText.textContent = p ? 'Create account' : 'Register as owner';
       } else {
         loginTitle.textContent = 'Welcome back.';
@@ -794,10 +455,11 @@
         btnText.textContent = 'Continue';
       }
     }
-    btnPick.addEventListener('click', () => setRole('pick'));
-    btnGive.addEventListener('click', () => setRole('give'));
 
-    toggleLink.addEventListener('click', e => {
+    btnPick.addEventListener('click', function () { setRole('pick'); });
+    btnGive.addEventListener('click', function () { setRole('give'); });
+
+    toggleLink.addEventListener('click', function (e) {
       e.preventDefault();
       isRegister = !isRegister;
       nameField.style.display = isRegister ? 'block' : 'none';
@@ -806,22 +468,20 @@
       up();
     });
 
-    function showErr(m) { errorMsg.textContent = m; }
-
-    signinBtn.addEventListener('click', async () => {
+    signinBtn.addEventListener('click', async function () {
       errorMsg.textContent = '';
-      const n = nameInput.value.trim(), e = email.value.trim(), p = password.value.trim();
+      var n = nameInput.value.trim(), e = email.value.trim(), p = password.value.trim();
       if (!e || !p || (isRegister && !n)) { showErr('Please fill in all fields.'); return; }
       if (!e.includes('@')) { showErr('Enter a valid email.'); return; }
       if (p.length < 6) { showErr('Password must be at least 6 characters.'); return; }
       signinBtn.disabled = true;
-      btnText.textContent = isRegister ? 'Creating account\u2026' : 'Signing in\u2026';
+      btnText.textContent = isRegister ? 'Creating account…' : 'Signing in…';
       try {
-        const ep = isRegister ? `${API}/register` : `${API}/login`;
-        const role = currentRole === 'pick' ? 'customer' : 'owner';
-        const body = isRegister ? { name: n, email: e, password: p, role } : { email: e, password: p, role };
-        const res = await fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-        const d = await res.json();
+        var ep = isRegister ? API + '/register' : API + '/login';
+        var role = currentRole === 'pick' ? 'customer' : 'owner';
+        var body = isRegister ? { name: n, email: e, password: p, role: role } : { email: e, password: p, role: role };
+        var res = await fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        var d = await res.json();
         if (!res.ok) { showErr(d.message || 'Something went wrong.'); signinBtn.disabled = false; up(); return; }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
@@ -829,11 +489,11 @@
       } catch (_) { showErr('Cannot connect to server.'); signinBtn.disabled = false; up(); }
     });
 
-    $('googleBtn').addEventListener('click', () => {
-      const role = currentRole === 'pick' ? 'customer' : 'owner';
+    $('googleBtn').addEventListener('click', function () {
+      var role = currentRole === 'pick' ? 'customer' : 'owner';
       google.accounts.id.initialize({
         client_id: '968585560679-k9f6mnvmd9lkb1s74lbikilotnvb5tgg.apps.googleusercontent.com',
-        callback: r => handleGoogle(r, role)
+        callback: function (r) { handleGoogle(r, role); }
       });
       google.accounts.id.prompt();
     });
@@ -841,10 +501,10 @@
     async function handleGoogle(r, role) {
       errorMsg.textContent = '';
       signinBtn.disabled = true;
-      btnText.textContent = 'Signing in\u2026';
+      btnText.textContent = 'Signing in…';
       try {
-        const res = await fetch(`${API}/google`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential: r.credential, role }) });
-        const d = await res.json();
+        var res = await fetch(API + '/google', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential: r.credential, role: role }) });
+        var d = await res.json();
         if (!res.ok) { showErr(d.message || 'Google sign-in failed.'); signinBtn.disabled = false; up(); return; }
         localStorage.setItem('token', d.token);
         localStorage.setItem('user', JSON.stringify(d));
@@ -852,369 +512,50 @@
       } catch (_) { showErr('Cannot connect to server.'); signinBtn.disabled = false; up(); }
     }
 
-    /* ===== Virtual keyboard: function keys, shift symbols, close button ===== */
+    /* ===== Smooth anchor scrolling ===== */
+    document.querySelectorAll('a[href^="#"]').forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var el = document.querySelector(a.getAttribute('href'));
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    /* ===== Reveal on scroll ===== */
     (function () {
-      const vkbRows = [
-        [
-          ['1','Digit1','!',28],['2','Digit2','@',28],['3','Digit3','#',28],['4','Digit4','$',28],['5','Digit5','%',28],
-          ['6','Digit6','^',28],['7','Digit7','&',28],['8','Digit8','*',28],['9','Digit9','(',28],['0','Digit0',')',28]
-        ],
-        [['Q','KeyQ'],['W','KeyW'],['E','KeyE'],['R','KeyR'],['T','KeyT'],['Y','KeyY'],['U','KeyU'],['I','KeyI'],['O','KeyO'],['P','KeyP']],
-        [
-          ['Tab','Tab','tab-key'],
-          ['A','KeyA'],['S','KeyS'],['D','KeyD'],['F','KeyF'],['G','KeyG'],['H','KeyH'],['J','KeyJ'],['K','KeyK'],['L','KeyL']
-        ],
-        [
-          ['⇪','CapsLock','caps-key'],
-          ['Z','KeyZ'],['X','KeyX'],['C','KeyC'],['V','KeyV'],['B','KeyB'],['N','KeyN'],['M','KeyM'],['@','At'],['.','Dot'],
-          ['⌫','Backspace','backspace-key']
-        ],
-        [
-          ['⇧','ShiftLeft','shift-key'],
-          ['Esc','Escape','esc-key'],
-          [' ','Space','space-key',4],
-          ['⏎','Enter','enter-key']
-        ]
-      ];
-
-      const symbolRow = [
-        ['!','Digit1'],['@','At'],['#','Digit3'],['$','Digit4'],['%','Digit5'],
-        ['^','Digit6'],['&','Digit7'],['*','Digit8'],['(','Digit9'],[')','Digit0'],
-        ['-','Minus'],['_','Underscore'],['=','Equal'],['+','Plus'],['[','BracketLeft'],
-        [']','BracketRight'],['{','BracketLeft'],['}','BracketRight'],['/','Slash'],['\\','Backslash'],
-        ['|','Backslash'],['<','Comma'],['>','Period'],['?','Slash']
-      ];
-
-      const panel = document.createElement('div');
-      panel.className = 'vkb-panel';
-      panel.id = 'vkbPanel';
-
-      const topBar = document.createElement('div');
-      topBar.className = 'vkb-top';
-      const title = document.createElement('span');
-      title.className = 'vkb-title';
-      title.textContent = 'Keyboard';
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'vkb-close';
-      closeBtn.textContent = '\u00d7';
-      closeBtn.setAttribute('aria-label', 'Close keyboard');
-      topBar.appendChild(title);
-      topBar.appendChild(closeBtn);
-      panel.appendChild(topBar);
-
-      const cursorIndicator = document.createElement('div');
-      cursorIndicator.className = 'vkb-cursor-indicator';
-      const cursorDot = document.createElement('span');
-      cursorDot.className = 'cursor-dot';
-      const cursorLabel = document.createElement('span');
-      cursorIndicator.appendChild(cursorDot);
-      cursorIndicator.appendChild(cursorLabel);
-      panel.appendChild(cursorIndicator);
-
-      const symRowDiv = document.createElement('div');
-      symRowDiv.className = 'vkb-symbols-row';
-      symbolRow.forEach(([ch, code]) => {
-        const k = document.createElement('div');
-        k.className = 'vkb-key sym-key';
-        k.textContent = ch;
-        k.dataset.char = ch;
-        k.dataset.code = code;
-        symRowDiv.appendChild(k);
-      });
-      panel.appendChild(symRowDiv);
-
-      const vkbKeyEls = {};
-
-      vkbRows.forEach(row => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'vkb-row';
-        row.forEach(([label, code, extra, w]) => {
-          const k = document.createElement('div');
-          k.className = 'vkb-key';
-          if (extra && extra.match(/^[a-zA-Z-]+$/)) k.classList.add(extra);
-          if (w) k.style.flex = w;
-
-          if (extra === 'shift-key' || extra === 'caps-key') {
-            k.textContent = label;
-          } else if (extra === 'tab-key') {
-            k.textContent = label;
-          } else if (extra === 'esc-key') {
-            k.textContent = label;
-          } else if (extra === 'backspace-key') {
-            k.textContent = label;
-          } else if (extra === 'enter-key') {
-            k.textContent = label;
-          } else if (extra === 'space-key') {
-            k.style.fontSize = '11px';
-            k.style.color = '#c7c7cc';
-            k.textContent = 'space';
-          } else if (w && label === ' ') {
-            k.style.flex = w;
-          } else {
-            if (typeof w === 'number') k.style.flex = w;
-            if (extra && !extra.match(/^[a-zA-Z-]+$/) && extra !== label) {
-              const s = document.createElement('div');
-              s.className = 'vkb-shift';
-              s.textContent = extra;
-              k.appendChild(s);
-            }
-            const main = document.createElement('div');
-            main.className = 'vkb-main';
-            main.textContent = label;
-            k.appendChild(main);
-          }
-
-          vkbKeyEls[code] = k;
-          k.dataset.code = code;
-          rowDiv.appendChild(k);
+      var els = document.querySelectorAll('.reveal');
+      if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        els.forEach(function (el) { el.classList.add('is-visible'); });
+        return;
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          e.target.classList.add('is-visible');
+          if (e.target.classList.contains('hero')) countUp();
+          obs.unobserve(e.target);
         });
-        panel.appendChild(rowDiv);
-      });
-
-      document.body.appendChild(panel);
-
-      function updateCursorLabel(field) {
-        if (!field) { cursorLabel.textContent = ''; return; }
-        const map = { name: 'Name', email: 'Email', password: 'Password' };
-        cursorLabel.textContent = map[field.id] || 'Input';
-      }
-
-      function vkbFlash(code) {
-        const k = vkbKeyEls[code];
-        if (!k) return;
-        k.classList.remove('active');
-        void k.offsetWidth;
-        k.classList.add('active');
-        clearTimeout(k._t);
-        k._t = setTimeout(() => k.classList.remove('active'), 220);
-      }
-
-      const CHAR_TO_CODE = {
-        '1':'Digit1','!':'Digit1','2':'Digit2','@':'At','3':'Digit3','#':'Digit3','4':'Digit4','$':'Digit4','5':'Digit5','%':'Digit5',
-        '6':'Digit6','^':'Digit6','7':'Digit7','&':'Digit7','8':'Digit8','*':'Digit8','9':'Digit9','(':'Digit9','0':'Digit0',')':'Digit0',
-        'q':'KeyQ','w':'KeyW','e':'KeyE','r':'KeyR','t':'KeyT','y':'KeyY','u':'KeyU','i':'KeyI','o':'KeyO','p':'KeyP',
-        'a':'KeyA','s':'KeyS','d':'KeyD','f':'KeyF','g':'KeyG','h':'KeyH','j':'KeyJ','k':'KeyK','l':'KeyL',
-        'z':'KeyZ','x':'KeyX','c':'KeyC','v':'KeyV','b':'KeyB','n':'KeyN','m':'KeyM','.':'Dot',' ':'Space',
-        '-':'Minus','_':'Underscore','=':'Equal','+':'Plus','[':'BracketLeft',']':'BracketRight',
-        '{':'BracketLeft','}':'BracketRight','/':'Slash','\\':'Backslash','|':'Backslash',
-        '<':'Comma','>':'Period','?':'Slash'
-      };
-
-      const vkbFields = [nameInput, email, password].filter(Boolean);
-      let shiftOn = false;
-      let capsOn = false;
-      let activeField = null;
-      let savedSelStart = 0;
-      let savedSelEnd = 0;
-
-      function saveCursor(field) {
-        if (!field) return;
-        try { savedSelStart = field.selectionStart || 0; } catch(e) { savedSelStart = field.value.length; }
-        try { savedSelEnd = field.selectionEnd || 0; } catch(e) { savedSelEnd = field.value.length; }
-      }
-      function restoreCursor(field) {
-        if (!field) return;
-        const s = savedSelStart;
-        const e = savedSelEnd;
-        field.focus();
-        try { field.selectionStart = s; field.selectionEnd = e; } catch(err) {}
-      }
-
-      function toggleShift() {
-        shiftOn = !shiftOn;
-        const shiftBtn = vkbKeyEls['ShiftLeft'];
-        if (shiftBtn) shiftBtn.classList.toggle('on', shiftOn);
-      }
-      function toggleCaps() {
-        capsOn = !capsOn;
-        const capsBtn = vkbKeyEls['CapsLock'];
-        if (capsBtn) capsBtn.classList.toggle('on', capsOn);
-      }
-
-      function insertChar(field, ch) {
-        if (!field) return;
-        let start = 0, end = 0;
-        try { start = field.selectionStart; end = field.selectionEnd; } catch(e) { start = end = field.value.length; }
-        const val = field.value;
-        field.value = val.slice(0, start) + ch + val.slice(end);
-        try { field.selectionStart = field.selectionEnd = start + ch.length; } catch(e) {}
-        field.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-
-      function openPanel() { panel.classList.add('open'); }
-      function closePanel() { panel.classList.remove('open'); }
-
-      closeBtn.addEventListener('click', closePanel);
-
-      panel.addEventListener('click', e => {
-        const key = e.target.closest('.vkb-key');
-        if (!key) return;
-
-        if (key.classList.contains('sym-key')) {
-          if (activeField) {
-            insertChar(activeField, key.dataset.char);
-            vkbFlash(key.dataset.code);
-          }
-          return;
-        }
-
-        const code = key.dataset?.code;
-        if (!code) return;
-
-        if (code === 'ShiftLeft') { toggleShift(); return; }
-        if (code === 'CapsLock') { toggleCaps(); return; }
-        if (code === 'Escape') { closePanel(); return; }
-
-        if (activeField) {
-          restoreCursor(activeField);
-          if (code === 'Backspace') {
-            let start = 0, end = 0;
-            try { start = activeField.selectionStart; end = activeField.selectionEnd; } catch(e) { start = end = activeField.value.length; }
-            if (start !== end) {
-              activeField.value = activeField.value.slice(0, start) + activeField.value.slice(end);
-              try { activeField.selectionStart = activeField.selectionEnd = start; } catch(e) {}
-            } else if (start > 0) {
-              activeField.value = activeField.value.slice(0, start - 1) + activeField.value.slice(start);
-              try { activeField.selectionStart = activeField.selectionEnd = start - 1; } catch(e) {}
-            }
-            activeField.dispatchEvent(new Event('input', { bubbles: true }));
-            vkbFlash('Backspace');
-            return;
-          }
-
-          if (code === 'Tab') {
-            const idx = vkbFields.indexOf(activeField);
-            const next = vkbFields[(idx + 1) % vkbFields.length];
-            if (next) next.focus();
-            vkbFlash('Tab');
-            return;
-          }
-
-          if (code === 'Enter') {
-            vkbFlash('Enter');
-            activeField.form?.requestSubmit();
-            return;
-          }
-
-          if (code === 'Space') {
-            insertChar(activeField, ' ');
-            vkbFlash('Space');
-            return;
-          }
-
-          const label = key.querySelector('.vkb-main')?.textContent || key.textContent.trim();
-          let ch = label;
-
-          if (capsOn) ch = label.length === 1 ? label.toUpperCase() : label;
-          else if (shiftOn) {
-            const shiftMap = {'1':'!','2':'@','3':'#','4':'$','5':'%','6':'^','7':'&','8':'*','9':'(','0':')','-':'_','=':'+','[':'{',']':'}','/':'?'};
-            ch = shiftMap[label] || label.toUpperCase();
-          } else {
-            ch = label.length === 1 ? label.toLowerCase() : label;
-          }
-
-          insertChar(activeField, ch);
-          vkbFlash(code);
-
-          if (shiftOn && !capsOn) toggleShift();
-        }
-      });
-
-      vkbFields.forEach(field => {
-        field.addEventListener('focus', () => {
-          activeField = field;
-          saveCursor(field);
-          openPanel();
-          updateCursorLabel(field);
-        });
-        field.addEventListener('click', () => saveCursor(field));
-        field.addEventListener('keyup', () => saveCursor(field));
-        field.addEventListener('input', () => saveCursor(field));
-        field.addEventListener('beforeinput', e => {
-          if (e.inputType === 'insertText' && e.data) {
-            const ch = e.data;
-            const code = CHAR_TO_CODE[ch.toLowerCase()];
-            if (code) vkbFlash(code);
-            if (ch.toLowerCase() !== ch || '!@#$%^&*()_+{}<>?|~'.includes(ch)) vkbFlash('ShiftLeft');
-          } else if (e.inputType === 'deleteContentBackward') {
-            vkbFlash('Backspace');
-          }
-        });
-        field.addEventListener('keydown', e => {
-          if (e.code === 'Enter') vkbFlash('Enter');
-        });
-      });
-
-      document.addEventListener('focusin', e => {
-        if (vkbFields.includes(e.target)) { openPanel(); updateCursorLabel(e.target); }
-        else if (!panel.contains(e.target)) { closePanel(); }
-      });
-
-      document.addEventListener('keydown', e => {
-        if (!activeField || activeField !== document.activeElement) return;
-        const k = vkbKeyEls[e.code];
-        if (k) {
-          k.classList.remove('active');
-          void k.offsetWidth;
-          k.classList.add('active');
-          clearTimeout(k._t);
-          k._t = setTimeout(() => k.classList.remove('active'), 220);
-        }
-      });
+      }, { threshold: 0.15 });
+      els.forEach(function (el) { obs.observe(el); });
+      setTimeout(function () { els.forEach(function (el) { el.classList.add('is-visible'); }); }, 1500);
     })();
 
-    /* ── car facts rotation ── */
-    (function() {
-      const facts = [
-        "The first speeding ticket was issued in 1896 — the driver was going just 8 mph.",
-        "Cruise control was invented by Ralph Teetor, a blind engineer.",
-        "The windshield wiper was invented by Mary Anderson in 1903.",
-        "Most cars spend about 95% of their life parked.",
-        "A Formula 1 car can generate enough downforce to drive upside down at 120 mph.",
-        "A modern car has roughly 30,000 individual parts.",
-        "Dubai's police fleet includes a Bugatti Veyron that tops 253 mph.",
-        "The VW Beetle was in production for over 65 years.",
-        "Car horns are tuned to a musical note — usually F.",
-        "Over 60% of all Rolls-Royce cars ever built are still on the road.",
-        "Volkswagen once sold more currywurst sausages than cars in a single year.",
-        "The Bugatti Chiron has a second key that unlocks a 420 km/h top speed.",
-        "A road trip to the moon at highway speed would take about six months.",
-        "Electric cars existed decades before gasoline-powered ones.",
-        "The 'new car smell' is actually 50+ chemicals off-gassing from plastics.",
-        "White is the most popular car color worldwide — it stays cooler in the sun.",
-        "Many modern car engine sounds are played through speakers — they're fake.",
-        "Some cars have active hoods that pop up during a crash to protect pedestrians.",
-        "Early cars used tillers for steering, like a boat.",
-        "EV tires wear out 20–30% faster due to the extra weight of batteries.",
-        "Your car's dashboard clock flickering can predict battery failure.",
-        "The average car's VIN number is like a DNA sequence — it reveals the full history.",
-        "Braking too gently can actually glaze your rotors and reduce stopping power.",
-        "The Koenigsegg Gemera can hit 248 mph — the fastest production car on record."
-      ];
-      const el = document.getElementById('heroFact');
-      if (!el) return;
-      let idx = Math.floor(Math.random() * facts.length);
-      setInterval(() => {
-        el.style.opacity = 0;
-        setTimeout(() => {
-          idx = (idx + 1) % facts.length;
-          el.textContent = facts[idx];
-          el.style.opacity = 1;
-        }, 500);
-      }, 60000);
-    })();
-
-    /* ── butterfly password toggle ── */
-    (function() {
-      const btn = document.getElementById('pwToggle');
-      const input = document.getElementById('password');
-      if (!btn || !input) return;
-      btn.addEventListener('click', () => {
-        const show = input.type === 'password';
-        input.type = show ? 'text' : 'password';
-        btn.classList.toggle('visible', show);
+    /* ===== Stats count-up ===== */
+    var counted = false;
+    function countUp() {
+      if (counted) return;
+      counted = true;
+      document.querySelectorAll('[data-n]').forEach(function (el) {
+        var target = parseInt(el.dataset.n, 10);
+        var cur = 0;
+        var step = Math.max(1, Math.floor(target / 40));
+        var t = setInterval(function () {
+          cur = Math.min(cur + step, target);
+          el.textContent = target === 98 ? cur + '%' : cur.toLocaleString();
+          if (cur >= target) clearInterval(t);
+        }, 30);
       });
-    })();
+    }
   </script>
 </body>
 </html>
