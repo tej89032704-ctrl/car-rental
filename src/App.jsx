@@ -674,15 +674,16 @@ export default function App() {
             style={{
               transition: 'opacity 0.5s',
               fontSize: 'clamp(1.8rem,3.5vw,2.8rem)',
-              color: '#f5f5f7',
+              color: '#1d1d1f',
               fontWeight: 700,
               lineHeight: 1.2,
               maxWidth: 520,
               letterSpacing: '-0.03em',
-              background: 'rgba(255,255,255,0.06)',
+              background: 'rgba(255,255,255,0.85)',
               padding: '1.2rem 1.6rem',
               borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(0,0,0,0.08)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
             }}
@@ -815,7 +816,7 @@ export default function App() {
               </a>
             </div>
             <div className="admin-link">
-              <a href="admin-dashboard.html" style={{ color: 'rgba(245,245,247,0.4)', fontSize: '0.75rem', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+              <a href="admin-dashboard.html" style={{ color: 'rgba(29,29,31,0.4)', fontSize: '0.75rem', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
                 Super admin? Sign in here
               </a>
             </div>
