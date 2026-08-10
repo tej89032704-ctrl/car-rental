@@ -756,6 +756,14 @@ export default function App() {
       }
     };
 
+    /* Clicking anywhere outside the inputs or the keyboard closes it */
+    const onDocPointerDown = (e) => {
+      if (panel.contains(e.target)) return;
+      if (vkbFields.includes(e.target)) return;
+      closePanel();
+      if (activeField) activeField.blur();
+    };
+
     const onDocKeyDown = (e) => {
       if (!activeField || activeField !== document.activeElement) return;
       const k = vkbKeyEls[e.code];
@@ -769,11 +777,13 @@ export default function App() {
     };
 
     document.addEventListener('focusin', onDocFocusIn);
+    document.addEventListener('pointerdown', onDocPointerDown);
     document.addEventListener('keydown', onDocKeyDown);
 
     return () => {
       document.body.removeChild(panel);
       document.removeEventListener('focusin', onDocFocusIn);
+      document.removeEventListener('pointerdown', onDocPointerDown);
       document.removeEventListener('keydown', onDocKeyDown);
       document.removeEventListener('pointermove', onVkbPointerMove);
       document.removeEventListener('pointerup', onVkbPointerUp);
