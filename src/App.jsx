@@ -35,13 +35,11 @@ function DotField() {
 
     function draw(t) {
       ctx.clearRect(0, 0, w, h);
-      const breathe = 0.5 + 0.5 * Math.sin(t / 2200); // slow breathing pulse
+      const breathe = 0.5 + 0.5 * Math.sin(t / 2200);
       const cx = w / 2;
       const cy = h * 0.42;
       for (const d of dots) {
-        // soft depth fade toward the edges
         const depth = 1 - Math.min(1, Math.hypot(d.x - cx, d.y - cy) / (w * 0.72));
-        // subtle pointer drift
         const dx = d.x - pointer.x;
         const dy = d.y - pointer.y;
         const dist = Math.hypot(dx, dy);
@@ -55,7 +53,7 @@ function DotField() {
         const r = d.base * (0.75 + 0.4 * breathe) * (0.55 + 0.45 * depth);
         ctx.beginPath();
         ctx.arc(d.x + ox, d.y + oy, Math.max(0.3, r), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(232, 220, 196, ${(0.09 + 0.05 * breathe) * (0.4 + 0.6 * depth)})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${(0.09 + 0.05 * breathe) * (0.4 + 0.6 * depth)})`;
         ctx.fill();
       }
       if (!reduce) raf = requestAnimationFrame(draw);
@@ -120,16 +118,16 @@ function ClothBanner() {
       tex.height = Math.max(2, Math.round(h));
       const tc = tex.getContext('2d');
 
-      // cream woven ground
+      // White woven ground
       const g = tc.createLinearGradient(0, 0, 0, tex.height);
-      g.addColorStop(0, '#f3ead6');
-      g.addColorStop(1, '#e6d9c0');
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(1, '#f0f0f0');
       tc.fillStyle = g;
       tc.fillRect(0, 0, tex.width, tex.height);
 
       // faint weave
       const s = Math.max(5, Math.round(w * 0.006));
-      tc.strokeStyle = 'rgba(128, 35, 48, 0.045)';
+      tc.strokeStyle = 'rgba(0, 0, 0, 0.04)';
       tc.lineWidth = 1;
       for (let wy = s; wy < tex.height; wy += s) {
         tc.beginPath(); tc.moveTo(0, wy); tc.lineTo(tex.width, wy); tc.stroke();
@@ -138,10 +136,10 @@ function ClothBanner() {
         tc.beginPath(); tc.moveTo(wx, 0); tc.lineTo(wx, tex.height); tc.stroke();
       }
 
-      // double-line maroon border
+      // black border
       const i1 = w * 0.014;
       const i2 = w * 0.027;
-      tc.strokeStyle = '#802330';
+      tc.strokeStyle = '#1d1d1f';
       tc.lineWidth = Math.max(2, Math.round(w * 0.008));
       tc.strokeRect(i1, i1, tex.width - i1 * 2, tex.height - i1 * 2);
       tc.lineWidth = Math.max(1.5, Math.round(w * 0.004));
@@ -155,32 +153,32 @@ function ClothBanner() {
       tc.textBaseline = 'middle';
 
       // top label
-      tc.fillStyle = '#802330';
+      tc.fillStyle = '#1d1d1f';
       tc.font = '600 ' + Math.max(10, Math.round(w * 0.026)) + 'px ' + sans;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.008) + 'px';
       tc.fillText('EST. 2026 · 12 CITIES', tex.width / 2, tex.height * 0.17);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
       // big serif wordmark
-      tc.fillStyle = '#802330';
+      tc.fillStyle = '#1d1d1f';
       tc.font = '800 ' + fs + 'px ' + serif;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(fs * 0.04) + 'px';
       tc.fillText('CAR-ENT', tex.width / 2, wmY);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
       // rule
-      tc.fillStyle = 'rgba(128, 35, 48, 0.5)';
+      tc.fillStyle = 'rgba(0, 0, 0, 0.3)';
       tc.fillRect(tex.width / 2 - fs * 0.9, wmY + fs * 0.6, fs * 1.8, Math.max(1, Math.round(w * 0.0025)));
 
       // sub label
-      tc.fillStyle = '#b99a8f';
+      tc.fillStyle = '#6e6e73';
       tc.font = '600 ' + Math.max(10, Math.round(w * 0.03)) + 'px ' + sans;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.006) + 'px';
       tc.fillText('CARS · ON DEMAND', tex.width / 2, wmY + fs * 0.82);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
       // bottom label
-      tc.fillStyle = '#802330';
+      tc.fillStyle = '#1d1d1f';
       tc.font = '600 ' + Math.max(10, Math.round(w * 0.024)) + 'px ' + sans;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.007) + 'px';
       tc.fillText('PEER-TO-PEER · DRIVE FREE', tex.width / 2, tex.height * 0.9);
@@ -474,66 +472,45 @@ export default function App() {
         </div>
       </nav>
 
-      <section className="hero" id="how">
-        <ClothBanner />
-        <span className="badge">
-          <span className="badge-dot" /> Now in 12 cities across India
-        </span>
-        <h1>
-          Rent verified cars from <em>real owners</em>. Or list yours and earn — simple, transparent, yours.
-        </h1>
-        <p>No middlemen. No markups. Every car verified, every owner vetted.</p>
-        <div className="hero-actions">
-          <a href="#login" className="btn btn-primary">
-            Start renting
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </a>
-          <a href="#login" className="btn btn-ghost">
-            List your car
-          </a>
+      {/* SPLIT HERO: left = content, right = login card */}
+      <section className="hero-split" id="how">
+        <div className="hero-left">
+          <span className="badge">
+            <span className="badge-dot" /> Now in 12 cities across India
+          </span>
+          <h1>
+            Rent verified cars from <em>real owners</em>. Or list yours and earn — simple, transparent, yours.
+          </h1>
+          <p>No middlemen. No markups. Every car verified, every owner vetted.</p>
+          <div className="hero-actions">
+            <a href="#login" className="btn btn-primary">
+              Start renting
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </a>
+            <a href="#login" className="btn btn-ghost">
+              List your car
+            </a>
+          </div>
+          <div className="stats">
+            <div>
+              <strong>2,500</strong>
+              <span>Cars listed</span>
+            </div>
+            <div>
+              <strong>12</strong>
+              <span>Cities</span>
+            </div>
+            <div>
+              <strong>98%</strong>
+              <span>Satisfaction</span>
+            </div>
+          </div>
         </div>
-        <div className="stats">
-          <div>
-            <strong>2,500</strong>
-            <span>Cars listed</span>
-          </div>
-          <div>
-            <strong>12</strong>
-            <span>Cities</span>
-          </div>
-          <div>
-            <strong>98%</strong>
-            <span>Satisfaction</span>
-          </div>
-        </div>
-      </section>
 
-      <section className="pricing" id="pricing">
-        <div className="pricing-card pricing-card--dark">
-          <div className="label">Renters</div>
-          <div className="amount">₹0</div>
-          <div className="period">Free, always</div>
-          <div className="note">Browse, book, and drive. No subscription. No hidden fees.</div>
-          <a href="#login" className="btn btn-primary btn-block">
-            Start renting
-          </a>
-        </div>
-        <div className="pricing-card pricing-card--accent">
-          <div className="label">Car Owners</div>
-          <div className="amount">₹100</div>
-          <div className="period">per month</div>
-          <div className="note">List your car, earn on your schedule. We handle bookings &amp; payments.</div>
-          <a href="#login" className="btn btn-dark btn-block">
-            List your car
-          </a>
-        </div>
-      </section>
-
-      <section className="login-section" id="login">
-        <div className="shell">
+        <div className="hero-right" id="login">
           <div className="login-box">
             <div className="login-logo" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -608,6 +585,27 @@ export default function App() {
               Your information is encrypted and never shared.
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="pricing" id="pricing">
+        <div className="pricing-card pricing-card--light">
+          <div className="label">Renters</div>
+          <div className="amount">₹0</div>
+          <div className="period">Free, always</div>
+          <div className="note">Browse, book, and drive. No subscription. No hidden fees.</div>
+          <a href="#login" className="btn btn-dark btn-block">
+            Start renting
+          </a>
+        </div>
+        <div className="pricing-card pricing-card--accent">
+          <div className="label">Car Owners</div>
+          <div className="amount">₹100</div>
+          <div className="period">per month</div>
+          <div className="note">List your car, earn on your schedule. We handle bookings &amp; payments.</div>
+          <a href="#login" className="btn btn-primary btn-block">
+            List your car
+          </a>
         </div>
       </section>
 
