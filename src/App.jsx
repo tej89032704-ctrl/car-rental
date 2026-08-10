@@ -337,6 +337,401 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRegister, currentRole]);
 
+  /* ===== Virtual keyboard (ported from git commit 228c619) ===== */
+  useEffect(() => {
+    const fields = [nameRef.current, emailRef.current, passwordRef.current].filter(Boolean);
+    if (fields.length === 0) return;
+
+    const vkbRows = [
+      [
+        ['1', 'Digit1', '!', 28], ['2', 'Digit2', '@', 28], ['3', 'Digit3', '#', 28], ['4', 'Digit4', '$', 28],
+        ['5', 'Digit5', '%', 28], ['6', 'Digit6', '^', 28], ['7', 'Digit7', '&', 28], ['8', 'Digit8', '*', 28],
+        ['9', 'Digit9', '(', 28], ['0', 'Digit0', ')', 28],
+      ],
+      [
+        ['Q', 'KeyQ'], ['W', 'KeyW'], ['E', 'KeyE'], ['R', 'KeyR'], ['T', 'KeyT'],
+        ['Y', 'KeyY'], ['U', 'KeyU'], ['I', 'KeyI'], ['O', 'KeyO'], ['P', 'KeyP'],
+      ],
+      [
+        ['Tab', 'Tab', 'tab-key'],
+        ['A', 'KeyA'], ['S', 'KeyS'], ['D', 'KeyD'], ['F', 'KeyF'], ['G', 'KeyG'],
+        ['H', 'KeyH'], ['J', 'KeyJ'], ['K', 'KeyK'], ['L', 'KeyL'],
+      ],
+      [
+        ['⇪', 'CapsLock', 'caps-key'],
+        ['Z', 'KeyZ'], ['X', 'KeyX'], ['C', 'KeyC'], ['V', 'KeyV'], ['B', 'KeyB'],
+        ['N', 'KeyN'], ['M', 'KeyM'], ['@', 'At'], ['.', 'Dot'],
+        ['⌫', 'Backspace', 'backspace-key'],
+      ],
+      [
+        ['⇧', 'ShiftLeft', 'shift-key'],
+        ['Esc', 'Escape', 'esc-key'],
+        [' ', 'Space', 'space-key', 4],
+        ['⏎', 'Enter', 'enter-key'],
+      ],
+    ];
+
+    const symbolRow = [
+      ['!', 'Digit1'], ['@', 'At'], ['#', 'Digit3'], ['$', 'Digit4'], ['%', 'Digit5'],
+      ['^', 'Digit6'], ['&', 'Digit7'], ['*', 'Digit8'], ['(', 'Digit9'], [')', 'Digit0'],
+      ['-', 'Minus'], ['_', 'Underscore'], ['=', 'Equal'], ['+', 'Plus'], ['[', 'BracketLeft'],
+      [']', 'BracketRight'], ['{', 'BracketLeft'], ['}', 'BracketRight'], ['/', 'Slash'], ['\\', 'Backslash'],
+      ['|', 'Backslash'], ['<', 'Comma'], ['>', 'Period'], ['?', 'Slash'],
+    ];
+
+    const panel = document.createElement('div');
+    panel.className = 'vkb-panel';
+    panel.id = 'vkbPanel';
+
+    const topBar = document.createElement('div');
+    topBar.className = 'vkb-top';
+    const title = document.createElement('span');
+    title.className = 'vkb-title';
+    title.textContent = 'Keyboard';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'vkb-close';
+    closeBtn.textContent = '\u00d7';
+    closeBtn.setAttribute('aria-label', 'Close keyboard');
+    topBar.appendChild(title);
+    topBar.appendChild(closeBtn);
+    panel.appendChild(topBar);
+
+    const cursorIndicator = document.createElement('div');
+    cursorIndicator.className = 'vkb-cursor-indicator';
+    const cursorDot = document.createElement('span');
+    cursorDot.className = 'cursor-dot';
+    const cursorLabel = document.createElement('span');
+    cursorIndicator.appendChild(cursorDot);
+    cursorIndicator.appendChild(cursorLabel);
+    panel.appendChild(cursorIndicator);
+
+    const symRowDiv = document.createElement('div');
+    symRowDiv.className = 'vkb-symbols-row';
+    symbolRow.forEach(([ch, code]) => {
+      const k = document.createElement('div');
+      k.className = 'vkb-key sym-key';
+      k.textContent = ch;
+      k.dataset.char = ch;
+      k.dataset.code = code;
+      symRowDiv.appendChild(k);
+    });
+    panel.appendChild(symRowDiv);
+
+    const vkbKeyEls = {};
+
+    vkbRows.forEach((row) => {
+      const rowDiv = document.createElement('div');
+      rowDiv.className = 'vkb-row';
+      row.forEach(([label, code, extra, w]) => {
+        const k = document.createElement('div');
+        k.className = 'vkb-key';
+        if (extra && extra.match(/^[a-zA-Z-]+$/)) k.classList.add(extra);
+        if (w) k.style.flex = w;
+
+        if (extra === 'shift-key' || extra === 'caps-key' || extra === 'tab-key' || extra === 'esc-key' ||
+            extra === 'backspace-key' || extra === 'enter-key') {
+          k.textContent = label;
+        } else if (extra === 'space-key') {
+          k.style.fontSize = '11px';
+          k.style.color = '#c7c7cc';
+          k.textContent = 'space';
+        } else if (w && label === ' ') {
+          k.style.flex = w;
+        } else {
+          if (typeof w === 'number') k.style.flex = w;
+          if (extra && !extra.match(/^[a-zA-Z-]+$/) && extra !== label) {
+            const s = document.createElement('div');
+            s.className = 'vkb-shift';
+            s.textContent = extra;
+            k.appendChild(s);
+          }
+          const main = document.createElement('div');
+          main.className = 'vkb-main';
+          main.textContent = label;
+          k.appendChild(main);
+        }
+
+        vkbKeyEls[code] = k;
+        k.dataset.code = code;
+        rowDiv.appendChild(k);
+      });
+      panel.appendChild(rowDiv);
+    });
+
+    document.body.appendChild(panel);
+
+    function updateCursorLabel(field) {
+      if (!field) {
+        cursorLabel.textContent = '';
+        return;
+      }
+      const map = { name: 'Name', email: 'Email', password: 'Password' };
+      cursorLabel.textContent = map[field.id] || 'Input';
+    }
+
+    function vkbFlash(code) {
+      const k = vkbKeyEls[code];
+      if (!k) return;
+      k.classList.remove('active');
+      void k.offsetWidth;
+      k.classList.add('active');
+      clearTimeout(k._t);
+      k._t = setTimeout(() => k.classList.remove('active'), 220);
+    }
+
+    const CHAR_TO_CODE = {
+      '1': 'Digit1', '!': 'Digit1', '2': 'Digit2', '@': 'At', '3': 'Digit3', '#': 'Digit3',
+      '4': 'Digit4', '$': 'Digit4', '5': 'Digit5', '%': 'Digit5', '6': 'Digit6', '^': 'Digit6',
+      '7': 'Digit7', '&': 'Digit7', '8': 'Digit8', '*': 'Digit8', '9': 'Digit9', '(': 'Digit9',
+      '0': 'Digit0', ')': 'Digit0',
+      'q': 'KeyQ', 'w': 'KeyW', 'e': 'KeyE', 'r': 'KeyR', 't': 'KeyT', 'y': 'KeyY',
+      'u': 'KeyU', 'i': 'KeyI', 'o': 'KeyO', 'p': 'KeyP',
+      'a': 'KeyA', 's': 'KeyS', 'd': 'KeyD', 'f': 'KeyF', 'g': 'KeyG', 'h': 'KeyH',
+      'j': 'KeyJ', 'k': 'KeyK', 'l': 'KeyL',
+      'z': 'KeyZ', 'x': 'KeyX', 'c': 'KeyC', 'v': 'KeyV', 'b': 'KeyB', 'n': 'KeyN',
+      'm': 'KeyM', '.': 'Dot', ' ': 'Space',
+      '-': 'Minus', '_': 'Underscore', '=': 'Equal', '+': 'Plus', '[': 'BracketLeft', ']': 'BracketRight',
+      '{': 'BracketLeft', '}': 'BracketRight', '/': 'Slash', '\\': 'Backslash', '|': 'Backslash',
+      '<': 'Comma', '>': 'Period', '?': 'Slash',
+    };
+
+    const vkbFields = fields;
+    let shiftOn = false;
+    let capsOn = false;
+    let activeField = null;
+    let savedSelStart = 0;
+    let savedSelEnd = 0;
+
+    function saveCursor(field) {
+      if (!field) return;
+      try {
+        savedSelStart = field.selectionStart || 0;
+      } catch (e) {
+        savedSelStart = field.value.length;
+      }
+      try {
+        savedSelEnd = field.selectionEnd || 0;
+      } catch (e) {
+        savedSelEnd = field.value.length;
+      }
+    }
+    function restoreCursor(field) {
+      if (!field) return;
+      field.focus();
+      try {
+        field.selectionStart = savedSelStart;
+        field.selectionEnd = savedSelEnd;
+      } catch (err) {}
+    }
+
+    function toggleShift() {
+      shiftOn = !shiftOn;
+      const shiftBtn = vkbKeyEls['ShiftLeft'];
+      if (shiftBtn) shiftBtn.classList.toggle('on', shiftOn);
+    }
+    function toggleCaps() {
+      capsOn = !capsOn;
+      const capsBtn = vkbKeyEls['CapsLock'];
+      if (capsBtn) capsBtn.classList.toggle('on', capsOn);
+    }
+
+    function insertChar(field, ch) {
+      if (!field) return;
+      let start = 0;
+      let end = 0;
+      try {
+        start = field.selectionStart;
+        end = field.selectionEnd;
+      } catch (e) {
+        start = end = field.value.length;
+      }
+      const val = field.value;
+      field.value = val.slice(0, start) + ch + val.slice(end);
+      try {
+        field.selectionStart = field.selectionEnd = start + ch.length;
+      } catch (e) {}
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function openPanel() {
+      panel.classList.add('open');
+    }
+    function closePanel() {
+      panel.classList.remove('open');
+    }
+
+    closeBtn.addEventListener('click', closePanel);
+
+    function onPanelClick(e) {
+      const key = e.target.closest('.vkb-key');
+      if (!key) return;
+
+      if (key.classList.contains('sym-key')) {
+        if (activeField) {
+          insertChar(activeField, key.dataset.char);
+          vkbFlash(key.dataset.code);
+        }
+        return;
+      }
+
+      const code = key.dataset?.code;
+      if (!code) return;
+
+      if (code === 'ShiftLeft') {
+        toggleShift();
+        return;
+      }
+      if (code === 'CapsLock') {
+        toggleCaps();
+        return;
+      }
+      if (code === 'Escape') {
+        closePanel();
+        return;
+      }
+
+      if (activeField) {
+        restoreCursor(activeField);
+        if (code === 'Backspace') {
+          let start = 0;
+          let end = 0;
+          try {
+            start = activeField.selectionStart;
+            end = activeField.selectionEnd;
+          } catch (e) {
+            start = end = activeField.value.length;
+          }
+          if (start !== end) {
+            activeField.value = activeField.value.slice(0, start) + activeField.value.slice(end);
+            try {
+              activeField.selectionStart = activeField.selectionEnd = start;
+            } catch (e) {}
+          } else if (start > 0) {
+            activeField.value = activeField.value.slice(0, start - 1) + activeField.value.slice(start);
+            try {
+              activeField.selectionStart = activeField.selectionEnd = start - 1;
+            } catch (e) {}
+          }
+          activeField.dispatchEvent(new Event('input', { bubbles: true }));
+          vkbFlash('Backspace');
+          return;
+        }
+
+        if (code === 'Tab') {
+          const idx = vkbFields.indexOf(activeField);
+          const next = vkbFields[(idx + 1) % vkbFields.length];
+          if (next) next.focus();
+          vkbFlash('Tab');
+          return;
+        }
+
+        if (code === 'Enter') {
+          vkbFlash('Enter');
+          activeField.form?.requestSubmit();
+          return;
+        }
+
+        if (code === 'Space') {
+          insertChar(activeField, ' ');
+          vkbFlash('Space');
+          return;
+        }
+
+        const label = key.querySelector('.vkb-main')?.textContent || key.textContent.trim();
+        let ch = label;
+
+        if (capsOn) ch = label.length === 1 ? label.toUpperCase() : label;
+        else if (shiftOn) {
+          const shiftMap = {
+            '1': '!', '2': '@', '3': '#', '4': '$', '5': '%', '6': '^', '7': '&',
+            '8': '*', '9': '(', '0': ')', '-': '_', '=': '+', '[': '{', ']': '}', '/': '?',
+          };
+          ch = shiftMap[label] || label.toUpperCase();
+        } else {
+          ch = label.length === 1 ? label.toLowerCase() : label;
+        }
+
+        insertChar(activeField, ch);
+        vkbFlash(code);
+
+        if (shiftOn && !capsOn) toggleShift();
+      }
+    }
+
+    panel.addEventListener('click', onPanelClick);
+
+    const fieldHandlers = [];
+    vkbFields.forEach((field) => {
+      const onFocus = () => {
+        activeField = field;
+        saveCursor(field);
+        openPanel();
+        updateCursorLabel(field);
+      };
+      const onClick = () => saveCursor(field);
+      const onKeyup = () => saveCursor(field);
+      const onInput = () => saveCursor(field);
+      const onBeforeInput = (e) => {
+        if (e.inputType === 'insertText' && e.data) {
+          const ch = e.data;
+          const code = CHAR_TO_CODE[ch.toLowerCase()];
+          if (code) vkbFlash(code);
+          if (ch.toLowerCase() !== ch || '!@#$%^&*()_+{}<>?|~'.includes(ch)) vkbFlash('ShiftLeft');
+        } else if (e.inputType === 'deleteContentBackward') {
+          vkbFlash('Backspace');
+        }
+      };
+      const onKeyDown = (e) => {
+        if (e.code === 'Enter') vkbFlash('Enter');
+      };
+      field.addEventListener('focus', onFocus);
+      field.addEventListener('click', onClick);
+      field.addEventListener('keyup', onKeyup);
+      field.addEventListener('input', onInput);
+      field.addEventListener('beforeinput', onBeforeInput);
+      field.addEventListener('keydown', onKeyDown);
+      fieldHandlers.push([field, onFocus, onClick, onKeyup, onInput, onBeforeInput, onKeyDown]);
+    });
+
+    const onDocFocusIn = (e) => {
+      if (vkbFields.includes(e.target)) {
+        openPanel();
+        updateCursorLabel(e.target);
+      } else if (!panel.contains(e.target)) {
+        closePanel();
+      }
+    };
+
+    const onDocKeyDown = (e) => {
+      if (!activeField || activeField !== document.activeElement) return;
+      const k = vkbKeyEls[e.code];
+      if (k) {
+        k.classList.remove('active');
+        void k.offsetWidth;
+        k.classList.add('active');
+        clearTimeout(k._t);
+        k._t = setTimeout(() => k.classList.remove('active'), 220);
+      }
+    };
+
+    document.addEventListener('focusin', onDocFocusIn);
+    document.addEventListener('keydown', onDocKeyDown);
+
+    return () => {
+      document.body.removeChild(panel);
+      document.removeEventListener('focusin', onDocFocusIn);
+      document.removeEventListener('keydown', onDocKeyDown);
+      fieldHandlers.forEach(([f, f1, f2, f3, f4, f5, f6]) => {
+        f.removeEventListener('focus', f1);
+        f.removeEventListener('click', f2);
+        f.removeEventListener('keyup', f3);
+        f.removeEventListener('input', f4);
+        f.removeEventListener('beforeinput', f5);
+        f.removeEventListener('keydown', f6);
+      });
+    };
+  }, []);
+
   function updateUI() {
     const isPick = currentRole === 'pick';
     if (isRegister) {
