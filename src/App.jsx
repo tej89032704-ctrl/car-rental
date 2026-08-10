@@ -318,6 +318,7 @@ export default function App() {
   const [currentRole, setCurrentRole] = useState('pick');
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
 
   const nameRef = useRef(null);
   const emailRef = useRef(null);
@@ -458,7 +459,9 @@ export default function App() {
       panel.appendChild(rowDiv);
     });
 
-    document.body.appendChild(panel);
+    const loginHost = document.getElementById('login');
+    if (loginHost) loginHost.appendChild(panel);
+    else document.body.appendChild(panel);
 
     function updateCursorLabel(field) {
       if (!field) {
@@ -561,60 +564,6 @@ export default function App() {
     }
 
     closeBtn.addEventListener('click', closePanel);
-
-    /* --- Drag the keyboard to any position on screen (saved in localStorage) --- */
-    let dragState = null;
-
-    try {
-      const saved = localStorage.getItem('vkb-pos');
-      if (saved) {
-        const p = JSON.parse(saved);
-        if (p && typeof p.x === 'number' && typeof p.y === 'number') {
-          panel.style.left = p.x + 'px';
-          panel.style.top = p.y + 'px';
-          panel.style.right = 'auto';
-          panel.style.bottom = 'auto';
-        }
-      }
-    } catch (e) {
-      /* ignore malformed saved position */
-    }
-
-    topBar.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.vkb-close')) return;
-      dragState = {
-        startX: e.clientX,
-        startY: e.clientY,
-        origLeft: panel.offsetLeft,
-        origTop: panel.offsetTop,
-      };
-      panel.classList.add('dragging');
-      e.preventDefault();
-    });
-
-    const onVkbPointerMove = (e) => {
-      if (!dragState) return;
-      const x = dragState.origLeft + (e.clientX - dragState.startX);
-      const y = dragState.origTop + (e.clientY - dragState.startY);
-      panel.style.left = Math.max(0, Math.min(x, window.innerWidth - panel.offsetWidth)) + 'px';
-      panel.style.top = Math.max(0, Math.min(y, window.innerHeight - panel.offsetHeight)) + 'px';
-      panel.style.right = 'auto';
-      panel.style.bottom = 'auto';
-    };
-
-    const onVkbPointerUp = () => {
-      if (!dragState) return;
-      dragState = null;
-      panel.classList.remove('dragging');
-      try {
-        localStorage.setItem('vkb-pos', JSON.stringify({ x: panel.offsetLeft, y: panel.offsetTop }));
-      } catch (e) {
-        /* ignore */
-      }
-    };
-
-    document.addEventListener('pointermove', onVkbPointerMove);
-    document.addEventListener('pointerup', onVkbPointerUp);
 
     function onPanelClick(e) {
       const key = e.target.closest('.vkb-key');
@@ -781,12 +730,10 @@ export default function App() {
     document.addEventListener('keydown', onDocKeyDown);
 
     return () => {
-      document.body.removeChild(panel);
+      panel.remove();
       document.removeEventListener('focusin', onDocFocusIn);
       document.removeEventListener('pointerdown', onDocPointerDown);
       document.removeEventListener('keydown', onDocKeyDown);
-      document.removeEventListener('pointermove', onVkbPointerMove);
-      document.removeEventListener('pointerup', onVkbPointerUp);
       fieldHandlers.forEach(([f, f1, f2, f3, f4, f5, f6]) => {
         f.removeEventListener('focus', f1);
         f.removeEventListener('click', f2);
@@ -1008,8 +955,39 @@ export default function App() {
             <div className="input-group">
               <input id="email" ref={emailRef} type="email" placeholder="Email" autoComplete="email" />
             </div>
-            <div className="input-group">
-              <input id="password" ref={passwordRef} type="password" placeholder="Password" autoComplete="current-password" />
+            <div className="input-group pwd-field">
+              <input
+                id="password"
+                ref={passwordRef}
+                type={showPwd ? 'text' : 'password'}
+                placeholder="Password"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="Btn"
+                aria-label={showPwd ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPwd((s) => !s)}
+              >
+                <div className="BG" />
+                <div className="svgContainer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    {showPwd ? (
+                      <>
+                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                        <line x1="2" x2="22" y1="2" y2="22" />
+                      </>
+                    ) : (
+                      <>
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </>
+                    )}
+                  </svg>
+                </div>
+              </button>
             </div>
 
             <button type="button" className="submit-btn" disabled={submitting} onClick={handleSubmit}>
