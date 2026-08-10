@@ -53,7 +53,7 @@ function DotField() {
         const r = d.base * (0.75 + 0.4 * breathe) * (0.55 + 0.45 * depth);
         ctx.beginPath();
         ctx.arc(d.x + ox, d.y + oy, Math.max(0.3, r), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${(0.09 + 0.05 * breathe) * (0.4 + 0.6 * depth)})`;
+        ctx.fillStyle = `rgba(0, 0, 0, ${(0.06 + 0.04 * breathe) * (0.4 + 0.6 * depth)})`;
         ctx.fill();
       }
       if (!reduce) raf = requestAnimationFrame(draw);
@@ -118,16 +118,16 @@ function ClothBanner() {
       tex.height = Math.max(2, Math.round(h));
       const tc = tex.getContext('2d');
 
-      // White woven ground
+      // Black woven ground
       const g = tc.createLinearGradient(0, 0, 0, tex.height);
-      g.addColorStop(0, '#ffffff');
-      g.addColorStop(1, '#f0f0f0');
+      g.addColorStop(0, '#1d1d1f');
+      g.addColorStop(1, '#2d2d2f');
       tc.fillStyle = g;
       tc.fillRect(0, 0, tex.width, tex.height);
 
       // faint weave
       const s = Math.max(5, Math.round(w * 0.006));
-      tc.strokeStyle = 'rgba(0, 0, 0, 0.04)';
+      tc.strokeStyle = 'rgba(255, 255, 255, 0.05)';
       tc.lineWidth = 1;
       for (let wy = s; wy < tex.height; wy += s) {
         tc.beginPath(); tc.moveTo(0, wy); tc.lineTo(tex.width, wy); tc.stroke();
@@ -136,10 +136,10 @@ function ClothBanner() {
         tc.beginPath(); tc.moveTo(wx, 0); tc.lineTo(wx, tex.height); tc.stroke();
       }
 
-      // black border
+      // white border
       const i1 = w * 0.014;
       const i2 = w * 0.027;
-      tc.strokeStyle = '#1d1d1f';
+      tc.strokeStyle = '#ffffff';
       tc.lineWidth = Math.max(2, Math.round(w * 0.008));
       tc.strokeRect(i1, i1, tex.width - i1 * 2, tex.height - i1 * 2);
       tc.lineWidth = Math.max(1.5, Math.round(w * 0.004));
@@ -153,32 +153,32 @@ function ClothBanner() {
       tc.textBaseline = 'middle';
 
       // top label
-      tc.fillStyle = '#1d1d1f';
+      tc.fillStyle = '#ffffff';
       tc.font = '600 ' + Math.max(10, Math.round(w * 0.026)) + 'px ' + sans;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.008) + 'px';
       tc.fillText('EST. 2026 · 12 CITIES', tex.width / 2, tex.height * 0.17);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
       // big serif wordmark
-      tc.fillStyle = '#1d1d1f';
+      tc.fillStyle = '#ffffff';
       tc.font = '800 ' + fs + 'px ' + serif;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(fs * 0.04) + 'px';
       tc.fillText('CAR-ENT', tex.width / 2, wmY);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
       // rule
-      tc.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      tc.fillStyle = 'rgba(255, 255, 255, 0.3)';
       tc.fillRect(tex.width / 2 - fs * 0.9, wmY + fs * 0.6, fs * 1.8, Math.max(1, Math.round(w * 0.0025)));
 
       // sub label
-      tc.fillStyle = '#6e6e73';
+      tc.fillStyle = '#a1a1a6';
       tc.font = '600 ' + Math.max(10, Math.round(w * 0.03)) + 'px ' + sans;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.006) + 'px';
       tc.fillText('CARS · ON DEMAND', tex.width / 2, wmY + fs * 0.82);
       if ('letterSpacing' in tc) tc.letterSpacing = '0px';
 
       // bottom label
-      tc.fillStyle = '#1d1d1f';
+      tc.fillStyle = '#ffffff';
       tc.font = '600 ' + Math.max(10, Math.round(w * 0.024)) + 'px ' + sans;
       if ('letterSpacing' in tc) tc.letterSpacing = Math.round(w * 0.007) + 'px';
       tc.fillText('PEER-TO-PEER · DRIVE FREE', tex.width / 2, tex.height * 0.9);

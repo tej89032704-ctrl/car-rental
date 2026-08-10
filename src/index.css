@@ -1,5 +1,5 @@
-/* CAR-ENT — Black & White design system
-   Primary #000000 · Secondary #ffffff · Tertiary #6e6e73 · Neutral #f5f5f7
+/* CAR-ENT — White design system
+   Background #FFFFFF · Text #1d1d1f · Accent #000000 · Muted #6e6e73
    Clean, minimal, Apple-inspired split layout */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -15,8 +15,8 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background: #000000;
-  color: #ffffff;
+  background: #ffffff;
+  color: #1d1d1f;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -25,8 +25,8 @@ body {
   overflow-x: hidden;
 }
 
-::selection { background: rgba(255, 255, 255, 0.2); color: #fff; }
-:focus-visible { outline: 1px solid rgba(255, 255, 255, 0.6); outline-offset: 2px; }
+::selection { background: rgba(0, 0, 0, 0.12); color: #1d1d1f; }
+:focus-visible { outline: 1px solid rgba(0, 0, 0, 0.5); outline-offset: 2px; }
 
 /* ===== STAGE / BACKGROUND (WebGL dot-matrix field) ===== */
 .stage {
@@ -35,7 +35,7 @@ body {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: #000000;
+  background: #ffffff;
 }
 .stage canvas {
   position: absolute;
@@ -47,7 +47,7 @@ body {
 .stage-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(90% 80% at 50% 46%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.72) 100%);
+  background: radial-gradient(90% 80% at 50% 46%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.05) 100%);
 }
 
 /* ===== TOP NAV ===== */
@@ -59,13 +59,13 @@ nav {
   justify-content: space-between;
   padding: 0 3rem;
   height: 56px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
 }
 .nav-logo {
   font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.08em;
-  color: #ffffff;
+  color: #1d1d1f;
 }
 .nav-logo span { color: #6e6e73; }
 .nav-links { display: flex; gap: 2rem; align-items: center; }
@@ -73,15 +73,15 @@ nav {
   font-size: 0.78rem;
   font-weight: 400;
   letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(0, 0, 0, 0.55);
   text-decoration: none;
   transition: color 0.3s ease;
 }
-.nav-links a:hover { color: #fff; }
+.nav-links a:hover { color: #000; }
 .nav-cta {
-  color: #000 !important;
-  background: #fff;
-  border: 1px solid #fff;
+  color: #fff !important;
+  background: #000;
+  border: 1px solid #000;
   border-radius: 980px;
   padding: 0.5rem 1.25rem;
   text-transform: uppercase;
@@ -90,7 +90,7 @@ nav {
   letter-spacing: 0.12em;
   transition: background 0.3s ease, color 0.3s ease;
 }
-.nav-cta:hover { background: transparent; color: #fff !important; }
+.nav-cta:hover { background: transparent; color: #000 !important; }
 
 /* ===== SPLIT HERO (Left content + Right login) ===== */
 .hero-split {
@@ -115,20 +115,20 @@ nav {
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 980px;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(0, 0, 0, 0.6);
 }
 .badge-dot {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #fff;
+  background: #000;
   animation: breathe-dot 2.4s ease-in-out infinite;
 }
 .hero-left h1 {
@@ -138,12 +138,12 @@ nav {
   line-height: 1.08;
   max-width: 600px;
   margin: 1.5rem 0 1.25rem;
-  color: #ffffff;
+  color: #1d1d1f;
 }
 .hero-left h1 em { font-style: italic; color: #6e6e73; }
 .hero-left p {
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(0, 0, 0, 0.55);
   max-width: 440px;
   line-height: 1.6;
 }
@@ -161,7 +161,7 @@ nav {
 .cloth-wrap canvas {
   display: block;
   border-radius: 2px;
-  filter: drop-shadow(0 20px 40px rgba(255, 255, 255, 0.08));
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.12));
 }
 
 .hero-actions {
@@ -187,16 +187,16 @@ nav {
   transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.15s ease;
 }
 .btn:active { transform: scale(0.97); }
-.btn-primary { background: #ffffff; color: #000000; }
-.btn-primary:hover { background: #f5f5f7; }
+.btn-primary { background: #000000; color: #ffffff; }
+.btn-primary:hover { background: #1d1d1f; }
 .btn-primary svg { width: 14px; height: 14px; transition: transform 0.3s ease; }
 .btn-primary:hover svg { transform: translateX(4px); }
 .btn-ghost {
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.25);
   background: transparent;
-  color: #ffffff;
+  color: #1d1d1f;
 }
-.btn-ghost:hover { border-color: rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.05); }
+.btn-ghost:hover { border-color: rgba(0, 0, 0, 0.5); background: rgba(0, 0, 0, 0.04); }
 .btn-dark { background: #1d1d1f; color: #ffffff; }
 .btn-dark:hover { background: #2d2d2f; }
 .btn-block { width: 100%; justify-content: center; margin-top: 24px; }
@@ -213,13 +213,13 @@ nav {
   font-size: 1.8rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #ffffff;
+  color: #1d1d1f;
 }
 .stats span {
   font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 0, 0, 0.45);
 }
 
 /* ===== RIGHT SIDE — LOGIN CARD ===== */
@@ -232,17 +232,18 @@ nav {
   width: 100%;
   border-radius: 24px;
   background: #ffffff;
+  border: 1px solid #e8e8ed;
   padding: 40px 36px 30px;
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 24px 60px rgba(0, 0, 0, 0.5);
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 24px 60px rgba(0, 0, 0, 0.1);
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s;
 }
 .login-box:hover {
   transform: translateY(-3px);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 34px 72px rgba(0, 0, 0, 0.55);
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 34px 72px rgba(0, 0, 0, 0.14);
 }
 .login-logo {
   width: 58px;
@@ -254,7 +255,7 @@ nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
 }
 .login-logo svg { width: 26px; height: 26px; }
 .login-box h2 {
@@ -343,7 +344,7 @@ nav {
   cursor: pointer;
   transition: background 0.2s ease, transform 0.12s ease, box-shadow 0.25s ease;
 }
-.submit-btn:hover { background: #1d1d1f; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+.submit-btn:hover { background: #1d1d1f; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); }
 .submit-btn:active { transform: scale(0.98); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
@@ -456,15 +457,19 @@ nav {
   opacity: 0.75;
 }
 .pricing-card--light {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-.pricing-card--accent {
-  background: #ffffff;
+  background: #f5f5f7;
+  border: 1px solid #e8e8ed;
   color: #1d1d1f;
 }
-.pricing-card--accent .amount { color: #000000; }
+.pricing-card--accent {
+  background: #000000;
+  color: #ffffff;
+}
+.pricing-card--accent .amount { color: #ffffff; }
+.pricing-card--accent .label { color: rgba(255, 255, 255, 0.6); }
+.pricing-card--accent .period, .pricing-card--accent .note { color: rgba(255, 255, 255, 0.6); }
+.pricing-card--accent .btn-primary { background: #ffffff; color: #000000; }
+.pricing-card--accent .btn-primary:hover { background: #f5f5f7; }
 
 /* ===== FOOTER ===== */
 footer {
@@ -472,7 +477,7 @@ footer {
   z-index: 2;
   margin-top: auto;
   padding: 48px 3rem 32px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 48px;
@@ -480,7 +485,7 @@ footer {
 .footer-brand p {
   margin-top: 12px;
   font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 0, 0, 0.5);
   max-width: 260px;
   line-height: 1.6;
 }
@@ -490,23 +495,23 @@ footer {
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(0, 0, 0, 0.7);
   margin-bottom: 16px;
 }
 .footer-cols a {
   display: block;
   font-size: 0.84rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(0, 0, 0, 0.5);
   text-decoration: none;
   margin-bottom: 10px;
   transition: color 0.3s ease;
 }
-.footer-cols a:hover { color: #ffffff; }
+.footer-cols a:hover { color: #000; }
 .footer-bottom {
   grid-column: 1 / -1;
   font-size: 0.72rem;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(0, 0, 0, 0.35);
 }
 
 /* ===== ENTRANCE MOTION ===== */
