@@ -562,6 +562,60 @@ export default function App() {
 
     closeBtn.addEventListener('click', closePanel);
 
+    /* --- Drag the keyboard to any position on screen (saved in localStorage) --- */
+    let dragState = null;
+
+    try {
+      const saved = localStorage.getItem('vkb-pos');
+      if (saved) {
+        const p = JSON.parse(saved);
+        if (p && typeof p.x === 'number' && typeof p.y === 'number') {
+          panel.style.left = p.x + 'px';
+          panel.style.top = p.y + 'px';
+          panel.style.right = 'auto';
+          panel.style.bottom = 'auto';
+        }
+      }
+    } catch (e) {
+      /* ignore malformed saved position */
+    }
+
+    topBar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.vkb-close')) return;
+      dragState = {
+        startX: e.clientX,
+        startY: e.clientY,
+        origLeft: panel.offsetLeft,
+        origTop: panel.offsetTop,
+      };
+      panel.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    const onVkbPointerMove = (e) => {
+      if (!dragState) return;
+      const x = dragState.origLeft + (e.clientX - dragState.startX);
+      const y = dragState.origTop + (e.clientY - dragState.startY);
+      panel.style.left = Math.max(0, Math.min(x, window.innerWidth - panel.offsetWidth)) + 'px';
+      panel.style.top = Math.max(0, Math.min(y, window.innerHeight - panel.offsetHeight)) + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+    };
+
+    const onVkbPointerUp = () => {
+      if (!dragState) return;
+      dragState = null;
+      panel.classList.remove('dragging');
+      try {
+        localStorage.setItem('vkb-pos', JSON.stringify({ x: panel.offsetLeft, y: panel.offsetTop }));
+      } catch (e) {
+        /* ignore */
+      }
+    };
+
+    document.addEventListener('pointermove', onVkbPointerMove);
+    document.addEventListener('pointerup', onVkbPointerUp);
+
     function onPanelClick(e) {
       const key = e.target.closest('.vkb-key');
       if (!key) return;
@@ -721,6 +775,8 @@ export default function App() {
       document.body.removeChild(panel);
       document.removeEventListener('focusin', onDocFocusIn);
       document.removeEventListener('keydown', onDocKeyDown);
+      document.removeEventListener('pointermove', onVkbPointerMove);
+      document.removeEventListener('pointerup', onVkbPointerUp);
       fieldHandlers.forEach(([f, f1, f2, f3, f4, f5, f6]) => {
         f.removeEventListener('focus', f1);
         f.removeEventListener('click', f2);
