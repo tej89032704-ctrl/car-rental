@@ -1,0 +1,138 @@
+import { useEffect, useState } from 'react';
+import { Routes, Route, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { api, clearSession, currentUser } from './api.js';
+import { CarIcon, ClipboardIcon, WalletIcon, ShieldIcon, BellIcon, LogoutIcon, MenuIcon, ChevronLeft } from '../../../packages/shared/src/icons.jsx';
+import './sidebar.css';
+import Login from './pages/Login.jsx';
+import Signup from './pages/Signup.jsx';
+import VerifyOtp from './pages/VerifyOtp.jsx';
+import Kyc from './pages/Kyc.jsx';
+import Cars from './pages/Cars.jsx';
+import CarEditor from './pages/CarEditor.jsx';
+import Requests from './pages/Requests.jsx';
+import Earnings from './pages/Earnings.jsx';
+import Notifications from './pages/Notifications.jsx';
+
+function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
+  const nav = useNavigate();
+  const [user, setUser] = useState(currentUser);
+  useEffect(() => {
+    const t = setInterval(() => setUser(JSON.parse(localStorage.getItem('user') || 'null')), 500);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!user) return null;
+
+  const links = [
+    { to: '/', icon: <CarIcon />, label: 'My Cars', end: true },
+    { to: '/requests', icon: <ClipboardIcon />, label: 'Booking Requests' },
+    { to: '/earnings', icon: <WalletIcon />, label: 'Earnings' },
+    { to: '/kyc', icon: <ShieldIcon />, label: 'Verification' },
+    { to: '/notifications', icon: <BellIcon />, label: 'Notifications' },
+  ];
+
+  return (
+    <>
+      <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
+      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#1CA9A3', '--brand-2': '#128F8A' }}>
+        <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}><ChevronLeft /></button>
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon" style={{ background: 'linear-gradient(135deg, #1CA9A3, #128F8A)' }}>O</div>
+          <div className="sidebar-logo-text">
+            <h2>OwnerHub</h2>
+            <span>Car Owner</span>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav">
+          <p className="sidebar-section-label">Management</p>
+          {links.map((l) => (
+            <NavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              onClick={() => setMobileOpen(false)}>
+              {l.icon}<span className="sidebar-link-text">{l.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="sidebar-user">
+          <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg, #1CA9A3, #128F8A)' }}>{user.name?.[0] || 'O'}</div>
+          <div className="sidebar-user-info">
+            <div className="name">{user.name}</div>
+            <div className="role">Car Owner</div>
+          </div>
+          <button className="sidebar-logout" title="Logout" onClick={() => { clearSession(); nav('/login'); }}>
+            <LogoutIcon />
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function Topbar({ mobileOpen, setMobileOpen }) {
+  const location = useLocation();
+  const titles = { '/': 'My Cars', '/requests': 'Booking Requests', '/earnings': 'Earnings & Payouts', '/kyc': 'Verification', '/notifications': 'Notifications' };
+  return (
+    <div className="topbar">
+      <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>
+      <span className="topbar-title">{titles[location.pathname] || 'OwnerHub'}</span>
+      <div className="topbar-actions" />
+    </div>
+  );
+}
+
+export default function App() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(currentUser);
+  const location = useLocation();
+
+  const authPages = ['/login', '/signup', '/verify-otp'];
+  const isAuth = authPages.includes(location.pathname);
+
+  useEffect(() => {
+    const t = setInterval(() => setUser(JSON.parse(localStorage.getItem('user') || 'null')), 500);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!user && !isAuth) {
+    return (
+      <Routes>
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  if (user && isAuth) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (isAuth) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <div className="sidebar-layout">
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <main className={`sidebar-main ${collapsed ? 'sidebar-collapsed' : ''}`}>
+        <Topbar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <div className="sidebar-content">
+          <Routes>
+            <Route path="/" element={<Cars />} />
+            <Route path="/cars/:id" element={<CarEditor />} />
+            <Route path="/requests" element={<Requests />} />
+            <Route path="/earnings" element={<Earnings />} />
+            <Route path="/kyc" element={<Kyc />} />
+            <Route path="/notifications" element={<Notifications />} />
+          </Routes>
+        </div>
+      </main>
+    </div>
+  );
+}

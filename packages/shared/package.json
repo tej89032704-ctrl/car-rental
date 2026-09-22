@@ -1,0 +1,17 @@
+{
+  "name": "@cr/shared",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    "./api": "./src/api.js",
+    "./icons": "./src/icons.jsx",
+    "./styles/*": "./styles/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,51 @@
+/* ═══════════════════════════════════════════════════════
+   Agent Web — Agent-Specific Component Styles
+   Brand: Amber/Orange #d97706
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Agent brand overrides ── */
+.agent-brand { --agent-brand: #d97706; --agent-brand-2: #b45309; }
+
+/* ── Agent visual panel ── */
+.auth-visual.agent-gradient {
+  background: linear-gradient(135deg, #1a3a2a 0%, #2d6a4f 50%, #40916c 100%);
+}
+.auth-visual.agent-gradient .mark { color: #fff; }
+.auth-visual.agent-gradient .tagline { color: rgba(255,255,255,.85); }
+
+/* ── Agent portal tag ── */
+.portal-tag.agent { color: #2d6a4f; }
+
+/* ── Agent button ── */
+.btn.agent-full {
+  width: 100%;
+  background: linear-gradient(135deg, #2d6a4f, #40916c);
+  margin-top: 4px;
+  padding: 12px;
+  font-size: 15px;
+}
+.btn.agent-full:hover { background: linear-gradient(135deg, #245a42, #357a5c); }
+
+/* ── Agent footer links ── */
+.agent-footer { margin-top: 22px; padding-top: 18px; border-top: 1px solid #d8f3dc; }
+.agent-footer .link-row { font-size: 13px; color: var(--muted); }
+.agent-footer .link-row + .link-row { margin-top: 4px; }
+.agent-footer .link-row a { color: #2d6a4f; font-weight: 700; font-size: 14px; }
+
+/* ── Agent card center (OTP, etc.) ── */
+.auth-card-center .portal-tag.agent { color: #2d6a4f; }
+
+/* ── Agent KYC action cell ── */
+.kyc-actions { display: flex; gap: 6px; }
+
+/* ── Agent note ── */
+.agent-note { margin-top: 14px; font-size: 12px; }
+
+/* ── Auth page form spacing ── */
+.auth-form-side .form-spaced { margin-bottom: 16px; }
+
+/* ── Centered action bar (resend OTP, etc.) ── */
+.action-bar-center { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+
+/* ── Centered note text ── */
+.text-center { text-align: center; }

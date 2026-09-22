@@ -1,0 +1,23 @@
+# Dependencies & build output
+node_modules/
+dist/
+
+# Local SQLite domain databases (schema is recreated via `npm run migrate` + `npm run seed:admin`)
+data/
+apps/api/data/
+
+# Uploaded files (owner photos, KYC documents, etc.)
+uploads/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs & OS junk
+*.log
+.DS_Store
+Thumbs.db
+
+# Scratch / temp
+tmp-*

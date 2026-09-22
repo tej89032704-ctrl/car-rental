@@ -1,0 +1,110 @@
+/* ═══════════════════════════════════════════════════════
+   Owner-Web Specific Component Styles
+   Brand: Teal #1CA9A3 (revv.co.in inspired)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Owner page layout ── */
+.owner-page { padding: 0 0 32px; }
+
+/* ── Utility spacing ── */
+.mt-8 { margin-top: 8px; }
+.mt-10 { margin-top: 10px; }
+.mt-12 { margin-top: 12px; }
+.mb-28 { margin-bottom: 28px; }
+.ml-8 { margin-left: 8px; }
+.text-center { text-align: center; }
+.mt-32 { margin-top: 32px; }
+.max-w-200 { max-width: 200px; }
+
+/* ── Button variants ── */
+.btn-approve { background: #1CA9A3; color: #fff; }
+.btn-approve:hover { background: #128F8A; }
+.btn-reject { background: #E66742; color: #fff; }
+.btn-reject:hover { background: #D55635; }
+.btn-start { background: #1CA9A3; color: #fff; }
+.btn-start:hover { background: #128F8A; }
+.btn-complete { background: #2C7DA0; color: #fff; }
+.btn-complete:hover { background: #1C6A8C; }
+.btn-review { background: #2C7DA0; color: #fff; }
+.btn-review:hover { background: #1C6A8C; }
+.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.btn-ghost:hover { background: #f9fafb; }
+
+/* ── Page header row (title + action) ── */
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* ── Section headings inside pages ── */
+.page-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Booking list layout ── */
+.booking-list { display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Booking card detail text ── */
+.booking-card-body { margin-top: 8px; }
+.booking-card-body p { margin: 2px 0; font-size: 13px; color: var(--muted); }
+.booking-card-body p strong { color: var(--ink); font-weight: 600; }
+.booking-card-body .meta-accent { font-size: 12px; color: #94a3b8; }
+
+/* ── Star rating input ── */
+.star-rating { display: flex; gap: 4px; }
+.star-rating button {
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  color: #d1d5db;
+  transition: color .1s;
+}
+.star-rating button.filled { color: #f59e0b; }
+.star-rating button:hover { color: #f59e0b; }
+
+/* ── Review modal extras ── */
+.review-form textarea.f { resize: vertical; min-height: 80px; font-family: inherit; }
+
+/* ── Empty state within booking sections ── */
+.empty-state-section {
+  text-align: center;
+  padding: 24px;
+  background: #f9fafb;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+.empty-state-section .empty-icon { font-size: 32px; margin-bottom: 8px; }
+.empty-state-section p { margin: 0; font-size: 14px; color: var(--muted); }
+
+/* ── Notification list container ── */
+.notification-list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+
+/* ── Kyc document row ── */
+.kyc-doc-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; flex-wrap: wrap; }
+.kyc-doc-row + .kyc-doc-row { border-top: 1px solid #f0f1f4; }
+.kyc-doc-label { font-size: 14px; font-weight: 600; color: var(--ink); min-width: 140px; }
+
+/* ── Car photo grid ── */
+.photo-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.photo-thumb { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; background: #eef1f6; }
+
+/* ── Car card footer ── */
+.card-footer-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+
+/* ── Misc ── */
+.fw-normal { font-weight: 400; }
+.h-fit { height: fit-content; }

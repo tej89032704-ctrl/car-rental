@@ -1,0 +1,51 @@
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { api } from '../api.js';
+import '../auth.css';
+
+export default function VerifyOtp() {
+  const { state } = useLocation();
+  const nav = useNavigate();
+  const [code, setCode] = useState(state?.devOtp || '');
+  const [err, setErr] = useState('');
+  const [info, setInfo] = useState('');
+
+  async function submit(e) {
+    e.preventDefault();
+    setErr('');
+    try {
+      await api('/auth/otp/phone/verify', { method: 'POST', body: { code } });
+      nav('/kyc');
+    } catch (e2) { setErr(e2.message); }
+  }
+
+  async function resend() {
+    try {
+      const r = await api('/auth/otp/phone/request', { method: 'POST' });
+      setInfo(r.dev_otp ? `Dev OTP: ${r.dev_otp}` : 'OTP sent again');
+    } catch (e2) { setInfo(e2.message); }
+  }
+
+  return (
+    <div className="auth-shell">
+      <div className="auth-card-center">
+        <div className="portal-tag">Phone Verification</div>
+        <h1>Verify your phone</h1>
+        <p className="sub">Enter the 6-digit code we sent you.</p>
+        {state?.devOtp && <div className="alert info">Dev mode OTP: <b>{state.devOtp}</b></div>}
+        {info && <div className="alert info">{info}</div>}
+        {err && <div className="alert err">{err}</div>}
+        <form onSubmit={submit}>
+          <div className="field">
+            <label className="f">Verification code</label>
+            <input className="f" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} required placeholder="000000" style={{ textAlign: 'center', fontSize: 20, fontWeight: 700, letterSpacing: 6 }} />
+          </div>
+          <button className="btn btn-full" style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #1CA9A3, #128F8A)', color: '#fff', border: 'none', cursor: 'pointer' }}>Verify</button>
+        </form>
+        <p style={{ marginTop: 16, textAlign: 'center' }}>
+          <button onClick={resend} style={{ background: 'none', border: 'none', color: '#1CA9A3', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 16px', borderRadius: 8, transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.background = 'rgba(28,169,163,0.06)'} onMouseLeave={e => e.target.style.background = 'none'}>Resend OTP</button>
+        </p>
+      </div>
+    </div>
+  );
+}
