@@ -5,6 +5,7 @@ dist/
 # Local SQLite domain databases (schema is recreated via `npm run migrate` + `npm run seed:admin`)
 data/
 apps/api/data/
+apps/api/data.*/
 
 # Uploaded files (owner photos, KYC documents, etc.)
 uploads/

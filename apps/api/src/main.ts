@@ -20,7 +20,7 @@ async function bootstrap() {
   const fleet = app.get(FleetService);
   try { fleet.syncCarCache(); } catch (e) { console.warn('car_cache sync failed:', String(e)); }
 
-  // periodic settlement sweep (deposit refunds + owner payouts after dispute window)
+  // periodic sweep: auto deposit refunds after the dispute window
   setInterval(() => {
     try { bookings.sweepSettlements(); } catch { /* logged by sqlite layer */ }
   }, 10 * 60 * 1000).unref();

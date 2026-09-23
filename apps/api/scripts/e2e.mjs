@@ -151,8 +151,13 @@ async function main() {
   ok('total = 2 days x 150000 = 300000', b.data.total_amount_paise === 300000, `got ${b.data.total_amount_paise}`);
 
   r = await req('POST', `/bookings/${bookingId}/decide`, { token: ownerToken, body: { decision: 'approve' } });
-  ok('owner approved -> partial captured', r.status === 200 && r.data.online_charged_paise > 0, JSON.stringify(r.data));
-  ok('20% of 300000 = 60000 held', r.data.rental_part_paise === 60000, `got ${r.data.rental_part_paise}`);
+  ok('owner approved -> booking confirmed', r.status === 200 && r.data.status === 'confirmed', JSON.stringify(r.data));
+
+  r = await req('POST', `/bookings/${bookingId}/pay`, { token: renterToken });
+  ok('renter pays 20% + deposit, invoice issued', r.status === 200 && r.data.online_paid_paise === 60000 && r.data.deposit_held_paise === 200000 && !!r.data.invoice_number, JSON.stringify(r.data));
+
+  r = await req('POST', `/bookings/${bookingId}/pay`, { token: renterToken });
+  ok('double payment blocked', r.status === 400, JSON.stringify(r.data));
 
   r = await req('POST', `/bookings/${bookingId}/start-trip`, { token: ownerToken });
   ok('trip started with cash recorded', r.status === 200);
@@ -198,7 +203,7 @@ async function main() {
 
   console.log('== 8. Cancellation tiers on second booking ==');
   const start2 = new Date(Date.now() + 48 * 3600e3).toISOString();
-  const end2 = new Date(Date.now() + 60 * 3600e3).toISOString();
+  const end2 = new Date(Date.now() + 72 * 3600e3).toISOString();
   r = await req('POST', '/bookings', { token: renterToken, body: { car_id: carId, start_date: start2, end_date: end2 } });
   const b2 = r.data.id;
   await req('POST', `/bookings/${b2}/decide`, { token: ownerToken, body: { decision: 'approve' } });

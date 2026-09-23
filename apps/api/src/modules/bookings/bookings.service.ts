@@ -22,6 +22,8 @@ export class BookingsService {
 
   private db() { return getDb('booking'); }
 
+  private pdb() { return getDb('payment'); }
+
   // ---------- Helpers ----------
   private b(id: string): any {
     const row = this.db().prepare(`SELECT * FROM bookings WHERE id = ?`).get(id) as any;
@@ -79,8 +81,17 @@ export class BookingsService {
     if (car.status !== 'active') throw new BadRequestException('Only active cars can be booked');
     if (car.is_deleted) throw new BadRequestException('Car is deleted');
 
-    const start = new Date(body.start_date + 'T00:00:00Z');
-    const end = new Date(body.end_date + 'T00:00:00Z');
+    // Accept either 'YYYY-MM-DD' or a full ISO datetime; normalize to a UTC day string
+    // so downstream consumers (cancel/extension/sweep) can rely on date-only values.
+    const toUtcDay = (s: string) => {
+      const d = new Date(s);
+      if (Number.isNaN(d.getTime())) throw new BadRequestException(`Invalid date: ${s}`);
+      return d.toISOString().slice(0, 10);
+    };
+    const startDay = toUtcDay(body.start_date);
+    const endDay = toUtcDay(body.end_date);
+    const start = new Date(`${startDay}T00:00:00Z`);
+    const end = new Date(`${endDay}T00:00:00Z`);
     if (end <= start) throw new BadRequestException('end_date must be after start_date');
     const days = Math.round((end.getTime() - start.getTime()) / 86400000);
     if (days < 1) throw new BadRequestException('Minimum 1 day');
@@ -90,7 +101,7 @@ export class BookingsService {
     const id = uuid();
     this.db().prepare(`INSERT INTO bookings (id, car_id, renter_id, owner_id, start_date, end_date, status, total_amount_paise, online_paid_paise, remaining_due_paise, security_deposit_paise, late_fee_paise, completed_at, cancelled_at, is_deleted, created_at, updated_at, created_by)
       VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 0, ?, ?, 0, NULL, NULL, 0, ?, ?, ?)`)
-      .run(id, body.car_id, renterId, car.owner_id, body.start_date, body.end_date, total, total,
+      .run(id, body.car_id, renterId, car.owner_id, startDay, endDay, total, total,
         car.security_deposit_paise || 0, now, now, renterId);
 
     writeAudit('booking', {
@@ -142,17 +153,21 @@ export class BookingsService {
     const daysUntilStart = Math.max(0, Math.round((startDate.getTime() - Date.now()) / 86400000));
 
     let tier: string, refund: number, penalty: number;
-    if (daysUntilStart >= 7 || b.status === 'requested') {
+    if (b.status === 'requested') {
       tier = 'free'; refund = b.total_amount_paise; penalty = 0;
-    } else if (daysUntilStart >= 2) {
+    } else if (daysUntilStart >= 1) {
+      // Spec 6.3: free cancellation >= 24h before start
+      tier = 'free'; refund = b.total_amount_paise; penalty = 0;
+    } else if (daysUntilStart === 0) {
+      // Spec 6.3: 50% within 24h of start
       tier = 'partial_50'; refund = Math.floor(b.total_amount_paise / 2); penalty = b.total_amount_paise - refund;
     } else {
       tier = 'no_refund'; refund = 0; penalty = b.total_amount_paise;
     }
 
     if (refund > 0) {
-      this.db().prepare(`UPDATE wallets SET balance_paise = balance_paise + ?, updated_at = ? WHERE user_id = ?`)
-        .run(refund, now, renterId);
+      // refunds are recorded in the payments ledger (payment.db), never in booking.db
+      this.payments.refundPartialRental(b, refund, `Cancellation (${tier})`, renterId);
     }
 
     this.db().prepare(`INSERT INTO cancellations (id, booking_id, cancelled_by, tier, refund_amount_paise, penalty_amount_paise, reason, created_at, updated_at, created_by)
@@ -200,10 +215,13 @@ export class BookingsService {
     if (b.is_deleted) throw new BadRequestException('Booking deleted');
 
     const oldEnd = new Date(b.end_date + 'T00:00:00Z');
-    const newEndD = new Date(newEnd + 'T00:00:00Z');
-    const additionalDays = Math.round((newEndD.getTime() - oldEnd.getTime()) / 86400000);
+    const newEndD = new Date(newEnd);
+    if (Number.isNaN(newEndD.getTime())) throw new BadRequestException(`Invalid date: ${newEnd}`);
+    const newEndDay = newEndD.toISOString().slice(0, 10);
+    const newEndDayD = new Date(`${newEndDay}T00:00:00Z`);
+    const additionalDays = Math.round((newEndDayD.getTime() - oldEnd.getTime()) / 86400000);
     if (additionalDays < 1) throw new BadRequestException('Minimum 1 additional day');
-    if (newEndD < oldEnd) throw new BadRequestException('new_end_date must be after current end_date');
+    if (newEndDayD < oldEnd) throw new BadRequestException('new_end_date must be after current end_date');
 
     const car = this.db().prepare(`SELECT * FROM car_cache WHERE id = ?`).get(b.car_id) as any;
     const additionalAmount = additionalDays * car.price_paise_per_day;
@@ -211,10 +229,17 @@ export class BookingsService {
     const extId = uuid();
     this.db().prepare(`INSERT INTO trip_extensions (id, booking_id, requested_end_date, additional_days, additional_amount_paise, status, created_at, updated_at, created_by)
       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`)
-      .run(extId, id, newEnd, additionalDays, additionalAmount, nowUtc(), nowUtc(), renterId);
+      .run(extId, id, newEndDay, additionalDays, additionalAmount, nowUtc(), nowUtc(), renterId);
 
     writeAudit('booking', { actor_id: renterId, action: 'extension.requested', entity_type: 'trip_extension', entity_id: extId, after_value: { booking_id: id, new_end_date: newEnd, additional_days: additionalDays, additional_amount_paise: additionalAmount } });
-    return { id: extId, status: 'pending' };
+    return {
+      id: extId,
+      extension_id: extId,
+      status: 'pending',
+      additional_days: additionalDays,
+      additional_amount_paise: additionalAmount,
+      requested_end_date: newEndDay,
+    };
   }
 
   // ---------- Owner: booking requests ----------
@@ -268,6 +293,8 @@ export class BookingsService {
     this.db().prepare(`UPDATE bookings SET status = 'ongoing', updated_at = ? WHERE id = ?`).run(nowUtc(), id);
     if ((b.remaining_due_paise) > 0) {
       this.payments.markPickupCashCollected(b, ownerId);
+      // cash/UPI was handed over at pickup -> nothing left due at the platform
+      this.db().prepare(`UPDATE bookings SET remaining_due_paise = 0, updated_at = ? WHERE id = ?`).run(nowUtc(), id);
     }
     writeAudit('booking', { actor_id: ownerId, action: 'trip.started', entity_type: 'booking', entity_id: id, after_value: { remaining_due_collected: b.remaining_due_paise } });
     this.notifier.notify(b.renter_id, 'trip', 'Trip started', 'Your trip has started. Drive safe!', ownerId);
@@ -288,7 +315,7 @@ export class BookingsService {
     }
     writeAudit('booking', { actor_id: ownerId, action: 'trip.completed', entity_type: 'booking', entity_id: id });
     this.notifier.notify(b.renter_id, 'trip', 'Trip completed', 'Your trip is complete. Thanks for driving with DriveNow!', ownerId);
-    return { message: 'Trip completed' };
+    return { message: 'Trip completed', late_fee_paise: b.late_fee_paise ?? 0 };
   }
 
   // ---------- Owner: decide extension ----------
@@ -301,8 +328,8 @@ export class BookingsService {
     const now = nowUtc();
     if (decision === 'approve') {
       this.db().prepare(`UPDATE trip_extensions SET status = 'approved', decided_by = ?, updated_at = ? WHERE id = ?`).run(ownerId, now, id);
-      this.db().prepare(`UPDATE bookings SET end_date = ?, remaining_due_paise = remaining_due_paise + additional_amount_paise, updated_at = ? WHERE id = ?`)
-        .run(ext.requested_end_date, now, ext.booking_id);
+      this.db().prepare(`UPDATE bookings SET end_date = ?, remaining_due_paise = remaining_due_paise + ?, updated_at = ? WHERE id = ?`)
+        .run(ext.requested_end_date, ext.additional_amount_paise, now, ext.booking_id);
       writeAudit('booking', { actor_id: ownerId, action: 'extension.approved', entity_type: 'trip_extension', entity_id: id, after_value: { booking_id: ext.booking_id, new_end_date: ext.requested_end_date } });
       return { message: 'Extension approved', status: 'approved' };
     }
@@ -407,20 +434,30 @@ export class BookingsService {
   }
 
   // ---------- Admin: sweep settlements (lazy pass) ----------
+  /**
+   * After the dispute window (deposit_refund_hours setting, default 24h) elapses from
+   * completed_at, auto-refunds the security deposit for completed trips that have no
+   * open dispute and no existing deposit refund. Ledger writes happen in payment.db.
+   */
   sweepSettlements(): { swept: number } {
-    const completed = this.db().prepare(`SELECT id, remaining_due_paise, online_paid_paise, total_amount_paise FROM bookings WHERE status = 'completed' AND remaining_due_paise > 0 AND is_deleted = 0`).all() as any[];
+    const hours = this.payments.getSettingInt('deposit_refund_hours') || 24;
+    const cutoff = Date.now() - hours * 3600000;
+    const rows = this.db().prepare(
+      `SELECT * FROM bookings WHERE status = 'completed' AND is_deleted = 0 AND completed_at IS NOT NULL AND security_deposit_paise > 0`,
+    ).all() as any[];
     let swept = 0;
-    for (const b of completed) {
-      const due = b.remaining_due_paise;
-      if (due > 0) {
-        this.db().prepare(`UPDATE wallets SET balance_paise = balance_paise + ?, updated_at = ? WHERE user_id = ?`)
-          .run(due, nowUtc(), b.owner_id);
-        this.db().prepare(`INSERT INTO transactions (id, booking_id, payer_id, payee_id, amount_paise, type, method, status, created_at, updated_at, created_by)
-          VALUES (?, ?, ?, ?, ?, 'owner_settlement', 'auto', 'captured', ?, ?, ?)`)
-          .run(uuid(), b.id, b.renter_id, b.owner_id, due, nowUtc(), nowUtc(), b.owner_id);
-        this.db().prepare(`UPDATE bookings SET remaining_due_paise = 0, updated_at = ? WHERE id = ?`).run(nowUtc(), b.id);
-        swept++;
-      }
+    for (const b of rows) {
+      const completedAt = String(b.completed_at).trim();
+      // SQLite datetime() writes 'YYYY-MM-DD HH:MM:SS' (UTC); normalize to ISO before parsing
+      const iso = completedAt.includes('T') ? completedAt
+        : `${completedAt.replace(' ', 'T')}Z`;
+      const ms = Date.parse(iso);
+      if (Number.isNaN(ms) || ms > cutoff) continue;
+      const openDispute = this.db().prepare(`SELECT id FROM disputes WHERE booking_id = ? AND status = 'open' AND is_deleted = 0`).get(b.id);
+      const already = this.pdb().prepare(`SELECT id FROM transactions WHERE booking_id = ? AND type = 'deposit_refund'`).get(b.id);
+      if (openDispute || already) continue;
+      this.payments.refundDeposit(b, `Auto refund after dispute window (${hours}h)`, 'system');
+      swept++;
     }
     return { swept };
   }
