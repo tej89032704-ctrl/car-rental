@@ -271,19 +271,52 @@ export class BookingsService {
 
   // ---------- Owner: booking requests ----------
   async bookingRequestsForOwner(ownerId: string): Promise<any[]> {
-    return await (await this.db().prepare(`SELECT * FROM bookings WHERE owner_id = ? AND status = 'requested' AND is_deleted = 0 ORDER BY created_at DESC`).all(ownerId)).map((r: any) => this.row2b(r));
+    // requested + confirmed + ongoing: the Requests page also hosts Start Trip /
+    // Complete actions, so approved and in-progress trips must stay visible here.
+    const rows = await this.db().prepare(`SELECT * FROM bookings WHERE owner_id = ? AND status IN ('requested','confirmed','ongoing') AND is_deleted = 0 ORDER BY created_at DESC`).all(ownerId) as any[];
+    return await Promise.all(rows.map(async (r: any) => ({
+      ...this.row2b(r),
+      renter: await this.renterProfile(r.renter_id),
+    })));
+  }
+
+  /** Requesting renter's name + the rating/comments other owners left for them. */
+  private async renterProfile(renterId: string) {
+    const u = await getDb('auth').prepare(`SELECT id, name FROM users WHERE id = ?`).get(renterId) as any;
+    const stats = await this.db().prepare(`
+      SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS avg_rating
+      FROM reviews WHERE target_type = 'renter' AND target_user_id = ? AND is_deleted = 0
+    `).get(renterId) as any;
+    const rows = await this.db().prepare(`
+      SELECT reviewer_id, rating, comment, created_at FROM reviews
+      WHERE target_type = 'renter' AND target_user_id = ? AND is_deleted = 0 AND comment IS NOT NULL
+      ORDER BY created_at DESC LIMIT 3
+    `).all(renterId) as any[];
+    const adb = getDb('auth');
+    const recent_comments = await Promise.all(rows.map(async (r: any) => ({
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      reviewer_name: (await adb.prepare(`SELECT name FROM users WHERE id = ?`).get(r.reviewer_id) as any)?.name ?? 'Owner',
+    })));
+    return {
+      id: renterId,
+      name: u?.name ?? 'Renter',
+      avg_rating: Math.round((stats.avg_rating || 0) * 10) / 10,
+      total_reviews: stats.count,
+      recent_comments,
+    };
   }
 
   // ---------- Owner: completed bookings ----------
   async completedBookingsForOwner(ownerId: string): Promise<any[]> {
     return await Promise.all((await this.db().prepare(`SELECT * FROM bookings WHERE owner_id = ? AND status = 'completed' AND is_deleted = 0 ORDER BY completed_at DESC`).all(ownerId)).map(async (r: any) => {
       const car = await this.db().prepare(`SELECT * FROM car_cache WHERE id = ?`).get(r.car_id) as any;
-      const renter = await getDb('auth').prepare(`SELECT id, name FROM users WHERE id = ?`).get(r.renter_id) as any;
       const review = await this.db().prepare(`SELECT * FROM reviews WHERE booking_id = ? AND reviewer_id = ? AND is_deleted = 0`).get(r.id, ownerId) as any;
       return {
         ...this.row2b(r),
         car: car ? { id: car.id, brand: car.brand, model: car.model, plate: car.plate } : null,
-        renter: renter ? { id: renter.id, name: renter.name } : null,
+        renter: await this.renterProfile(r.renter_id),
         has_reviewed: !!review,
       };
     }));
@@ -372,26 +405,32 @@ export class BookingsService {
     if (b.status !== 'completed') throw new BadRequestException('Can only review completed trips');
     if (b.is_deleted) throw new BadRequestException('Booking deleted');
 
-    const existing = await this.db().prepare(`SELECT * FROM reviews WHERE booking_id = ? AND reviewer_id = ? AND is_deleted = 0`).all(data.booking_id, userId) as any[];
-    if (existing.length > 0) throw new BadRequestException('Already reviewed this booking');
+    const existing = await this.db().prepare(`SELECT id FROM reviews WHERE booking_id = ? AND reviewer_id = ? AND is_deleted = 0`).get(data.booking_id, userId);
+    if (existing) throw new BadRequestException('Already reviewed this booking');
 
-    let targetType: 'car' | 'owner' | 'renter';
-    let targetUserId: string;
-    if (role === 'car_renter') {
-      targetType = 'owner';
-      targetUserId = b.owner_id;
-    } else {
-      targetType = 'car';
-      targetUserId = b.car_id;
+    // One renter submission rates both targets: the car (what future renters see
+    // while booking) and the owner. The owner's submission rates the renter — so
+    // both sides rate each other and the car's rating comes from real trips.
+    const targets: { type: 'car' | 'owner' | 'renter'; id: string }[] =
+      role === 'car_renter'
+        ? [{ type: 'car', id: b.car_id }, { type: 'owner', id: b.owner_id }]
+        : [{ type: 'renter', id: b.renter_id }];
+
+    const now = nowUtc();
+    let firstId = '';
+    for (const t of targets) {
+      const id = uuid();
+      if (!firstId) firstId = id;
+      await this.db().prepare(`INSERT INTO reviews (id, booking_id, reviewer_id, target_type, target_user_id, rating, comment, is_deleted, created_at, updated_at, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`)
+        .run(id, data.booking_id, userId, t.type, t.id, data.rating, data.comment || null, now, now, userId);
     }
 
-    const id = uuid();
-    await this.db().prepare(`INSERT INTO reviews (id, booking_id, reviewer_id, target_type, target_user_id, rating, comment, is_deleted, created_at, updated_at, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`)
-      .run(id, data.booking_id, userId, targetType, targetUserId, data.rating, data.comment || null, nowUtc(), nowUtc(), userId);
-
-    writeAudit('booking', { actor_id: userId, action: 'review.created', entity_type: 'review', entity_id: id, after_value: { booking_id: data.booking_id, rating: data.rating } });
-    return { id, rating: data.rating, comment: data.comment || null };
+    writeAudit('booking', {
+      actor_id: userId, action: 'review.created', entity_type: 'review', entity_id: firstId,
+      after_value: { booking_id: data.booking_id, rating: data.rating, targets: targets.map((t) => t.type) },
+    });
+    return { id: firstId, rating: data.rating, comment: data.comment || null, targets: targets.map((t) => t.type) };
   }
 
   // ---------- Both: disputes ----------

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, currentUser } from '../api.js';
+import { RatingSummary } from '../../../../packages/shared/src/Reviews.jsx';
 
 export default function Search() {
   const [cars, setCars] = useState([]);
@@ -45,7 +46,10 @@ export default function Search() {
             <div className="car-body">
               <div className="car-title">{c.make} {c.model}{c.category && <span className="car-cat">{c.category}</span>}{c.verification_status === 'verified' && <span className="pill active" style={{ marginLeft: 6, fontSize: 11 }}>RC verified ✓</span>}</div>
               <div className="car-meta">{c.year} · {c.category} · {c.transmission} · {c.seats} seats</div>
-              <div className="price">₹{(c.daily_rate_paise / 100).toFixed(0)}/day</div>
+              <div className="car-rating-row">
+                <span className="price">₹{(c.daily_rate_paise / 100).toFixed(0)}/day</span>
+                <RatingSummary avg={c.avg_rating} count={c.total_reviews} emptyText="No reviews yet" />
+              </div>
             </div>
           </Link>
         ))}

@@ -271,7 +271,25 @@ export class FleetService {
     const params: any[] = [];
     if (category) { sql += ` AND c.category = ?`; params.push(category); }
     sql += ` ORDER BY c.created_at DESC`;
-    return await this.db().prepare(sql).all(...params);
+    const rows = await this.db().prepare(sql).all(...params) as any[];
+    // Ratings live in the booking DB, keyed by car id — attach per-car aggregates
+    // so a renter sees the car's rating while browsing/before booking.
+    if (rows.length) {
+      const ids = rows.map((r) => r.id);
+      const stats = await getDb('booking').prepare(`
+        SELECT target_user_id, COUNT(*) AS count, COALESCE(AVG(rating), 0) AS avg_rating
+        FROM reviews
+        WHERE target_type = 'car' AND target_user_id IN (${ids.map(() => '?').join(',')}) AND is_deleted = 0
+        GROUP BY target_user_id
+      `).all(...ids) as any[];
+      const byId = new Map(stats.map((s: any) => [s.target_user_id, s]));
+      for (const r of rows) {
+        const s = byId.get(r.id);
+        r.total_reviews = s ? s.count : 0;
+        r.avg_rating = s ? Math.round(s.avg_rating * 10) / 10 : 0;
+      }
+    }
+    return rows;
   }
 
   async ownerDailyRateMissing(carId: string) {
@@ -283,12 +301,15 @@ export class FleetService {
     // reviews live in the `booking` DB; reviewer names live in the `auth` DB
     const bdb = getDb('booking');
     const adb = getDb('auth');
+    // a car owner rating their own car is a self-review — never count it
+    const car = await this.db().prepare(`SELECT owner_id FROM cars WHERE id = ?`).get(carId) as any;
+    const ownerId = car?.owner_id ?? '__none__';
     const rows = await bdb.prepare(`
       SELECT r.id, r.booking_id, r.reviewer_id, r.rating, r.comment, r.created_at
       FROM reviews r
-      WHERE r.target_type = 'car' AND r.target_user_id = ? AND r.is_deleted = 0
+      WHERE r.target_type = 'car' AND r.target_user_id = ? AND r.reviewer_id <> ? AND r.is_deleted = 0
       ORDER BY r.created_at DESC
-    `).all(carId) as any[];
+    `).all(carId, ownerId) as any[];
     const nameStmt = adb.prepare(`SELECT name FROM users WHERE id = ?`);
     const reviews = await Promise.all(rows.map(async (r) => ({
       id: r.id,
@@ -300,8 +321,8 @@ export class FleetService {
     })));
     const stats = await bdb.prepare(`
       SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS avg_rating
-      FROM reviews WHERE target_type = 'car' AND target_user_id = ? AND is_deleted = 0
-    `).get(carId) as any;
+      FROM reviews WHERE target_type = 'car' AND target_user_id = ? AND reviewer_id <> ? AND is_deleted = 0
+    `).get(carId, ownerId) as any;
     return { reviews, avg_rating: Math.round(stats.avg_rating * 10) / 10, total_reviews: stats.count };
   }
 }

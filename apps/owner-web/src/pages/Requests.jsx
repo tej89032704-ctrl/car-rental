@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, setSession } from '../api.js';
 import { useNavigate } from 'react-router-dom';
+import { RatingSummary, ReviewComments } from '../../../../packages/shared/src/Reviews.jsx';
 
 export default function Requests() {
   const [requests, setRequests] = useState([]);
@@ -15,25 +16,22 @@ export default function Requests() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const navigate = useNavigate();
 
+  // shared api() returns parsed data and throws Error(message) on failure;
+  // it attaches Authorization itself, so no headers option here.
   const load = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const [reqRes, extRes, compRes] = await Promise.all([
-        api('/bookings/requests', { headers: { Authorization: `Bearer ${token || ''}` } }),
-        api('/extensions', { headers: { Authorization: `Bearer ${token || ''}` } }),
-        api('/bookings/completed', { headers: { Authorization: `Bearer ${token || ''}` } }),
+      const [reqData, extData, compData] = await Promise.all([
+        api('/bookings/requests'),
+        api('/extensions'),
+        api('/bookings/completed'),
       ]);
-      if (reqRes.ok && extRes.ok && compRes.ok) {
-        setRequests(await reqRes.json());
-        setExtensions(await extRes.json() || []);
-        setCompleted(await compRes.json() || []);
-      } else {
-        const j = await reqRes.json().catch(() => ({}));
-        if (reqRes.status === 401) { navigate('/login'); return; }
-        setError(j.message || `Failed to load (HTTP ${reqRes.status})`);
-      }
+      setRequests(Array.isArray(reqData) ? reqData : []);
+      setExtensions(Array.isArray(extData) ? extData : []);
+      setCompleted(Array.isArray(compData) ? compData : []);
+      setError('');
     } catch (e) {
-      setError('Network error — check your connection');
+      if (String(e.message || '').includes('(401)')) { navigate('/login'); return; }
+      setError(e.message || 'Network error — check your connection');
     } finally {
       setLoading(false);
     }
@@ -44,54 +42,36 @@ export default function Requests() {
   const doDecide = async function(id, decision) {
     setActionLoading(id);
     try {
-      const res = await api(`/bookings/${id}/decide`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision }),
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || `Decide failed (HTTP ${res.status})`); }
-    } catch (e) { setError('Network error'); }
+      await api(`/bookings/${id}/decide`, { method: 'POST', body: { decision } });
+      load();
+    } catch (e) { setError(e.message || 'Decide failed'); }
     finally { setActionLoading(null); }
   };
 
   const doStartTrip = async function(id) {
     setActionLoading(id);
     try {
-      const res = await api(`/bookings/${id}/start-trip`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || 'Start trip failed'); }
-    } catch (e) { setError('Network error'); }
+      await api(`/bookings/${id}/start-trip`, { method: 'POST' });
+      load();
+    } catch (e) { setError(e.message || 'Start trip failed'); }
     finally { setActionLoading(null); }
   };
 
   const doComplete = async function(id) {
     setActionLoading(id);
     try {
-      const res = await api(`/bookings/${id}/complete`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || 'Complete trip failed'); }
-    } catch (e) { setError('Network error'); }
+      await api(`/bookings/${id}/complete`, { method: 'POST' });
+      load();
+    } catch (e) { setError(e.message || 'Complete trip failed'); }
     finally { setActionLoading(null); }
   };
 
   const doExtensionDecide = async function(id, decision) {
     setActionLoading(id);
     try {
-      const res = await api(`/extensions/${id}/decide`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision }),
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || 'Extension decision failed'); }
-    } catch (e) { setError('Network error'); }
+      await api(`/extensions/${id}/decide`, { method: 'POST', body: { decision } });
+      load();
+    } catch (e) { setError(e.message || 'Extension decision failed'); }
     finally { setActionLoading(null); }
   };
 
@@ -100,14 +80,9 @@ export default function Requests() {
     if (!reason || reason.length < 5) return;
     setActionLoading(id);
     try {
-      const res = await api('/disputes', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_id: id, reason }),
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || 'Dispute raise failed'); }
-    } catch (e) { setError('Network error'); }
+      await api('/disputes', { method: 'POST', body: { booking_id: id, reason } });
+      load();
+    } catch (e) { setError(e.message || 'Dispute raise failed'); }
     finally { setActionLoading(null); }
   };
 
@@ -115,14 +90,12 @@ export default function Requests() {
     if (!reviewBooking) return;
     setReviewLoading(true);
     try {
-      const res = await api('/reviews/renter', {
+      await api('/reviews/renter', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_id: reviewBooking.id, rating: reviewRating, comment: reviewComment || undefined }),
+        body: { booking_id: reviewBooking.id, rating: reviewRating, comment: reviewComment || undefined },
       });
-      if (res.ok) { setReviewBooking(null); setReviewRating(5); setReviewComment(''); load(); }
-      else { const j = await res.json(); setError(j.message || 'Review failed'); }
-    } catch (e) { setError('Network error'); }
+      setReviewBooking(null); setReviewRating(5); setReviewComment(''); load();
+    } catch (e) { setError(e.message || 'Review failed'); }
     finally { setReviewLoading(false); }
   };
 
@@ -186,14 +159,23 @@ export default function Requests() {
                 <div className="booking-card-body">
                   <h3>{r.car?.brand} {r.car?.model} <span className="muted">({r.car?.plate})</span></h3>
                   <p>{new Date(r.start_date).toLocaleDateString()} → {new Date(r.end_date).toLocaleDateString()}</p>
-                  <p className="meta-accent">Renter: {r.renter_id} · ₹{(r.total_amount_paise / 100).toFixed(2)}</p>
+                  <p className="meta-accent">Requested by {r.renter?.name || r.renter_id} · ₹{(r.total_amount_paise / 100).toFixed(2)}</p>
+                  <div className="requester-trust">
+                    <RatingSummary avg={r.renter?.avg_rating} count={r.renter?.total_reviews} emptyText="New renter — no reviews yet" />
+                    <span className="requester-label">Renter rating &amp; comments</span>
+                  </div>
+                  <ReviewComments comments={r.renter?.recent_comments} />
                 </div>
                 <span className="booking-status pill requested">{r.status}</span>
               </div>
               <div className="booking-card-footer">
                 <div className="booking-card-actions">
-                  <button className="btn btn-approve" onClick={() => doDecide(r.id, 'approve')} disabled={actionLoading === r.id}>Approve</button>
-                  <button className="btn btn-reject" onClick={() => doDecide(r.id, 'reject')} disabled={actionLoading === r.id}>Reject</button>
+                  {r.status === 'requested' && (
+                    <>
+                      <button className="btn btn-approve" onClick={() => doDecide(r.id, 'approve')} disabled={actionLoading === r.id}>Approve</button>
+                      <button className="btn btn-reject" onClick={() => doDecide(r.id, 'reject')} disabled={actionLoading === r.id}>Reject</button>
+                    </>
+                  )}
                   {r.status === 'confirmed' && (
                     <button className="btn btn-start" onClick={() => doStartTrip(r.id)} disabled={actionLoading === r.id}>Start Trip</button>
                   )}
@@ -254,6 +236,7 @@ export default function Requests() {
                   <h3>{c.car?.brand} {c.car?.model} <span className="muted">({c.car?.plate})</span></h3>
                   <p>{new Date(c.start_date).toLocaleDateString()} → {new Date(c.end_date).toLocaleDateString()}</p>
                   <p className="meta-accent">Renter: {c.renter?.name || c.renter_id} · ₹{(c.total_amount_paise / 100).toFixed(2)}</p>
+                  <RatingSummary avg={c.renter?.avg_rating} count={c.renter?.total_reviews} emptyText="No reviews for this renter yet" />
                 </div>
                 <span className="booking-status pill completed">completed</span>
               </div>

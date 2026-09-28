@@ -13,17 +13,18 @@ export default function BookingDetail() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
+  // shared api() returns parsed data and throws Error(message) on failure;
+  // it attaches Authorization itself, so no headers option here.
   const load = async () => {
     try {
-      const res = await api(`/bookings/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } });
-      if (res.ok) { setB(await res.json()); setErr(''); }
-      else {
-        const j = await res.json().catch(() => ({}));
-        if (res.status === 401) { nav('/login'); return; }
-        setErr(j.message || `Failed to load (HTTP ${res.status})`);
-      }
-    } catch (e) { setErr('Network error — check your connection'); }
-    finally { setLoading(false); }
+      const data = await api(`/bookings/${id}`);
+      setB(data); setErr('');
+    } catch (e) {
+      if (String(e.message || '').includes('(401)')) { nav('/login'); return; }
+      setErr(e.message || 'Network error — check your connection');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [id]);
@@ -31,16 +32,10 @@ export default function BookingDetail() {
   const doPay = async () => {
     setBusy(true); setMsg('');
     try {
-      const res = await api(`/bookings/${id}/pay`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-      });
-      if (res.ok) {
-        const j = await res.json();
-        setMsg(`Payment successful — ₹${(j.online_paid_paise / 100).toFixed(0)} paid online${j.invoice_number ? ` (invoice ${j.invoice_number})` : ''}.`);
-        load();
-      } else { const j = await res.json(); setErr(j.message || 'Payment failed'); }
-    } catch (e) { setErr('Network error'); }
+      const j = await api(`/bookings/${id}/pay`, { method: 'POST' });
+      setMsg(`Payment successful — ₹${(j.online_paid_paise / 100).toFixed(0)} paid online${j.invoice_number ? ` (invoice ${j.invoice_number})` : ''}.`);
+      load();
+    } catch (e) { setErr(e.message || 'Payment failed'); }
     finally { setBusy(false); }
   };
 
@@ -48,23 +43,18 @@ export default function BookingDetail() {
     if (!window.confirm('Cancel this booking?')) return;
     setBusy(true);
     try {
-      const res = await api(`/bookings/${id}/cancel`, {
+      const j = await api(`/bookings/${id}/cancel`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'Cancelled from booking details' }),
+        body: { reason: 'Cancelled from booking details' },
       });
-      if (res.ok) {
-        const j = await res.json().catch(() => null);
-        if (j && typeof j.refund_amount_paise === 'number' && typeof j.penalty_amount_paise === 'number') {
-          const parts = [`Booking cancelled (${j.message}).`];
-          if (j.refund_amount_paise > 0) parts.push(`Refund ₹${(j.refund_amount_paise / 100).toFixed(0)} to your wallet`);
-          if (j.penalty_amount_paise > 0) parts.push(`₹${(j.penalty_amount_paise / 100).toFixed(0)} retained as cancellation fee`);
-          setMsg(parts.join(' '));
-        } else setMsg('Booking cancelled.');
-        load();
-      }
-      else { const j = await res.json(); setErr(j.message || 'Cancel failed'); }
-    } catch (e) { setErr('Network error'); }
+      if (j && typeof j.refund_amount_paise === 'number' && typeof j.penalty_amount_paise === 'number') {
+        const parts = [`Booking cancelled (${j.message}).`];
+        if (j.refund_amount_paise > 0) parts.push(`Refund ₹${(j.refund_amount_paise / 100).toFixed(0)} to your wallet`);
+        if (j.penalty_amount_paise > 0) parts.push(`₹${(j.penalty_amount_paise / 100).toFixed(0)} retained as cancellation fee`);
+        setMsg(parts.join(' '));
+      } else setMsg('Booking cancelled.');
+      load();
+    } catch (e) { setErr(e.message || 'Cancel failed'); }
     finally { setBusy(false); }
   };
 
@@ -78,7 +68,7 @@ export default function BookingDetail() {
   if (err && !b) return (
     <div className="auth-box card">
       <p className="error">{err}</p>
-      <button className="btn" onClick={nav('/bookings')}>Back to bookings</button>
+      <button className="btn" onClick={() => nav('/bookings')}>Back to bookings</button>
     </div>
   );
 

@@ -60,6 +60,11 @@
 .booking-card-body p strong { color: var(--ink); font-weight: 600; }
 .booking-card-body .meta-accent { font-size: 12px; color: #86868b; }
 
+/* ── Renter trust info on an incoming booking request ── */
+.requester-trust { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; flex-wrap: wrap; }
+.requester-trust .rating-inline { margin: 0; font-size: 13px; }
+.requester-label { font-size: 11px; color: #86868b; text-transform: uppercase; letter-spacing: .04em; }
+
 /* ── Star rating input ── */
 .star-rating { display: flex; gap: 4px; }
 .star-rating button {

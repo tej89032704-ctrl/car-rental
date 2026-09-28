@@ -71,6 +71,16 @@
   font-size: 13px;
 }
 
+/* ── Car card: price + rating on one row (Search) ── */
+.car-rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.car-rating-row .rating-inline { margin: 0; font-size: 13px; }
+
 /* ── Booking status colors ── */
 .booking-status.status-completed {
   background: #1d1d1f; color: #ffffff; border-color: #1d1d1f;

@@ -15,19 +15,16 @@ export default function MyBookings() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const navigate = useNavigate();
 
+  // shared api() returns parsed data and throws Error(message) on failure;
+  // it attaches Authorization itself, so no headers option here.
   const load = async () => {
     try {
-      const res = await api('/bookings/my', { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } });
-      if (res.ok) {
-        const data = await res.json();
-        setBookings(data);
-      } else {
-        const j = await res.json().catch(() => ({}));
-        if (res.status === 401) { navigate('/login'); return; }
-        setError(j.message || `Failed to load (HTTP ${res.status})`);
-      }
+      const data = await api('/bookings/my');
+      setBookings(Array.isArray(data) ? data : []);
+      setError('');
     } catch (e) {
-      setError('Network error — check your connection');
+      if (String(e.message || '').includes('(401)')) { navigate('/login'); return; }
+      setError(e.message || 'Network error — check your connection');
     } finally {
       setLoading(false);
     }
@@ -39,14 +36,9 @@ export default function MyBookings() {
     if (!cancelReason.trim()) return;
     setActionLoading(cancelId);
     try {
-      const res = await api(`/bookings/${cancelId}/cancel`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: cancelReason }),
-      });
-      if (res.ok) { setCancelReason(''); load(); }
-      else { const j = await res.json(); setError(j.message || 'Cancel failed'); }
-    } catch (e) { setError('Network error'); }
+      await api(`/bookings/${cancelId}/cancel`, { method: 'POST', body: { reason: cancelReason } });
+      setCancelReason(''); load();
+    } catch (e) { setError(e.message || 'Cancel failed'); }
     finally { setActionLoading(null); }
   };
 
@@ -54,14 +46,9 @@ export default function MyBookings() {
     if (!extNewEnd.trim()) return;
     setActionLoading(extendId);
     try {
-      const res = await api(`/bookings/${extendId}/extend`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ new_end_date: extNewEnd }),
-      });
-      if (res.ok) { setExtNewEnd(''); load(); }
-      else { const j = await res.json(); setError(j.message || 'Extension request failed'); }
-    } catch (e) { setError('Network error'); }
+      await api(`/bookings/${extendId}/extend`, { method: 'POST', body: { new_end_date: extNewEnd } });
+      setExtNewEnd(''); load();
+    } catch (e) { setError(e.message || 'Extension request failed'); }
     finally { setActionLoading(null); }
   };
 
@@ -69,13 +56,9 @@ export default function MyBookings() {
     if (!window.confirm('Pay the 20% online portion now to confirm this booking?')) return;
     setActionLoading(payId);
     try {
-      const res = await api(`/bookings/${payId}/pay`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || 'Payment failed'); }
-    } catch (e) { setError('Network error'); }
+      await api(`/bookings/${payId}/pay`, { method: 'POST' });
+      load();
+    } catch (e) { setError(e.message || 'Payment failed'); }
     finally { setActionLoading(null); }
   };
 
@@ -83,14 +66,12 @@ export default function MyBookings() {
     if (!reviewBooking) return;
     setReviewLoading(true);
     try {
-      const res = await api('/reviews', {
+      await api('/reviews', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_id: reviewBooking.id, rating: reviewRating, comment: reviewComment || undefined }),
+        body: { booking_id: reviewBooking.id, rating: reviewRating, comment: reviewComment || undefined },
       });
-      if (res.ok) { setReviewBooking(null); setReviewRating(5); setReviewComment(''); load(); }
-      else { const j = await res.json(); setError(j.message || 'Review failed'); }
-    } catch (e) { setError('Network error'); }
+      setReviewBooking(null); setReviewRating(5); setReviewComment(''); load();
+    } catch (e) { setError(e.message || 'Review failed'); }
     finally { setReviewLoading(false); }
   };
 
@@ -99,14 +80,9 @@ export default function MyBookings() {
     if (!reason || reason.length < 5) return;
     setActionLoading(disputeId);
     try {
-      const res = await api('/disputes', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_id: disputeId, reason }),
-      });
-      if (res.ok) { load(); }
-      else { const j = await res.json(); setError(j.message || 'Dispute raise failed'); }
-    } catch (e) { setError('Network error'); }
+      await api('/disputes', { method: 'POST', body: { booking_id: disputeId, reason } });
+      load();
+    } catch (e) { setError(e.message || 'Dispute raise failed'); }
     finally { setActionLoading(null); }
   };
 
@@ -144,7 +120,7 @@ export default function MyBookings() {
         <div className="modal-overlay" onClick={() => { setReviewBooking(null); setReviewComment(''); setReviewRating(5); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Leave a review for {reviewBooking.car?.brand} {reviewBooking.car?.model}</h3>
+              <h3>Review {reviewBooking.car?.brand} {reviewBooking.car?.model} &amp; its owner</h3>
             </div>
             <div className="form-group">
               <label className="f">Rating</label>
@@ -163,7 +139,7 @@ export default function MyBookings() {
               <textarea className="f" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3}
                 placeholder="How was your experience?" />
             </div>
-            <p className="form-hint">Share details about your rental experience</p>
+            <p className="form-hint">One review rates both the car and the owner — it shows on the car's page for future renters and in the owner's rating.</p>
             <div className="modal-actions">
               <button className="btn" onClick={doReview} disabled={reviewLoading}>
                 {reviewLoading ? 'Submitting…' : 'Submit Review'}
@@ -222,7 +198,7 @@ export default function MyBookings() {
                       {b.has_reviewed ? (
                         <span style={{ color: '#1d1d1f', fontSize: 13, fontWeight: 500, padding: '6px 0' }}>✓ Reviewed</span>
                       ) : (
-                        <button className="btn" onClick={() => setReviewBooking(b)}>Review Owner</button>
+                        <button className="btn" onClick={() => setReviewBooking(b)}>Rate car &amp; owner</button>
                       )}
                       <button className="btn bad" onClick={() => doDispute(b.id)} disabled={actionLoading === b.id}>Report Problem</button>
                     </>

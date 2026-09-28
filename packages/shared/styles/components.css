@@ -61,6 +61,15 @@
 .review-card-comment { margin: 0; font-size: 13px; color: #6e6e73; line-height: 1.55; }
 .review-card-date { margin: 6px 0 0; font-size: 12px; color: #86868b; }
 
+/* ── Reviews: stars & rating summary (shared by every portal) ── */
+.stars { font-size: 14px; letter-spacing: 1px; }
+.stars .stars-on { color: #ffb300; }
+.stars .stars-off { color: #d2d2d7; }
+.rating-inline { margin: 4px 0; font-size: 14px; font-weight: 600; color: #6e6e73; }
+.rating-inline .count { color: #86868b; font-weight: 400; font-size: 13px; }
+.rating-inline.muted { color: #86868b; font-weight: 400; font-size: 13px; }
+.review-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+
 /* ── Booking card (used in MyBookings, Requests) ── */
 .booking-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; box-shadow: var(--shadow-sm, 0 2px 12px rgba(0,0,0,.04)); transition: box-shadow .18s ease, transform .18s ease; }
 .booking-card:hover { box-shadow: var(--shadow-md, 0 4px 20px rgba(0,0,0,.08)); transform: translateY(-1px); }
