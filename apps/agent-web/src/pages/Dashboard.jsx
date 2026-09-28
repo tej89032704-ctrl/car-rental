@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, currentUser } from '../api.js';
+import { TYPE_LABEL, VerifyPill } from '../../../../packages/shared/src/KycStatus.jsx';
 
 export default function Dashboard() {
   const [dash, setDash] = useState(null);
@@ -130,16 +131,29 @@ export default function Dashboard() {
       ) : (
         <div className="table-wrap">
           <table className="t">
-            <thead><tr><th>User</th><th>Role</th><th>Doc</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>User</th><th>Role</th><th>Document</th><th>Checks</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
               {queue.map((d) => (
                 <tr key={d.id}>
                   <td>{d.name}<div className="muted">{d.phone}</div></td>
                   <td>{d.user_role}</td>
-                  <td>{d.doc_type.replace('_', ' ')}</td>
+                  <td>
+                    <b>{TYPE_LABEL[d.doc_type] || d.doc_type.replace('_', ' ')}</b>
+                    <div className="muted" style={{ fontSize: 12 }}>
+                      {d.doc_number || '—'}{d.doc_expiry ? ` · valid to ${d.doc_expiry}` : ''}
+                    </div>
+                  </td>
+                  <td>
+                    <VerifyPill status={d.verify_status} detail={d.verify_detail} />
+                    {d.verify_detail && (
+                      <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{d.verify_detail}</div>
+                    )}
+                  </td>
                   <td><span className="pill pending">{d.status.replace('_', ' ')}</span></td>
                   <td className="kyc-actions">
-                    <a className="btn sec sm" href={d.file_url} target="_blank" rel="noreferrer">View</a>
+                    {d.file_url
+                      ? <a className="btn sec sm" href={d.file_url} target="_blank" rel="noreferrer">View</a>
+                      : <span className="muted" style={{ fontSize: 12 }}>no file</span>}
                     <button className="btn ok sm" onClick={() => act(() => api(`/kyc/review/${d.id}`, { method: 'POST', body: { decision: 'first_pass' } }))}>
                       First-pass OK
                     </button>

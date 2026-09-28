@@ -189,22 +189,22 @@ export default function MyBookings() {
             <div key={b.id} className="booking-card">
               <div className="booking-card-header">
                 <div>
-                  <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600, color: '#1e293b' }}>
-                    {b.car?.brand} {b.car?.model} <span style={{ color: '#64748b', fontSize: 14, fontWeight: 400 }}>· {b.car?.plate}</span>
+                  <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600, color: '#1d1d1f' }}>
+                    {b.car?.brand} {b.car?.model} <span style={{ color: '#6e6e73', fontSize: 14, fontWeight: 400 }}>· {b.car?.plate}</span>
                   </h3>
-                  <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: 14 }}>{new Date(b.start_date).toLocaleDateString()} — {new Date(b.end_date).toLocaleDateString()}</p>
-                  <p style={{ margin: 0, color: '#94a3b8', fontSize: 13 }}>Owner: {b.owner?.name || '—'}</p>
+                  <p style={{ margin: '0 0 4px', color: '#6e6e73', fontSize: 14 }}>{new Date(b.start_date).toLocaleDateString()} — {new Date(b.end_date).toLocaleDateString()}</p>
+                  <p style={{ margin: 0, color: '#86868b', fontSize: 13 }}>Owner: {b.owner?.name || '—'}</p>
                 </div>
                 <span className={`booking-status status-${b.status}`}>{b.status}</span>
               </div>
 
               <div className="booking-card-footer">
                 <div>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: '#0f172a' }}>₹{(b.total_amount_paise / 100).toFixed(0)}</span>
-                  <span style={{ color: '#94a3b8', fontSize: 13, marginLeft: 6 }}>total</span>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f' }}>₹{(b.total_amount_paise / 100).toFixed(0)}</span>
+                  <span style={{ color: '#86868b', fontSize: 13, marginLeft: 6 }}>total</span>
                   <br />
-                  <span style={{ color: '#059669', fontSize: 13 }}>Online paid ₹{(b.online_paid_paise / 100).toFixed(0)}</span>
-                  <span style={{ color: '#94a3b8', fontSize: 13, marginLeft: 6 }}>· due at pickup ₹{(b.remaining_due_paise / 100).toFixed(0)}</span>
+                  <span style={{ color: '#1d1d1f', fontSize: 13 }}>Online paid ₹{(b.online_paid_paise / 100).toFixed(0)}</span>
+                  <span style={{ color: '#86868b', fontSize: 13, marginLeft: 6 }}>· due at pickup ₹{(b.remaining_due_paise / 100).toFixed(0)}</span>
                 </div>
                 <div className="booking-card-actions">
                   {b.status === 'confirmed' && b.online_paid_paise === 0 && (
@@ -220,7 +220,7 @@ export default function MyBookings() {
                   {b.status === 'completed' && (
                     <>
                       {b.has_reviewed ? (
-                        <span style={{ color: '#166534', fontSize: 13, fontWeight: 500, padding: '6px 0' }}>✓ Reviewed</span>
+                        <span style={{ color: '#1d1d1f', fontSize: 13, fontWeight: 500, padding: '6px 0' }}>✓ Reviewed</span>
                       ) : (
                         <button className="btn" onClick={() => setReviewBooking(b)}>Review Owner</button>
                       )}
@@ -246,11 +246,11 @@ export default function MyBookings() {
                   return (
                     <div key={step} className={`timeline-step ${active ? 'active' : ''} ${reached ? 'reached' : ''}`}>
                       <span className="timeline-dot" style={{
-                        background: active ? '#1CA9A3' : reached ? '#059669' : '#cbd5e1',
-                        boxShadow: active ? '0 0 0 4px rgba(28,169,163,0.18)' : 'none',
+                        background: active ? '#1d1d1f' : reached ? '#6e6e73' : '#d2d2d7',
+                        boxShadow: active ? '0 0 0 4px rgba(0,0,0,0.12)' : 'none',
                       }} />
-                      <span className="timeline-label" style={{ color: active ? '#0f172a' : reached ? '#334155' : '#94a3b8', fontWeight: active ? 700 : 500 }}>{labels[i]}</span>
-                      {i < 3 && <span className="timeline-line" style={{ background: i < idx ? '#059669' : '#e2e8f0' }} />}
+                      <span className="timeline-label" style={{ color: active ? '#1d1d1f' : reached ? '#333336' : '#86868b', fontWeight: active ? 700 : 500 }}>{labels[i]}</span>
+                      {i < 3 && <span className="timeline-line" style={{ background: i < idx ? '#1d1d1f' : '#e8e8ed' }} />}
                     </div>
                   );
                 })}

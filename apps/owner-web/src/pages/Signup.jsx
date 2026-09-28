@@ -56,14 +56,18 @@ export default function Signup() {
               <label className="f">Password</label>
               <input className="f" type="password" value={f.password} onChange={set('password')} placeholder="Min 8 characters" required minLength={8} />
             </div>
-            <button className="btn btn-full" disabled={busy} style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #1CA9A3, #128F8A)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button className="btn btn-full" disabled={busy} style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #000000, #1d1d1f)', color: '#fff', border: 'none', cursor: 'pointer' }}>
               {busy ? 'Creating account...' : 'Create owner account'}
             </button>
           </form>
-          <div className="footer-links" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e2e8f0' }}>
+          <div className="footer-links" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e8e8ed' }}>
             <div style={{ fontSize: 13 }}>
               Already registered?{' '}
-              <Link to="/login" style={{ color: '#1CA9A3', fontWeight: 700 }}>Sign in</Link>
+              <Link to="/login" style={{ color: '#1d1d1f', fontWeight: 700 }}>Sign in</Link>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
+              By creating an account you agree to our{' '}
+              <Link to="/terms" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Terms &amp; Conditions</Link>.
             </div>
           </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>

@@ -1,39 +1,39 @@
 /* ═══════════════════════════════════════════════════════
    Agent Web — Agent-Specific Component Styles
-   Brand: Amber/Orange #d97706
+   Brand: Amber/Orange #000000
    ═══════════════════════════════════════════════════════ */
 
 /* ── Agent brand overrides ── */
-.agent-brand { --agent-brand: #d97706; --agent-brand-2: #b45309; }
+.agent-brand { --agent-brand: #000000; --agent-brand-2: #1d1d1f; }
 
 /* ── Agent visual panel ── */
 .auth-visual.agent-gradient {
-  background: linear-gradient(135deg, #1a3a2a 0%, #2d6a4f 50%, #40916c 100%);
+  background: linear-gradient(135deg, #1d1d1f 0%, #1d1d1f 50%, #000000 100%);
 }
 .auth-visual.agent-gradient .mark { color: #fff; }
 .auth-visual.agent-gradient .tagline { color: rgba(255,255,255,.85); }
 
 /* ── Agent portal tag ── */
-.portal-tag.agent { color: #2d6a4f; }
+.portal-tag.agent { color: #1d1d1f; }
 
 /* ── Agent button ── */
 .btn.agent-full {
   width: 100%;
-  background: linear-gradient(135deg, #2d6a4f, #40916c);
+  background: linear-gradient(135deg, #1d1d1f, #000000);
   margin-top: 4px;
   padding: 12px;
   font-size: 15px;
 }
-.btn.agent-full:hover { background: linear-gradient(135deg, #245a42, #357a5c); }
+.btn.agent-full:hover { background: linear-gradient(135deg, #1d1d1f, #000000); }
 
 /* ── Agent footer links ── */
-.agent-footer { margin-top: 22px; padding-top: 18px; border-top: 1px solid #d8f3dc; }
+.agent-footer { margin-top: 22px; padding-top: 18px; border-top: 1px solid #e8e8ed; }
 .agent-footer .link-row { font-size: 13px; color: var(--muted); }
 .agent-footer .link-row + .link-row { margin-top: 4px; }
-.agent-footer .link-row a { color: #2d6a4f; font-weight: 700; font-size: 14px; }
+.agent-footer .link-row a { color: #1d1d1f; font-weight: 700; font-size: 14px; }
 
 /* ── Agent card center (OTP, etc.) ── */
-.auth-card-center .portal-tag.agent { color: #2d6a4f; }
+.auth-card-center .portal-tag.agent { color: #1d1d1f; }
 
 /* ── Agent KYC action cell ── */
 .kyc-actions { display: flex; gap: 6px; }

@@ -26,7 +26,7 @@ export default function Login() {
       <div className="auth-wrap">
         {/* ── Left brand panel ── */}
         <div className="auth-visual">
-          <div className="mark">DriveNow</div>
+          <div className="mark">CAR-ENT</div>
           <p className="tagline">Rent a car in minutes.<br />Book from verified owners. Pay 20% online, the rest at pickup.</p>
           <div className="badges">
             <div className="badge">✓ Verified owners</div>
@@ -70,6 +70,10 @@ export default function Login() {
             </div>
             <div style={{ marginTop: 8 }}>
               <Link to="/forgot-password" style={{ color: 'var(--muted)', fontSize: 13 }}>Forgot password?</Link>
+            </div>
+            <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)' }}>
+              By continuing you agree to our{' '}
+              <Link to="/terms" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Terms &amp; Conditions</Link>.
             </div>
           </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api, setSession } from '../api.js';
 import '../auth.css';
 
@@ -131,6 +131,8 @@ export default function Login() {
 
         <p className="admin-login-note">
           Direct URL only. Two-factor verification required for all admin actions.
+          <br />
+          <Link to="/terms" style={{ color: 'inherit', textDecoration: 'underline', opacity: .7 }}>Terms &amp; Conditions</Link>
         </p>
       </div>
     </div>

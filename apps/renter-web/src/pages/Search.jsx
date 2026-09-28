@@ -43,7 +43,7 @@ export default function Search() {
           <Link to={`/cars/${c.id}`} className="car-card" key={c.id}>
             <img src={c.cover_photo || 'https://via.placeholder.com/300x150?text=No+Photo'} alt="" />
             <div className="car-body">
-              <div className="car-title">{c.make} {c.model}{c.category && <span className="car-cat">{c.category}</span>}</div>
+              <div className="car-title">{c.make} {c.model}{c.category && <span className="car-cat">{c.category}</span>}{c.verification_status === 'verified' && <span className="pill active" style={{ marginLeft: 6, fontSize: 11 }}>RC verified ✓</span>}</div>
               <div className="car-meta">{c.year} · {c.category} · {c.transmission} · {c.seats} seats</div>
               <div className="price">₹{(c.daily_rate_paise / 100).toFixed(0)}/day</div>
             </div>

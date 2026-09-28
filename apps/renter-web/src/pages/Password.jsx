@@ -30,9 +30,9 @@ export function ForgotPassword() {
             <label className="f">Account email</label>
             <input className="f" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="you@example.com" />
           </div>
-          <button className="btn btn-full" style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #1CA9A3, #128F8A)', color: '#fff', border: 'none', cursor: 'pointer' }}>Send reset link</button>
+          <button className="btn btn-full" style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #000000, #1d1d1f)', color: '#fff', border: 'none', cursor: 'pointer' }}>Send reset link</button>
         </form>
-        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: '#1CA9A3', fontWeight: 700 }}>Back to login</Link></p>
+        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: '#1d1d1f', fontWeight: 700 }}>Back to login</Link></p>
       </div>
     </div>
   );
@@ -71,10 +71,10 @@ export function ResetPassword() {
               <label className="f">New password (min 8 chars)</label>
               <input className="f" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required placeholder="Enter new password" />
             </div>
-            <button className="btn btn-full" style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #1CA9A3, #128F8A)', color: '#fff', border: 'none', cursor: 'pointer' }}>Update password</button>
+            <button className="btn btn-full" style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #000000, #1d1d1f)', color: '#fff', border: 'none', cursor: 'pointer' }}>Update password</button>
           </form>
         )}
-        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: '#1CA9A3', fontWeight: 700 }}>Back to login</Link></p>
+        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: '#1d1d1f', fontWeight: 700 }}>Back to login</Link></p>
       </div>
     </div>
   );

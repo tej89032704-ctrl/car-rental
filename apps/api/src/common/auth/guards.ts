@@ -13,8 +13,8 @@ export interface RequestUser {
   status: string;
 }
 
-function loadUser(userId: string): RequestUser | null {
-  const row = getDb('auth')
+async function loadUser(userId: string): Promise<RequestUser | null> {
+  const row = await getDb('auth')
     .prepare(`SELECT id, role, status, kyc_status FROM users WHERE id = ? AND is_deleted = 0`)
     .get(userId) as RequestUser | undefined;
   return row ?? null;
@@ -30,19 +30,31 @@ export const Public = () => SetMetadata(PUBLIC_KEY, true);
 export class JwtAuthGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
-  canActivate(ctx: ExecutionContext): boolean {
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const req = ctx.switchToHttp().getRequest();
+    const header: string | undefined = req.headers['authorization'];
     const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC_KEY, [
       ctx.getHandler(),
       ctx.getClass(),
     ]);
-    if (isPublic) return true;
+    if (isPublic) {
+      // Optional auth: if a valid Bearer token is presented, hydrate req.user so
+      // public handlers (e.g. GET /cars/:id) can branch on the requester. An
+      // invalid/absent token simply leaves the request anonymous.
+      if (header?.startsWith('Bearer ')) {
+        try {
+          const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: string };
+          const user = await loadUser(payload.sub);
+          if (user) req.user = user;
+        } catch { /* anonymous access is still allowed */ }
+      }
+      return true;
+    }
 
-    const req = ctx.switchToHttp().getRequest();
-    const header: string | undefined = req.headers['authorization'];
     if (!header?.startsWith('Bearer ')) throw new UnauthorizedException('Missing token');
     try {
       const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: string };
-      const user = loadUser(payload.sub);
+      const user = await loadUser(payload.sub);
       if (!user) throw new Error('user gone');
       req.user = user;
     } catch {

@@ -53,7 +53,16 @@ export default function BookingDetail() {
         headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ reason: 'Cancelled from booking details' }),
       });
-      if (res.ok) { setMsg('Booking cancelled.'); load(); }
+      if (res.ok) {
+        const j = await res.json().catch(() => null);
+        if (j && typeof j.refund_amount_paise === 'number' && typeof j.penalty_amount_paise === 'number') {
+          const parts = [`Booking cancelled (${j.message}).`];
+          if (j.refund_amount_paise > 0) parts.push(`Refund ₹${(j.refund_amount_paise / 100).toFixed(0)} to your wallet`);
+          if (j.penalty_amount_paise > 0) parts.push(`₹${(j.penalty_amount_paise / 100).toFixed(0)} retained as cancellation fee`);
+          setMsg(parts.join(' '));
+        } else setMsg('Booking cancelled.');
+        load();
+      }
       else { const j = await res.json(); setErr(j.message || 'Cancel failed'); }
     } catch (e) { setErr('Network error'); }
     finally { setBusy(false); }
@@ -106,7 +115,7 @@ export default function BookingDetail() {
                 <span className="muted">Total rental</span><b>₹{(b.total_amount_paise / 100).toFixed(0)}</b>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 320 }}>
-                <span className="muted">Online paid</span><b style={{ color: '#059669' }}>₹{(b.online_paid_paise / 100).toFixed(0)}</b>
+                <span className="muted">Online paid</span><b style={{ color: '#1d1d1f' }}>₹{(b.online_paid_paise / 100).toFixed(0)}</b>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 320 }}>
                 <span className="muted">Due at pickup (cash)</span><b>₹{(b.remaining_due_paise / 100).toFixed(0)}</b>
@@ -130,11 +139,11 @@ export default function BookingDetail() {
             return (
               <div key={step} className={`timeline-step ${active ? 'active' : ''} ${reached ? 'reached' : ''}`}>
                 <span className="timeline-dot" style={{
-                  background: active ? '#1CA9A3' : reached ? '#059669' : '#cbd5e1',
-                  boxShadow: active ? '0 0 0 4px rgba(28,169,163,0.18)' : 'none',
+                  background: active ? '#1d1d1f' : reached ? '#6e6e73' : '#d2d2d7',
+                  boxShadow: active ? '0 0 0 4px rgba(0,0,0,0.12)' : 'none',
                 }} />
-                <span className="timeline-label" style={{ color: active ? '#0f172a' : reached ? '#334155' : '#94a3b8', fontWeight: active ? 700 : 500, textTransform: 'capitalize' }}>{step}</span>
-                {i < 3 && <span className="timeline-line" style={{ background: i < idx ? '#059669' : '#e2e8f0' }} />}
+                <span className="timeline-label" style={{ color: active ? '#1d1d1f' : reached ? '#333336' : '#86868b', fontWeight: active ? 700 : 500, textTransform: 'capitalize' }}>{step}</span>
+                {i < 3 && <span className="timeline-line" style={{ background: i < idx ? '#1d1d1f' : '#e8e8ed' }} />}
               </div>
             );
           })}
@@ -157,7 +166,7 @@ export default function BookingDetail() {
         )}
         {b.status === 'completed' && (
           <div className="alert good" style={{ marginTop: 14 }}>
-            Trip completed. Thanks for driving with DriveNow!
+            Trip completed. Thanks for driving with CAR-ENT!
           </div>
         )}
 

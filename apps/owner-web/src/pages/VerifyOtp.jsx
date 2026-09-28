@@ -34,7 +34,8 @@ export default function VerifyOtp() {
       {err && <div className="alert err">{err}</div>}
       <form onSubmit={submit}>
         <label className="f">Code</label>
-        <input className="f" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} required />
+        <input className="f" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6}
+          inputMode="numeric" autoComplete="one-time-code" required />
         <br /><br />
         <button className="btn" style={{ width: '100%' }}>Verify</button>
       </form>

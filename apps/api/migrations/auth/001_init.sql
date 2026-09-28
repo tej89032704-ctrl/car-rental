@@ -55,7 +55,8 @@ CREATE INDEX idx_otp_user_purpose ON otp_verifications(user_id, purpose);
 CREATE TABLE role_change_requests (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
-  current_role TEXT NOT NULL,
+  -- Quoted: CURRENT_ROLE is a reserved word in Postgres (SQLite allows it bare).
+  "current_role" TEXT NOT NULL,
   desired_role TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
   decided_by TEXT,

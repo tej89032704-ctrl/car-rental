@@ -61,6 +61,10 @@ export default function Login() {
             <div style={{ marginTop: 8 }}>
               <Link to="/forgot-password" style={{ color: 'var(--muted)', fontSize: 13 }}>Forgot password?</Link>
             </div>
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
+              By continuing you agree to our{' '}
+              <Link to="/terms" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Terms &amp; Conditions</Link>.
+            </div>
           </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
             Owner sign-up also works from the renter portal. Your account type stays car_owner.

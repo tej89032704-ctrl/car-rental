@@ -1,0 +1,234 @@
+/* ═══════════════════════════════════════════════════════
+   Floating keyboard — white/black Apple monochrome
+   Mounted at each portal root (see FloatingKeyboard.jsx)
+   ═══════════════════════════════════════════════════════ */
+
+.fk {
+  position: fixed;
+  z-index: 9999;
+  --fk-shift: -50%;             /* centring offset; the fallback below resets it to 0 */
+  --fk-bottom: 24px;            /* inset used once that fallback drops it down */
+  left: auto;
+  right: 24px;                  /* docked against the right edge */
+  top: 50%;
+  bottom: auto;
+  transform: translateY(var(--fk-shift));
+  width: min(500px, calc(100vw - 44px));
+  padding: 5px 8px 10px;
+  border-radius: 20px;
+  background: rgba(245, 245, 247, 0.86);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  backdrop-filter: blur(30px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(0, 0, 0, 0.10),
+    0 18px 50px rgba(0, 0, 0, 0.22);
+  user-select: none;
+  -webkit-user-select: none;
+  animation: fk-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The shift has to be repeated in both keyframes — an animation replaces the
+   whole `transform`, so dropping it would make the pad jump for the duration
+   of the entrance. It comes from --fk-shift, so it tracks whichever position
+   (mid-height or bottom-docked) the media queries have picked. */
+@keyframes fk-in {
+  from { opacity: 0; transform: translateY(calc(var(--fk-shift) + 14px)) scale(0.985); }
+  to   { opacity: 1; transform: translateY(var(--fk-shift)) scale(1); }
+}
+
+/* ── top bar: field label + drag handle + dismiss ── */
+.fk-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 4px 6px;
+  cursor: grab;
+  touch-action: none;
+}
+.fk-top:active { cursor: grabbing; }
+
+.fk-field {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6e6e73;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 38%;
+  flex: none;
+}
+
+.fk-handle {
+  flex: 1;
+  min-width: 28px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d2d2d7;
+}
+
+.fk-hide {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #6e6e73;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.fk-hide:hover { background: rgba(0, 0, 0, 0.06); color: #1d1d1f; }
+.fk-hide:active { background: #1d1d1f; color: #ffffff; }
+
+/* ── rows ── */
+.fk-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 6px;
+}
+.fk-row--stagger { padding-inline: 22px; }   /* iOS-style inset on home row */
+
+/* ── keys ── */
+.fk-key {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1d1d1f;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: background 0.07s ease, color 0.07s ease, border-color 0.07s ease, transform 0.07s ease;
+}
+.fk-key:hover { background: #f5f5f7; }
+
+.fk-key:active,
+.fk-key.fk-down {
+  background: #1d1d1f;
+  border-color: #1d1d1f;
+  color: #ffffff;
+  transform: translateY(1px);
+  outline: none;
+}
+
+/* ── modifier keys ── */
+.fk-mod {
+  flex: 0 0 auto;
+  min-width: 46px;
+  padding: 0 12px;
+  background: #e8e8ed;
+  border-color: rgba(0, 0, 0, 0.04);
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fk-mod:hover { background: #dcdce0; }
+.fk-mod.fk-down { background: #1d1d1f; border-color: #1d1d1f; color: #ffffff; }
+
+.fk-mod.fk-on {                 /* shift latched */
+  background: #1d1d1f;
+  border-color: #1d1d1f;
+  color: #ffffff;
+}
+
+.fk-space {
+  flex: 4 1 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #6e6e73;
+}
+.fk-space:hover { color: #1d1d1f; background: #ffffff; }
+
+.fk-return {
+  flex: 0 0 auto;
+  min-width: 74px;
+  padding: 0 14px;
+  background: #1d1d1f;
+  border-color: #1d1d1f;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+}
+.fk-return:hover { background: #000000; }
+.fk-return:active, .fk-return.fk-down { background: #000000; }
+
+.fk-num { font-size: 20px; }
+
+/* compact pad for OTP / numeric fields — three columns, not full width */
+.fk-numpad { width: min(340px, calc(100vw - 44px)); }
+.fk-numpad .fk-key { height: 46px; font-size: 22px; }
+
+/* equal thirds so the numpad bottom row lines up with the rows above */
+.fk-col { flex: 1 1 0; min-width: 0; padding: 0; }
+
+/* ── lift target ─────────────────────────────────────────────
+   .auth-shell is `overflow: hidden` and its page will not scroll,
+   so on short viewports the docked pad would sit on top of the
+   password field. FloatingKeyboard shifts these cards up via `top`
+   (authFadeIn only animates opacity/transform, so `top` is free). */
+.auth-wrap,
+.auth-card-center,
+.admin-login-card,
+.auth-box {
+  position: relative;
+  transition: top 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── short viewports: slim the pad so more of the form stays clear ── */
+@media (max-height: 820px) {
+  .fk { right: 16px; --fk-bottom: 16px; padding: 4px 7px 8px; }
+  .fk-top { padding: 2px 4px 5px; }
+  .fk-hide { width: 22px; height: 22px; }
+  .fk-row { gap: 5px; margin-top: 5px; }
+  .fk-key { height: 34px; font-size: 16px; border-radius: 9px; }
+  .fk-mod { min-width: 42px; padding: 0 10px; font-size: 13px; }
+  .fk-return { min-width: 66px; padding: 0 12px; font-size: 13px; }
+  .fk-num { font-size: 18px; }
+  .fk-numpad .fk-key { height: 38px; font-size: 20px; }
+}
+
+/* ── no room beside the form ───────────────────────────────────────
+   A pad docked mid-height only clears the login column when the window is
+   at least ~1880px wide (form right edge ≈ vw/2 + 397, pad left ≈ vw − 524).
+   Below that, drop to the bottom-right corner, where the fields always sit
+   above the pad — measured at zero overlap at 800px, 1000px and 1344px.
+   The threshold lives in this one rule; the short-viewport inset comes from
+   --fk-bottom instead of a second (easily desynchronised) media query. */
+@media (max-width: 1879px) {
+  .fk { top: auto; bottom: var(--fk-bottom); --fk-shift: 0px; }
+}
+
+/* ── narrow screens ── */
+@media (max-width: 560px) {
+  .fk { left: 10px; right: 10px; width: auto; bottom: 10px; padding-inline: 5px; }
+  .fk-row { gap: 4px; }
+  .fk-row--stagger { padding-inline: 14px; }
+  .fk-key { height: 40px; font-size: 16px; }
+  .fk-mod { min-width: 40px; padding: 0 9px; }
+  .fk-return { min-width: 62px; padding: 0 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fk { animation: none; }
+  .fk-key, .fk-hide { transition: none; }
+  .auth-wrap, .auth-card-center, .admin-login-card, .auth-box { transition: none; }
+}

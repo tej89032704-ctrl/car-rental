@@ -11,18 +11,18 @@ async function bootstrap() {
   runMigrations();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({ origin: true, credentials: true });
-  app.useStaticAssets(path.resolve(__dirname, '../../uploads'), { prefix: '/uploads/' });
+  app.useStaticAssets(path.resolve(__dirname, '../uploads'), { prefix: '/uploads/' });
   const port = Number(process.env.PORT || 4000);
   await app.listen(port);
 
-  const bookings = app.get(BookingsService);
+  const bookings = await app.get(BookingsService);
   // keep the booking module's car cache in sync with the fleet at boot
-  const fleet = app.get(FleetService);
-  try { fleet.syncCarCache(); } catch (e) { console.warn('car_cache sync failed:', String(e)); }
+  const fleet = await app.get(FleetService);
+  try { await fleet.syncCarCache(); } catch (e) { console.warn('car_cache sync failed:', String(e)); }
 
   // periodic sweep: auto deposit refunds after the dispute window
-  setInterval(() => {
-    try { bookings.sweepSettlements(); } catch { /* logged by sqlite layer */ }
+  setInterval(async () => {
+    try { await bookings.sweepSettlements(); } catch { /* logged by sqlite layer */ }
   }, 10 * 60 * 1000).unref();
 
   console.log(`API running on http://localhost:${port}`);

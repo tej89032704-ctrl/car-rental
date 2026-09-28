@@ -11,7 +11,7 @@
 
 /* ── Dark glassmorphism theme ── */
 .sidebar.dark {
-  background: linear-gradient(195deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
+  background: #1d1d1f;
   border-right: 1px solid rgba(255,255,255,.06);
   box-shadow: 4px 0 24px rgba(0,0,0,.25);
 }
@@ -36,8 +36,9 @@
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; font-weight: 800; color: #fff; flex-shrink: 0;
 }
-.sidebar.dark .sidebar-logo-icon { background: linear-gradient(135deg, var(--brand), var(--brand-2)); }
+.sidebar.dark .sidebar-logo-icon { background: #ffffff; color: #1d1d1f; }
 .sidebar.light .sidebar-logo-icon { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; }
+.sidebar.dark .sidebar-avatar { background: #ffffff; color: #1d1d1f; }
 .sidebar-logo-text { overflow: hidden; white-space: nowrap; }
 .sidebar.dark .sidebar-logo-text { color: #fff; }
 .sidebar.light .sidebar-logo-text { color: var(--ink); }
@@ -51,13 +52,13 @@
 .sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; overflow-x: hidden; }
 .sidebar-nav::-webkit-scrollbar { width: 3px; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 99px; }
-.sidebar.light .sidebar-nav::-webkit-scrollbar-thumb { background: #d1d5db; }
+.sidebar.light .sidebar-nav::-webkit-scrollbar-thumb { background: #d2d2d7; }
 .sidebar-section-label {
   font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   padding: 12px 12px 6px; margin: 0;
 }
 .sidebar.dark .sidebar-section-label { color: rgba(255,255,255,.3); }
-.sidebar.light .sidebar-section-label { color: #9ca3af; }
+.sidebar.light .sidebar-section-label { color: #86868b; }
 .sidebar.collapsed .sidebar-section-label { display: none; }
 
 .sidebar-link {
@@ -79,12 +80,12 @@
 .sidebar.light .sidebar-link.active {
   background: var(--brand);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(var(--brand-rgb,37,99,235),.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
 }
 .sidebar.dark .sidebar-link.active::before {
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
   width: 3px; height: 20px; border-radius: 0 3px 3px 0;
-  background: var(--brand);
+  background: #ffffff;
 }
 .sidebar-link svg { width: 20px; height: 20px; flex-shrink: 0; opacity: .8; }
 .sidebar-link.active svg { opacity: 1; }
@@ -129,7 +130,7 @@
 .sidebar.dark .sidebar-logout { color: rgba(255,255,255,.4); }
 .sidebar.light .sidebar-logout { color: var(--muted); }
 .sidebar-logout:hover { background: rgba(255,255,255,.1); }
-.sidebar.light .sidebar-logout:hover { background: #fee2e2; color: var(--bad); }
+.sidebar.light .sidebar-logout:hover { background: #ffffff; color: #1d1d1f; }
 .sidebar-logout svg { width: 18px; height: 18px; }
 
 /* ── Toggle button ── */
@@ -140,7 +141,7 @@
   cursor: pointer; border: 2px solid;
   transition: transform .2s, box-shadow .15s;
 }
-.sidebar.dark .sidebar-toggle { background: #1e293b; border-color: rgba(255,255,255,.15); color: rgba(255,255,255,.7); }
+.sidebar.dark .sidebar-toggle { background: #1d1d1f; border-color: rgba(255,255,255,.15); color: rgba(255,255,255,.7); }
 .sidebar.light .sidebar-toggle { background: #fff; border-color: var(--line); color: var(--muted); }
 .sidebar-toggle:hover { transform: scale(1.1); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
 .sidebar-toggle svg { width: 14px; height: 14px; }

@@ -27,7 +27,7 @@ export default function Signup() {
       <div className="auth-wrap">
         {/* ── Left brand panel ── */}
         <div className="auth-visual">
-          <div className="mark">DriveNow</div>
+          <div className="mark">CAR-ENT</div>
           <p className="tagline">Join thousands of renters and car owners on the easiest way to rent.</p>
           <div className="badges">
             <div className="badge">✓ No commission</div>
@@ -39,7 +39,7 @@ export default function Signup() {
         {/* ── Right form panel ── */}
         <div className="auth-form-side">
           <div className="portal-tag">Create account</div>
-          <h1>Join DriveNow</h1>
+          <h1>Join CAR-ENT</h1>
           <p className="sub">Pick how you want to use the platform.</p>
           {err && <div className="alert err" style={{marginBottom:14}}>{err}</div>}
           {/* Role picker */}
@@ -76,6 +76,10 @@ export default function Signup() {
             <div>
               Already have an account?{' '}
               <Link to="/login" style={{ color: 'var(--brand)', fontWeight: 700, fontSize: 14 }}>Sign in</Link>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
+              By creating an account you agree to our{' '}
+              <Link to="/terms" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Terms &amp; Conditions</Link>.
             </div>
           </div>
           <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>

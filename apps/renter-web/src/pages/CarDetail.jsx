@@ -36,7 +36,9 @@ export default function CarDetail() {
           <img className="car-detail-img" src={car.photos?.[0]?.file_url || 'https://via.placeholder.com/400x220'} alt="" />
           <div className="car-detail-info">
             <h1 style={{ marginTop: 0 }}>{car.make} {car.model}</h1>
-            <p className="muted">{car.year} · {car.category} · {car.transmission} · {car.fuel_type} · {car.seats} seats · {car.plate_number}</p>
+            <p className="muted">{car.year} · {car.category} · {car.transmission} · {car.fuel_type} · {car.seats} seats · {car.plate_number}
+              {car.verification_status === 'verified' && <span className="pill active" style={{ marginLeft: 8, fontSize: 12 }}>RC verified ✓</span>}
+            </p>
             {reviews.total_reviews > 0 && (
               <p className="rating-inline">
                 ★ {reviews.avg_rating} <span className="count">({reviews.total_reviews} review{reviews.total_reviews !== 1 ? 's' : ''})</span>

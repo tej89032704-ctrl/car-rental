@@ -6,6 +6,7 @@ import { AdminService } from './admin.service';
 
 const statusSchema = z.object({ status: z.enum(['active', 'suspended', 'banned']) });
 const carDecisionSchema = z.object({ decision: z.enum(['approve', 'reject']), reason: z.string().optional() });
+const overrideSchema = z.object({ reason: z.string().min(3) });
 const settingSchema = z.object({ key: z.string(), value_int: z.coerce.number().int() });
 const resolveSchema = z.object({
   resolution_note: z.string().min(3),
@@ -32,135 +33,158 @@ export class AdminController {
 
   @Roles('super_admin')
   @Get('overview')
-  overview() {
-    return this.admin.overview();
+  async overview() {
+    return await this.admin.overview();
   }
 
   @Roles('super_admin')
   @Get('users')
-  users(@Query('search') search?: string, @Query('role') role?: string) {
-    return this.admin.listUsers(search || undefined, role || undefined);
+  async users(@Query('search') search?: string, @Query('role') role?: string) {
+    return await this.admin.listUsers(search || undefined, role || undefined);
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('users/:id/status')
-  userStatus(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+  async userStatus(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(statusSchema, body);
-    return this.admin.setUserStatus(req.user.id, id, dto.status);
+    return await this.admin.setUserStatus(req.user.id, id, dto.status);
   }
 
   @Roles('super_admin')
   @Get('cars/queue')
-  carQueue() {
-    return this.admin.carApprovalQueue();
+  async carQueue() {
+    return await this.admin.carApprovalQueue();
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('cars/:id/decide')
-  decideCar(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+  async decideCar(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(carDecisionSchema, body);
-    return this.admin.decideCar(req.user.id, id, dto.decision, dto.reason);
+    return await this.admin.decideCar(req.user.id, id, dto.decision, dto.reason);
+  }
+
+  // ---------- live car verification (RC / VAHAN) ----------
+
+  @Roles('super_admin')
+  @HttpCode(200)
+  @Post('cars/:id/verify')
+  async verifyCar(@Req() req: any, @Param('id') id: string) {
+    return await this.admin.verifyCar(req.user.id, id);
+  }
+
+  @Roles('super_admin')
+  @HttpCode(200)
+  @Post('cars/:id/verification/override')
+  async overrideVerification(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+    const dto = this.parse(overrideSchema, body);
+    return await this.admin.overrideCarVerification(req.user.id, id, dto.reason);
+  }
+
+  @Roles('super_admin')
+  @Get('verification/config')
+  async verificationConfig() {
+    return await this.admin.verificationConfig();
   }
 
   @Roles('super_admin')
   @Get('settings')
-  settings() {
-    return this.admin.settings();
+  async settings() {
+    return await this.admin.settings();
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('settings')
-  updateSetting(@Req() req: any, @Body() body: unknown) {
+  async updateSetting(@Req() req: any, @Body() body: unknown) {
     const dto = this.parse(settingSchema, body);
-    return this.admin.updateSetting(req.user.id, dto.key, dto.value_int);
+    return await this.admin.updateSetting(req.user.id, dto.key, dto.value_int);
   }
 
   @Roles('super_admin')
   @Get('payouts')
-  payouts(@Query('status') status?: string) {
-    return this.admin.payouts(status || undefined);
+  async payouts(@Query('status') status?: string) {
+    return await this.admin.payouts(status || undefined);
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('payouts/:id/approve')
-  approvePayout(@Req() req: any, @Param('id') id: string) {
-    return this.admin.approvePayout(req.user.id, id);
+  async approvePayout(@Req() req: any, @Param('id') id: string) {
+    return await this.admin.approvePayout(req.user.id, id);
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('payouts/:id/reject')
-  rejectPayout(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+  async rejectPayout(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(rejectPayoutSchema, body);
-    return this.admin.rejectPayout(req.user.id, id, dto.reason);
+    return await this.admin.rejectPayout(req.user.id, id, dto.reason);
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('payouts/:id/paid')
-  markPaid(@Req() req: any, @Param('id') id: string) {
-    return this.admin.markPaid(req.user.id, id);
+  async markPaid(@Req() req: any, @Param('id') id: string) {
+    return await this.admin.markPaid(req.user.id, id);
   }
 
   @Roles('super_admin')
   @Get('disputes/open')
-  openDisputes() {
-    return this.admin.openDisputes();
+  async openDisputes() {
+    return await this.admin.openDisputes();
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('disputes/:id/resolve')
-  resolveDispute(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+  async resolveDispute(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(resolveSchema, body);
-    return this.admin.resolveDispute(req.user.id, id, dto);
+    return await this.admin.resolveDispute(req.user.id, id, dto);
   }
 
   @Roles('super_admin')
   @Get('role-change-requests')
-  roleRequests(@Query('status') status?: string) {
-    return this.admin.listRoleChangeRequests(status || undefined);
+  async roleRequests(@Query('status') status?: string) {
+    return await this.admin.listRoleChangeRequests(status || undefined);
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('role-change-requests/:id/decide')
-  decideRoleRequest(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+  async decideRoleRequest(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(z.object({ decision: z.enum(['approve', 'reject']) }), body);
-    return this.admin.decideRoleChange(req.user.id, id, dto.decision);
+    return await this.admin.decideRoleChange(req.user.id, id, dto.decision);
   }
 
   @Roles('super_admin')
   @Get('agents')
-  agents() {
-    return this.admin.listAgents();
+  async agents() {
+    return await this.admin.listAgents();
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('agents/salary')
-  setSalary(@Req() req: any, @Body() body: unknown) {
+  async setSalary(@Req() req: any, @Body() body: unknown) {
     const dto = this.parse(salarySchema, body);
-    return this.admin.setAgentSalary(req.user.id, dto.agent_user_id, dto.monthly_salary_paise);
+    return await this.admin.setAgentSalary(req.user.id, dto.agent_user_id, dto.monthly_salary_paise);
   }
 
   @Roles('super_admin')
   @HttpCode(200)
   @Post('agents/assign')
-  assignLead(@Req() req: any, @Body() body: unknown) {
+  async assignLead(@Req() req: any, @Body() body: unknown) {
     const dto = this.parse(assignmentSchema, body);
-    return this.admin.assignLead(req.user.id, dto.agent_user_id, dto.lead_user_id, dto.type);
+    return await this.admin.assignLead(req.user.id, dto.agent_user_id, dto.lead_user_id, dto.type);
   }
 
   @Roles('super_admin')
   @Get('reports/:kind')
-  report(@Res() res: Response, @Param('kind') kind: string, @Query('from') from?: string, @Query('to') to?: string) {
+  async report(@Res() res: Response, @Param('kind') kind: string, @Query('from') from?: string, @Query('to') to?: string) {
     if (!['bookings', 'revenue', 'subscriptions'].includes(kind)) throw new BadRequestException('Unknown report');
-    const csv = this.admin.reportCsv(kind as any, from, to);
+    const csv = await this.admin.reportCsv(kind as any, from, to);
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${kind}-report.csv"`);
     res.send(csv);

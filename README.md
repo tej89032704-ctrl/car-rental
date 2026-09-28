@@ -50,3 +50,32 @@ All money stored as integer paise; all timestamps UTC ISO strings; soft delete e
 - Password reset links land in `email_logs`.
 - Uploads (KYC docs, car photos, RC/insurance) go to `apps/api/uploads`, served at `/uploads/*` — swap `StorageService` for S3 later.
 - Settlement sweep runs every 10 min in the API process (deposit refunds + owner earnings after the dispute window), plus lazily on relevant reads.
+
+## Live car verification (RC / VAHAN)
+
+Every car can be verified against the RTO (VAHAN) database — owners self-check from the owner panel
+(`POST /cars/:id/verify`), and super admins re-check from the approval queue (`POST /admin/cars/:id/verify`).
+Each check is appended to `car_verifications` (full attempt history) and the latest verdict is kept on the car
+(`verification_status`, `verified_at`). Failed lookups and model mismatches (registered make/model ≠ listing) are
+surfaced in both the admin queue and renter search ("RC verified ✓" badge on verified cars).
+
+There is no free government lookup API, so the provider is pluggable:
+
+| Mode | When | Live? |
+|---|---|---|
+| `auto` (default) | real vendor key configured → real lookup; otherwise deterministic demo | depends |
+| `mock` | always | no (results tagged `DEMO`) |
+| `vahan` | real vendor key; errors loudly when the key is missing | yes |
+
+Configure in `apps/api/.env`:
+
+```
+RC_VERIFY_PROVIDER=auto            # auto | mock | vahan
+# RC_VERIFY_API_KEY=...            # buy a key (Surepass/Signzy/Karza/HYPERVERGE…) to go live
+# RC_VERIFY_API_ENDPOINT=...       # only if your vendor isn't already the default
+```
+
+Demo mode is fully deterministic per plate (same plate ⇒ same result), and deliberately includes both
+negative paths an admin must handle: "no RC record found" and "registered model differs from listing".
+The real adapter (`apps/api/src/modules/fleet/rc-verify.providers.ts`) maps the common VAHAN response shapes
+defensively; re-check its `KEY_GROUPS` against your vendor's sample response once the key is provisioned.

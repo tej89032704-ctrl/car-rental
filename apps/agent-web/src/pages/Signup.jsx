@@ -56,14 +56,18 @@ export default function Signup() {
               <label className="f">Password</label>
               <input className="f" type="password" value={f.password} onChange={set('password')} placeholder="Min 8 characters" required minLength={8} />
             </div>
-            <button className="btn btn-full agent-full" disabled={busy} style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #d97706, #b45309)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button className="btn btn-full agent-full" disabled={busy} style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #000000, #1d1d1f)', color: '#fff', border: 'none', cursor: 'pointer' }}>
               {busy ? 'Creating account...' : 'Create agent account'}
             </button>
           </form>
-          <div className="footer-links agent-footer" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e2e8f0' }}>
+          <div className="footer-links agent-footer" style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e8e8ed' }}>
             <div className="link-row" style={{ fontSize: 13, marginBottom: 6 }}>
               Already registered?{' '}
-              <Link to="/agent/login" style={{ color: '#d97706', fontWeight: 700 }}>Sign in</Link>
+              <Link to="/agent/login" style={{ color: '#1d1d1f', fontWeight: 700 }}>Sign in</Link>
+            </div>
+            <div className="link-row" style={{ fontSize: 12, marginTop: 8 }}>
+              By creating an account you agree to our{' '}
+              <Link to="/terms" style={{ color: 'var(--muted)', textDecoration: 'underline' }}>Terms &amp; Conditions</Link>.
             </div>
           </div>
           <p className="muted agent-note" style={{ marginTop: 14, fontSize: 12 }}>

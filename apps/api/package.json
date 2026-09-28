@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "npm run build && node dist/main.js",
     "start": "node dist/main.js",
-    "build": "tsc",
+    "build": "tsc && node ../../scripts/copy-kyc-certs.cjs",
     "migrate": "tsc && node dist/scripts/migrate.js",
     "seed:admin": "tsc && node dist/scripts/seed-admin.js"
   },
@@ -14,10 +14,14 @@
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/platform-express": "^10.4.1",
     "@nestjs/throttler": "^6.7.0",
+    "@types/pg": "^8.23.1",
+    "@xmldom/xmldom": "^0.8.15",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.3.0",
+    "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "xml-crypto": "^6.3.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {

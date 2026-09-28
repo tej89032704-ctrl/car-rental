@@ -38,7 +38,8 @@ export default function VerifyOtp() {
         <form onSubmit={submit}>
           <div className="form-group">
             <label className="f">Verification code</label>
-            <input className="f" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6} required placeholder="6 digits" />
+            <input className="f" value={code} onChange={(e) => setCode(e.target.value)} maxLength={6}
+              inputMode="numeric" autoComplete="one-time-code" required placeholder="6 digits" />
           </div>
           <br />
           <button className="btn btn-full">Verify &amp; sign in</button>

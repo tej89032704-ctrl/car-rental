@@ -14,6 +14,7 @@ import Kyc from './pages/Kyc.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Lifetime from './pages/Lifetime.jsx';
 import { ForgotPassword, ResetPassword } from './pages/Password.jsx';
+import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const nav = useNavigate();
@@ -40,9 +41,9 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
       <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
         <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}><ChevronLeft /></button>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">D</div>
+          <div className="sidebar-logo-icon">C</div>
           <div className="sidebar-logo-text">
-            <h2>DriveNow</h2>
+            <h2>CAR-ENT</h2>
             <span>Renter Portal</span>
           </div>
         </div>
@@ -75,7 +76,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
   const titles = { '/': 'Find a Car', '/bookings': 'My Bookings', '/kyc': 'Verification', '/notifications': 'Notifications', '/lifetime': 'Lifetime Membership' };
-  const title = location.pathname.startsWith('/bookings/') ? 'Booking Details' : (titles[location.pathname] || 'DriveNow');
+  const title = location.pathname.startsWith('/bookings/') ? 'Booking Details' : (titles[location.pathname] || 'CAR-ENT');
   return (
     <div className="topbar">
       <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>
@@ -100,14 +101,14 @@ export default function App() {
   }, []);
 
   if (!user && !isAuth) {
-    const isPublicBrowse = location.pathname === '/' || location.pathname.startsWith('/cars/');
+    const isPublicBrowse = location.pathname === '/' || location.pathname.startsWith('/cars/') || location.pathname === '/terms';
     if (!isPublicBrowse) return <Navigate to="/login" replace />;
     return (
       <div className="guest-shell">
         <header className="guest-topbar">
           <div className="guest-brand">
             <span className="brand-mark">🚗</span>
-            <span className="brand-name">Drive<span className="brand-accent">Now</span></span>
+            <span className="brand-name">CAR-ENT</span>
           </div>
           <div className="guest-actions">
             <Link to="/login" className="btn sec sm">Log in</Link>
@@ -118,18 +119,20 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Search />} />
             <Route path="/cars/:id" element={<CarDetail />} />
+            <Route path="/terms" element={<Terms brand="CAR-ENT" backTo="/" />} />
           </Routes>
         </main>
         <footer className="site-footer">
           <div className="site-footer-inner">
             <div>
-              <div className="site-footer-brand"><span className="brand-mark">🚗</span><span className="brand-name">Drive<span className="brand-accent" style={{ color: '#4DD6CF' }}>Now</span></span></div>
+              <div className="site-footer-brand"><span className="brand-mark">🚗</span><span className="brand-name">CAR-ENT</span></div>
               <p className="site-footer-tag">Verified, owner-approved self-drive cars. Browse free — book after a quick KYC check.</p>
             </div>
             <div className="site-footer-links">
               <Link to="/login">Log in</Link>
               <Link to="/signup">Sign up</Link>
               <Link to="/">Browse cars</Link>
+              <Link to="/terms">Terms &amp; Conditions</Link>
             </div>
           </div>
         </footer>
@@ -167,6 +170,7 @@ export default function App() {
             <Route path="/kyc" element={<Kyc />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/lifetime" element={<Lifetime />} />
+            <Route path="/terms" element={<Terms brand="CAR-ENT" backTo="/" />} />
           </Routes>
         </div>
       </main>

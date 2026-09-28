@@ -11,22 +11,22 @@ export class FleetService {
 
   private db() { return getDb('fleet'); }
 
-  private getOwnedCar(carId: string, ownerId: string) {
-    const car = this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
+  private async getOwnedCar(carId: string, ownerId: string) {
+    const car = await this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
     if (!car) throw new NotFoundException('Car not found');
     if (car.owner_id !== ownerId) throw new ForbiddenException('You can only manage your own cars');
     return car;
   }
 
-  createCar(ownerId: string, dto: any) {
+  async createCar(ownerId: string, dto: any) {
     const id = uuid();
-    this.db().prepare(
+    await this.db().prepare(
       `INSERT INTO cars (id, owner_id, make, model, year, plate_number, category, transmission, fuel_type, seats, status, created_at, updated_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)`,
     ).run(id, ownerId, dto.make, dto.model, dto.year, dto.plate_number.toUpperCase(), dto.category,
       dto.transmission, dto.fuel_type, dto.seats, nowUtc(), nowUtc(), ownerId);
-    this.syncCarCache();
-    return this.getOwnedCar(id, ownerId);
+    await this.syncCarCache();
+    return await this.getOwnedCar(id, ownerId);
   }
 
   /**
@@ -34,9 +34,9 @@ export class FleetService {
    * Runs at boot and after every car mutation so bookings always see current cars.
    * Preserves is_available (booking state) on upsert — only refreshed non-availability fields.
    */
-  syncCarCache(): { synced: number } {
+  async syncCarCache(): Promise<{ synced: number }> {
     const bdb = getDb('booking');
-    const cars = this.db().prepare(
+    const cars = await this.db().prepare(
       `SELECT c.*, p.daily_rate_paise, p.security_deposit_paise,
               (SELECT file_url FROM car_photos ph WHERE ph.car_id = c.id AND ph.is_deleted = 0
                ORDER BY ph.sort_order, ph.created_at LIMIT 1) AS image_url
@@ -52,10 +52,10 @@ export class FleetService {
          image_url = excluded.image_url, owner_id = excluded.owner_id, status = excluded.status,
          is_deleted = 0, updated_at = excluded.updated_at`,
     );
-    const tx = bdb.transaction(() => {
+    await bdb.transaction(async () => {
       const now = nowUtc();
       for (const c of cars) {
-        upsert.run(c.id, c.make, c.model, c.plate_number, c.category,
+        await upsert.run(c.id, c.make, c.model, c.plate_number, c.category,
           c.daily_rate_paise || 0, c.security_deposit_paise || 0,
           c.image_url || null, c.owner_id, c.status, now);
       }
@@ -67,41 +67,40 @@ export class FleetService {
              WHERE is_deleted = 0 AND id NOT IN (${ids.map(() => '?').join(',')})`,
           )
         : bdb.prepare(`UPDATE car_cache SET is_deleted = 1, is_available = 0, updated_at = ? WHERE is_deleted = 0`);
-      stmt.run(now, ...ids);
+      await stmt.run(now, ...ids);
     });
-    tx();
     return { synced: cars.length };
   }
 
-  myCars(ownerId: string, status?: string) {
+  async myCars(ownerId: string, status?: string) {
     let sql = `SELECT c.*,
       (SELECT COUNT(*) FROM car_photos p WHERE p.car_id = c.id AND p.is_deleted = 0) AS photo_count
       FROM cars c WHERE c.owner_id = ? AND c.is_deleted = 0`;
     const params: any[] = [ownerId];
     if (status) { sql += ` AND c.status = ?`; params.push(status); }
     sql += ` ORDER BY c.created_at DESC`;
-    return this.db().prepare(sql).all(...params);
+    return await this.db().prepare(sql).all(...params);
   }
 
-  carDetail(carId: string, requester?: { id: string; role: string }) {
-    const car = this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
+  async carDetail(carId: string, requester?: { id: string; role: string }) {
+    const car = await this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
     if (!car) throw new NotFoundException('Car not found');
-    const photos = this.db().prepare(`SELECT * FROM car_photos WHERE car_id = ? AND is_deleted = 0 ORDER BY sort_order`).all(carId);
-    const pricing = this.db().prepare(`SELECT * FROM car_pricing WHERE car_id = ?`).get(carId);
+    const photos = await this.db().prepare(`SELECT * FROM car_photos WHERE car_id = ? AND is_deleted = 0 ORDER BY sort_order`).all(carId);
+    const pricing = await this.db().prepare(`SELECT * FROM car_pricing WHERE car_id = ?`).get(carId);
     const base = { ...car, photos, pricing };
     if (!requester) {
       if (car.status !== 'active') throw new NotFoundException('Car not found');
       return base;
     }
-    if (requester.role === 'car_owner') this.getOwnedCar(carId, requester.id);
+    if (requester.role === 'car_owner') await this.getOwnedCar(carId, requester.id);
     else if (requester.role === 'car_renter' && car.status !== 'active') {
       throw new ForbiddenException('Car not available');
     }
     return base;
   }
 
-  updateCar(ownerId: string, carId: string, dto: any) {
-    const car = this.getOwnedCar(carId, ownerId);
+  async updateCar(ownerId: string, carId: string, dto: any) {
+    const car = await this.getOwnedCar(carId, ownerId);
     if (car.status === 'rejected' || car.status === 'inactive' && dto.status) {
       // owners may edit inactive/rejected cars; relock rules below still apply
     }
@@ -124,147 +123,147 @@ export class FleetService {
     }
     sets.push(`status = ?`, `updated_at = ?`);
     params.push(newStatus, nowUtc(), carId);
-    this.db().prepare(`UPDATE cars SET ${sets.join(', ')} WHERE id = ?`).run(...params);
+    await this.db().prepare(`UPDATE cars SET ${sets.join(', ')} WHERE id = ?`).run(...params);
     writeAudit('fleet', {
       actor_id: ownerId, action: 'car.updated', entity_type: 'car', entity_id: carId,
-      before_value: before, after_value: this.getOwnedCar(carId, ownerId),
+      before_value: before, after_value: await this.getOwnedCar(carId, ownerId),
     });
-    this.syncCarCache();
-    const after = this.getOwnedCar(carId, ownerId);
+    await this.syncCarCache();
+    const after = await this.getOwnedCar(carId, ownerId);
     return { car: after, note: coreChanged ? 'Core details changed — car moved back to pending_review' : undefined };
   }
 
-  softDeleteCar(ownerId: string, carId: string) {
-    const car = this.getOwnedCar(carId, ownerId);
-    this.db().prepare(`UPDATE cars SET is_deleted = 1, updated_at = ? WHERE id = ?`).run(nowUtc(), carId);
+  async softDeleteCar(ownerId: string, carId: string) {
+    const car = await this.getOwnedCar(carId, ownerId);
+    await this.db().prepare(`UPDATE cars SET is_deleted = 1, updated_at = ? WHERE id = ?`).run(nowUtc(), carId);
     writeAudit('fleet', { actor_id: ownerId, action: 'car.soft_deleted', entity_type: 'car', entity_id: carId, before_value: car, after_value: { is_deleted: 1 } });
-    this.syncCarCache();
+    await this.syncCarCache();
     return { message: 'Car removed' };
   }
 
-  addPhotos(ownerId: string, carId: string, files: Express.Multer.File[]) {
-    this.getOwnedCar(carId, ownerId);
+  async addPhotos(ownerId: string, carId: string, files: Express.Multer.File[]) {
+    await this.getOwnedCar(carId, ownerId);
     for (const f of files) {
       const url = this.storage.save(f);
-      this.db().prepare(
+      await this.db().prepare(
         `INSERT INTO car_photos (id, car_id, file_url, sort_order, created_at, updated_at, created_by)
          VALUES (?, ?, ?, (SELECT COALESCE(MAX(sort_order),0)+1 FROM car_photos WHERE car_id = ?), ?, ?, ?)`,
       ).run(uuid(), carId, url, carId, nowUtc(), nowUtc(), ownerId);
     }
-    this.syncCarCache();
+    await this.syncCarCache();
     return { message: `${files.length} photo(s) uploaded` };
   }
 
-  addDocument(ownerId: string, carId: string, docType: string, file: Express.Multer.File) {
-    this.getOwnedCar(carId, ownerId);
+  async addDocument(ownerId: string, carId: string, docType: string, file: Express.Multer.File) {
+    await this.getOwnedCar(carId, ownerId);
     if (!['rc_book', 'insurance'].includes(docType)) throw new BadRequestException('doc_type must be rc_book or insurance');
     const url = this.storage.save(file);
     const db = this.db();
-    const existing = db.prepare(`SELECT id FROM car_documents WHERE car_id = ? AND doc_type = ? AND is_deleted = 0`).get(carId, docType) as any;
+    const existing = await db.prepare(`SELECT id FROM car_documents WHERE car_id = ? AND doc_type = ? AND is_deleted = 0`).get(carId, docType) as any;
     if (existing) {
-      db.prepare(`UPDATE car_documents SET file_url = ?, status = 'pending', updated_at = ? WHERE id = ?`).run(url, nowUtc(), existing.id);
+      await db.prepare(`UPDATE car_documents SET file_url = ?, status = 'pending', updated_at = ? WHERE id = ?`).run(url, nowUtc(), existing.id);
     } else {
-      db.prepare(
+      await db.prepare(
         `INSERT INTO car_documents (id, car_id, doc_type, file_url, status, created_at, updated_at, created_by)
          VALUES (?, ?, ?, ?, 'pending', ?, ?, ?)`,
       ).run(uuid(), carId, docType, url, nowUtc(), nowUtc(), ownerId);
     }
-    this.syncCarCache();
+    await this.syncCarCache();
     return { message: `${doc_type_label(docType)} uploaded` };
   }
 
-  submitForReview(ownerId: string, carId: string) {
-    const car = this.getOwnedCar(carId, ownerId);
+  async submitForReview(ownerId: string, carId: string) {
+    const car = await this.getOwnedCar(carId, ownerId);
     if (car.status !== 'draft' && car.status !== 'rejected') {
       throw new BadRequestException(`Car is already ${car.status}`);
     }
-    const photoCount = (this.db().prepare(`SELECT COUNT(*) AS c FROM car_photos WHERE car_id = ? AND is_deleted = 0`).get(carId) as any).c;
+    const photoCount = (await this.db().prepare(`SELECT COUNT(*) AS c FROM car_photos WHERE car_id = ? AND is_deleted = 0`).get(carId) as any).c;
     if (photoCount < 4) throw new BadRequestException('Minimum 4 photos required');
-    const docs = this.db().prepare(`SELECT doc_type FROM car_documents WHERE car_id = ? AND is_deleted = 0`).all(carId) as any[];
+    const docs = await this.db().prepare(`SELECT doc_type FROM car_documents WHERE car_id = ? AND is_deleted = 0`).all(carId) as any[];
     const types = new Set(docs.map((d) => d.doc_type));
     if (!types.has('rc_book')) throw new BadRequestException('RC book upload required');
     if (!types.has('insurance')) throw new BadRequestException('Insurance upload required');
-    this.db().prepare(`UPDATE cars SET status = 'pending_review', updated_at = ? WHERE id = ?`).run(nowUtc(), carId);
-    this.syncCarCache();
+    await this.db().prepare(`UPDATE cars SET status = 'pending_review', updated_at = ? WHERE id = ?`).run(nowUtc(), carId);
+    await this.syncCarCache();
     return { message: 'Car submitted for review. Super Admin will approve or reject it.' };
   }
 
-  setPricing(ownerId: string, carId: string, dto: any) {
-    this.getOwnedCar(carId, ownerId);
+  async setPricing(ownerId: string, carId: string, dto: any) {
+    await this.getOwnedCar(carId, ownerId);
     if (dto.daily_rate_paise <= 0) throw new BadRequestException('daily_rate_paise must be > 0');
     const db = this.db();
-    const existing = db.prepare(`SELECT id FROM car_pricing WHERE car_id = ?`).get(carId) as any;
+    const existing = await db.prepare(`SELECT id FROM car_pricing WHERE car_id = ?`).get(carId) as any;
     if (existing) {
-      db.prepare(
+      await db.prepare(
         `UPDATE car_pricing SET daily_rate_paise = ?, weekly_rate_paise = ?, monthly_rate_paise = ?, security_deposit_paise = ?, updated_at = ? WHERE id = ?`,
       ).run(dto.daily_rate_paise, dto.weekly_rate_paise ?? null, dto.monthly_rate_paise ?? null, dto.security_deposit_paise ?? 0, nowUtc(), existing.id);
     } else {
-      db.prepare(
+      await db.prepare(
         `INSERT INTO car_pricing (id, car_id, daily_rate_paise, weekly_rate_paise, monthly_rate_paise, security_deposit_paise, created_at, updated_at, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(uuid(), carId, dto.daily_rate_paise, dto.weekly_rate_paise ?? null, dto.monthly_rate_paise ?? null, dto.security_deposit_paise ?? 0, nowUtc(), nowUtc(), ownerId);
     }
-    this.syncCarCache();
+    await this.syncCarCache();
     return { message: 'Pricing saved' };
   }
 
-  setAvailability(ownerId: string, carId: string, dates: string[], isAvailable: boolean, reason?: string) {
-    this.getOwnedCar(carId, ownerId);
+  async setAvailability(ownerId: string, carId: string, dates: string[], isAvailable: boolean, reason?: string) {
+    await this.getOwnedCar(carId, ownerId);
     const db = this.db();
-    const tx = db.transaction(() => {
+    await db.transaction(async () => {
       for (const date of dates) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new BadRequestException(`Invalid date: ${date}`);
-        const existing = db.prepare(`SELECT id FROM car_availability WHERE car_id = ? AND date = ?`).get(carId, date) as any;
+        const existing = await db.prepare(`SELECT id FROM car_availability WHERE car_id = ? AND date = ?`).get(carId, date) as any;
         if (existing) {
-          db.prepare(`UPDATE car_availability SET is_available = ?, reason = ?, updated_at = ? WHERE id = ?`)
+          await db.prepare(`UPDATE car_availability SET is_available = ?, reason = ?, updated_at = ? WHERE id = ?`)
             .run(isAvailable ? 1 : 0, reason ?? null, nowUtc(), existing.id);
         } else {
-          db.prepare(
+          await db.prepare(
             `INSERT INTO car_availability (id, car_id, date, is_available, reason, created_at, updated_at, created_by)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           ).run(uuid(), carId, date, isAvailable ? 1 : 0, reason ?? null, nowUtc(), nowUtc(), ownerId);
         }
       }
     });
-    tx();
     return { message: `${dates.length} day(s) updated` };
   }
 
-  getAvailability(carId: string, from: string, to: string) {
-    return this.db().prepare(
+  async getAvailability(carId: string, from: string, to: string) {
+    return await this.db().prepare(
       `SELECT date, is_available, reason FROM car_availability WHERE car_id = ? AND date >= ? AND date <= ? ORDER BY date`,
     ).all(carId, from, to);
   }
 
   // ---------- internal API for other modules (never raw cross-db access) ----------
-  getPrice(carId: string) {
-    const p = this.db().prepare(`SELECT * FROM car_pricing WHERE car_id = ?`).get(carId) as any;
+  async getPrice(carId: string) {
+    const p = await this.db().prepare(`SELECT * FROM car_pricing WHERE car_id = ?`).get(carId) as any;
     if (!p) throw new NotFoundException('No pricing set for this car');
     return p;
   }
 
-  isCarActive(carId: string) {
-    const car = this.db().prepare(`SELECT status FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
+  async isCarActive(carId: string) {
+    const car = await this.db().prepare(`SELECT status FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
     return !!car && car.status === 'active';
   }
 
-  isAvailableRange(carId: string, startDay: string, endDay: string): boolean {
-    const blocked = this.db().prepare(
+  async isAvailableRange(carId: string, startDay: string, endDay: string): Promise<boolean> {
+    const blocked = await this.db().prepare(
       `SELECT COUNT(*) AS c FROM car_availability WHERE car_id = ? AND is_available = 0 AND date >= ? AND date <= ?`,
     ).get(carId, startDay, endDay) as any;
     return blocked.c === 0;
   }
 
-  getCarPublic(carId: string) {
-    const car = this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
+  async getCarPublic(carId: string) {
+    const car = await this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
     if (!car || car.status !== 'active') throw new NotFoundException('Car not available');
-    const photos = this.db().prepare(`SELECT file_url FROM car_photos WHERE car_id = ? AND is_deleted = 0 ORDER BY sort_order`).all(carId);
-    const pricing = this.db().prepare(`SELECT daily_rate_paise, weekly_rate_paise, monthly_rate_paise, security_deposit_paise FROM car_pricing WHERE car_id = ?`).get(carId);
+    const photos = await this.db().prepare(`SELECT file_url FROM car_photos WHERE car_id = ? AND is_deleted = 0 ORDER BY sort_order`).all(carId);
+    const pricing = await this.db().prepare(`SELECT daily_rate_paise, weekly_rate_paise, monthly_rate_paise, security_deposit_paise FROM car_pricing WHERE car_id = ?`).get(carId);
     return { ...car, photos, pricing };
   }
 
-  searchAvailable(category?: string) {
+  async searchAvailable(category?: string) {
     let sql = `SELECT c.id, c.make, c.model, c.year, c.category, c.transmission, c.fuel_type, c.seats, c.plate_number,
+      c.verification_status, c.verified_at,
       p.daily_rate_paise, p.security_deposit_paise,
       (SELECT file_url FROM car_photos ph WHERE ph.car_id = c.id AND ph.is_deleted = 0 ORDER BY sort_order LIMIT 1) AS cover_photo
       FROM cars c LEFT JOIN car_pricing p ON p.car_id = c.id
@@ -272,34 +271,34 @@ export class FleetService {
     const params: any[] = [];
     if (category) { sql += ` AND c.category = ?`; params.push(category); }
     sql += ` ORDER BY c.created_at DESC`;
-    return this.db().prepare(sql).all(...params);
+    return await this.db().prepare(sql).all(...params);
   }
 
-  ownerDailyRateMissing(carId: string) {
-    const p = this.db().prepare(`SELECT daily_rate_paise FROM car_pricing WHERE car_id = ?`).get(carId) as any;
+  async ownerDailyRateMissing(carId: string) {
+    const p = await this.db().prepare(`SELECT daily_rate_paise FROM car_pricing WHERE car_id = ?`).get(carId) as any;
     return !p || !p.daily_rate_paise;
   }
 
-  carReviews(carId: string) {
+  async carReviews(carId: string) {
     // reviews live in the `booking` DB; reviewer names live in the `auth` DB
     const bdb = getDb('booking');
     const adb = getDb('auth');
-    const rows = bdb.prepare(`
+    const rows = await bdb.prepare(`
       SELECT r.id, r.booking_id, r.reviewer_id, r.rating, r.comment, r.created_at
       FROM reviews r
       WHERE r.target_type = 'car' AND r.target_user_id = ? AND r.is_deleted = 0
       ORDER BY r.created_at DESC
     `).all(carId) as any[];
     const nameStmt = adb.prepare(`SELECT name FROM users WHERE id = ?`);
-    const reviews = rows.map((r) => ({
+    const reviews = await Promise.all(rows.map(async (r) => ({
       id: r.id,
       booking_id: r.booking_id,
       rating: r.rating,
       comment: r.comment,
       created_at: r.created_at,
-      reviewer_name: (nameStmt.get(r.reviewer_id) as any)?.name ?? 'Renter',
-    }));
-    const stats = bdb.prepare(`
+      reviewer_name: (await nameStmt.get(r.reviewer_id) as any)?.name ?? 'Renter',
+    })));
+    const stats = await bdb.prepare(`
       SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS avg_rating
       FROM reviews WHERE target_type = 'car' AND target_user_id = ? AND is_deleted = 0
     `).get(carId) as any;

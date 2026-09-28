@@ -7,7 +7,7 @@ export class NotificationsController {
   constructor(private notifier: NotificationsService) {}
 
   @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Get('notifications/mine')
-  mine(@Req() req: any) {
-    return this.notifier.listForUser(req.user.id);
+  async mine(@Req() req: any) {
+    return await this.notifier.listForUser(req.user.id);
   }
 }

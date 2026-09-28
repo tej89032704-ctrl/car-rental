@@ -17,27 +17,27 @@ export class PaymentsController {
   }
 
   @Roles('car_owner') @HttpCode(200) @Post('subscriptions/owner/monthly')
-  ownerSub(@Req() req: any) {
-    return this.payments.subscribeOwnerMonthly(req.user.id, req.user.id);
+  async ownerSub(@Req() req: any) {
+    return await this.payments.subscribeOwnerMonthly(req.user.id, req.user.id);
   }
 
   @Roles('car_renter') @HttpCode(200) @Post('subscriptions/renter/lifetime')
-  renterSub(@Req() req: any) {
-    return this.payments.subscribeRenterLifetime(req.user.id, req.user.id);
+  async renterSub(@Req() req: any) {
+    return await this.payments.subscribeRenterLifetime(req.user.id, req.user.id);
   }
 
   @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Get('subscriptions/mine')
-  mySubs(@Req() req: any) {
-    return this.payments.mySubscriptions(req.user.id);
+  async mySubs(@Req() req: any) {
+    return await this.payments.mySubscriptions(req.user.id);
   }
 
   @Roles('car_owner') @Get('payments/earnings')
-  earnings(@Req() req: any) {
-    return this.payments.earningsFor(req.user.id);
+  async earnings(@Req() req: any) {
+    return await this.payments.earningsFor(req.user.id);
   }
 
   @Roles('car_owner') @HttpCode(200) @Post('payouts/request')
-  requestPayout(@Req() req: any, @Body() body: unknown) {
-    return this.payments.requestPayout(req.user.id, this.parse(pricingSchema, body).amount_paise);
+  async requestPayout(@Req() req: any, @Body() body: unknown) {
+    return await this.payments.requestPayout(req.user.id, this.parse(pricingSchema, body).amount_paise);
   }
 }

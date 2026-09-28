@@ -13,6 +13,7 @@ import Settings from './pages/Settings.jsx';
 import Payouts from './pages/Payouts.jsx';
 import Disputes from './pages/Disputes.jsx';
 import Agents from './pages/Agents.jsx';
+import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const nav = useNavigate();
@@ -111,6 +112,7 @@ export default function App() {
   if (!user && !isAuth) {
     return (
       <Routes>
+        <Route path="/terms" element={<Terms brand="ControlRoom" backTo="/login" />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -124,6 +126,7 @@ export default function App() {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/terms" element={<Terms brand="ControlRoom" backTo="/login" />} />
       </Routes>
     );
   }
@@ -143,6 +146,7 @@ export default function App() {
             <Route path="/payouts" element={<Payouts />} />
             <Route path="/disputes" element={<Disputes />} />
             <Route path="/agents" element={<Agents />} />
+            <Route path="/terms" element={<Terms brand="ControlRoom" backTo="/" />} />
           </Routes>
         </div>
       </main>

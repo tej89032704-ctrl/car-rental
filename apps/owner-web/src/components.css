@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    Owner-Web Specific Component Styles
-   Brand: Teal #1CA9A3 (revv.co.in inspired)
+   Brand: Teal #000000 (revv.co.in inspired)
    ═══════════════════════════════════════════════════════ */
 
 /* ── Owner page layout ── */
@@ -17,18 +17,18 @@
 .max-w-200 { max-width: 200px; }
 
 /* ── Button variants ── */
-.btn-approve { background: #1CA9A3; color: #fff; }
-.btn-approve:hover { background: #128F8A; }
-.btn-reject { background: #E66742; color: #fff; }
-.btn-reject:hover { background: #D55635; }
-.btn-start { background: #1CA9A3; color: #fff; }
-.btn-start:hover { background: #128F8A; }
-.btn-complete { background: #2C7DA0; color: #fff; }
-.btn-complete:hover { background: #1C6A8C; }
-.btn-review { background: #2C7DA0; color: #fff; }
-.btn-review:hover { background: #1C6A8C; }
+.btn-approve { background: #000000; color: #fff; }
+.btn-approve:hover { background: #1d1d1f; }
+.btn-reject { background: #d70015; color: #fff; }
+.btn-reject:hover { background: #b00011; }
+.btn-start { background: #000000; color: #fff; }
+.btn-start:hover { background: #1d1d1f; }
+.btn-complete { background: #6e6e73; color: #fff; }
+.btn-complete:hover { background: #424245; }
+.btn-review { background: #6e6e73; color: #fff; }
+.btn-review:hover { background: #424245; }
 .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-.btn-ghost:hover { background: #f9fafb; }
+.btn-ghost:hover { background: #f5f5f7; }
 
 /* ── Page header row (title + action) ── */
 .page-header-row {
@@ -58,7 +58,7 @@
 .booking-card-body { margin-top: 8px; }
 .booking-card-body p { margin: 2px 0; font-size: 13px; color: var(--muted); }
 .booking-card-body p strong { color: var(--ink); font-weight: 600; }
-.booking-card-body .meta-accent { font-size: 12px; color: #94a3b8; }
+.booking-card-body .meta-accent { font-size: 12px; color: #86868b; }
 
 /* ── Star rating input ── */
 .star-rating { display: flex; gap: 4px; }
@@ -69,11 +69,11 @@
   cursor: pointer;
   padding: 0;
   line-height: 1;
-  color: #d1d5db;
+  color: #d2d2d7;
   transition: color .1s;
 }
-.star-rating button.filled { color: #f59e0b; }
-.star-rating button:hover { color: #f59e0b; }
+.star-rating button.filled { color: #6e6e73; }
+.star-rating button:hover { color: #6e6e73; }
 
 /* ── Review modal extras ── */
 .review-form textarea.f { resize: vertical; min-height: 80px; font-family: inherit; }
@@ -82,7 +82,7 @@
 .empty-state-section {
   text-align: center;
   padding: 24px;
-  background: #f9fafb;
+  background: #f5f5f7;
   border: 1px dashed var(--line);
   border-radius: 12px;
   margin-bottom: 24px;
@@ -100,7 +100,7 @@
 
 /* ── Car photo grid ── */
 .photo-grid { display: flex; gap: 8px; flex-wrap: wrap; }
-.photo-thumb { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; background: #eef1f6; }
+.photo-thumb { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; background: #f5f5f7; }
 
 /* ── Car card footer ── */
 .card-footer-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }

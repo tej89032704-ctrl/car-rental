@@ -37,102 +37,133 @@ export class AuthController {
   }
 
   @Public() @Post('auth/signup')
-  signup(@Body() body: unknown) {
-    return this.auth.signup(this.parse(signupSchema, body));
+  async signup(@Body() body: unknown) {
+    return await this.auth.signup(this.parse(signupSchema, body));
   }
 
   @Public() @HttpCode(200) @Post('auth/login')
-  loginMain(@Body() body: unknown) {
+  async loginMain(@Body() body: unknown) {
     const dto = this.parse(credentialsSchema, body);
-    return this.auth.loginMain(dto.email, dto.password);
+    return await this.auth.loginMain(dto.email, dto.password);
   }
 
   @Public() @HttpCode(200) @Post('auth/admin/login')
-  loginAdmin(@Body() body: unknown) {
+  async loginAdmin(@Body() body: unknown) {
     const dto = this.parse(credentialsSchema, body);
-    return this.auth.loginAdmin(dto.email, dto.password);
+    return await this.auth.loginAdmin(dto.email, dto.password);
   }
 
   @Public() @HttpCode(200) @Post('auth/admin/login/verify')
-  verify2fa(@Body() body: unknown) {
+  async verify2fa(@Body() body: unknown) {
     const dto = this.parse(twofaSchema, body);
-    return this.auth.verifyAdmin2fa(dto.twofa_token, dto.code);
+    return await this.auth.verifyAdmin2fa(dto.twofa_token, dto.code);
   }
 
   @Public() @HttpCode(200) @Post('auth/agent/login')
-  loginAgent(@Body() body: unknown) {
+  async loginAgent(@Body() body: unknown) {
     const dto = this.parse(credentialsSchema, body);
-    return this.auth.loginAgent(dto.email, dto.password);
+    return await this.auth.loginAgent(dto.email, dto.password);
   }
 
   @Public() @HttpCode(200) @Post('auth/refresh')
-  refresh(@Body() body: unknown) {
+  async refresh(@Body() body: unknown) {
     const dto = this.parse(refreshSchema, body);
-    return this.auth.refresh(dto.refresh_token);
+    return await this.auth.refresh(dto.refresh_token);
   }
 
   @Public() @HttpCode(200) @Post('auth/forgot-password')
-  forgot(@Body() body: unknown) {
-    return this.auth.forgotPassword(this.parse(forgotSchema, body).email);
+  async forgot(@Body() body: unknown) {
+    return await this.auth.forgotPassword(this.parse(forgotSchema, body).email);
   }
 
   @Public() @HttpCode(200) @Post('auth/reset-password')
-  reset(@Body() body: unknown) {
+  async reset(@Body() body: unknown) {
     const dto = this.parse(resetSchema, body);
-    return this.auth.resetPassword(dto.token, dto.new_password);
+    return await this.auth.resetPassword(dto.token, dto.new_password);
   }
 
   @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/otp/phone/request')
-  requestOtp(@Req() req: any) {
-    return this.auth.requestPhoneOtp(req.user.id);
+  async requestOtp(@Req() req: any) {
+    return await this.auth.requestPhoneOtp(req.user.id);
   }
 
   @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/otp/phone/verify')
-  verifyOtp(@Req() req: any, @Body() body: unknown) {
-    return this.auth.verifyPhoneOtp(req.user.id, this.parse(otpVerifySchema, body).code);
+  async verifyOtp(@Req() req: any, @Body() body: unknown) {
+    return await this.auth.verifyPhoneOtp(req.user.id, this.parse(otpVerifySchema, body).code);
   }
 
   @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Get('auth/me')
-  me(@Req() req: any) {
-    const u = this.auth.getUserRaw(req.user.id);
+  async me(@Req() req: any) {
+    const u = await this.auth.getUserRaw(req.user.id);
     if (!u) throw new BadRequestException('User not found');
     return { user: this.auth.toPublicUser(u) };
   }
 
   @Roles('car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/role-change-request')
-  requestRoleChange(@Req() req: any, @Body() body: unknown) {
+  async requestRoleChange(@Req() req: any, @Body() body: unknown) {
     const dto = this.parse(z.object({ desired_role: z.enum(['car_owner', 'car_renter', 'agent']) }), body);
-    return this.auth.requestRoleChange(req.user.id, dto.desired_role);
+    return await this.auth.requestRoleChange(req.user.id, dto.desired_role);
   }
 
   @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Get('auth/role-change-requests/mine')
-  myRoleRequests(@Req() req: any) {
-    return this.auth.myRoleChangeRequests(req.user.id);
+  async myRoleRequests(@Req() req: any) {
+    return await this.auth.myRoleChangeRequests(req.user.id);
   }
 
   // ---------- KYC ----------
   @KycExempt() @Roles('car_owner', 'car_renter', 'agent') @Post('kyc/documents')
   @UseInterceptors(FileInterceptor('file'))
-  uploadDoc(@Req() req: any, @UploadedFile() file: Express.Multer.File, @Body('doc_type') docType: string) {
+  async uploadDoc(
+    @Req() req: any,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { [k: string]: unknown },
+  ) {
     if (!file) throw new BadRequestException('file is required');
-    if (!['id_proof', 'address_proof'].includes(docType)) throw new BadRequestException('Invalid doc_type');
+    const docType = String(body?.doc_type ?? '');
+    if (!['id_proof', 'address_proof', 'aadhaar', 'driving_license'].includes(docType)) {
+      throw new BadRequestException('Invalid doc_type');
+    }
     const url = this.kyc.saveFile(file);
-    return this.kyc.upload(req.user.id, req.user.role, docType, url);
+    return await this.kyc.upload(
+      req.user.id,
+      req.user.role,
+      docType,
+      url,
+      body?.doc_number ? String(body.doc_number) : null,
+      body?.doc_expiry ? String(body.doc_expiry) : null,
+    );
+  }
+
+  /**
+   * Aadhaar Paperless Offline e-KYC — the share-phrase ZIP from myAadhaar.
+   *
+   * Returns a domain result rather than an HTTP error: a wrong Share Phrase is
+   * a typo to retry, and the UI needs the exact message either way. A verified
+   * pack is filed as the applicant's `aadhaar` document.
+   */
+  @KycExempt() @Roles('car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('kyc/offline-ekyc')
+  @UseInterceptors(FileInterceptor('file'))
+  async offlineEkyc(
+    @Req() req: any,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { [k: string]: unknown },
+  ) {
+    return await this.kyc.offlineEkyc(req.user.id, req.user.role, file, body ?? {});
   }
 
   @KycExempt() @Roles('car_owner', 'car_renter', 'agent') @Get('kyc/me')
-  myKyc(@Req() req: any) {
-    return this.kyc.myDocuments(req.user.id);
+  async myKyc(@Req() req: any) {
+    return await this.kyc.myDocuments(req.user.id);
   }
 
   @Roles('super_admin', 'agent') @Get('kyc/queue')
-  queue(@Req() req: any) {
-    return this.kyc.queue(req.user.id, req.user.role);
+  async queue(@Req() req: any) {
+    return await this.kyc.queue(req.user.id, req.user.role);
   }
 
   @Roles('super_admin', 'agent') @HttpCode(200) @Post('kyc/review/:docId')
-  review(@Req() req: any, @Param('docId') docId: string, @Body() body: unknown) {
+  async review(@Req() req: any, @Param('docId') docId: string, @Body() body: unknown) {
     const dto = this.parse(reviewSchema, body);
-    return this.kyc.review(req.user.id, req.user.role, docId, dto.decision, dto.reason);
+    return await this.kyc.review(req.user.id, req.user.role, docId, dto.decision, dto.reason);
   }
 }

@@ -8,6 +8,7 @@ import Signup from './pages/Signup.jsx';
 import VerifyOtp from './pages/VerifyOtp.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Notifications from './pages/Notifications.jsx';
+import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const nav = useNavigate();
@@ -27,10 +28,10 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   return (
     <>
       <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
-      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#d97706', '--brand-2': '#b45309' }}>
+      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#ffffff', '--brand-2': '#ffffff' }}>
         <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}><ChevronLeft /></button>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>A</div>
+          <div className="sidebar-logo-icon">A</div>
           <div className="sidebar-logo-text">
             <h2>AgentField</h2>
             <span>Agent Portal</span>
@@ -48,7 +49,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
         </nav>
 
         <div className="sidebar-user">
-          <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>{user.name?.[0] || 'A'}</div>
+          <div className="sidebar-avatar">{user.name?.[0] || 'A'}</div>
           <div className="sidebar-user-info">
             <div className="name">{user.name}</div>
             <div className="role">Field Agent</div>
@@ -91,6 +92,7 @@ export default function App() {
   if (!user && !isAuth) {
     return (
       <Routes>
+        <Route path="/terms" element={<Terms brand="AgentField" backTo="/agent/login" />} />
         <Route path="*" element={<Navigate to="/agent/login" replace />} />
       </Routes>
     );
@@ -106,6 +108,7 @@ export default function App() {
         <Route path="/agent/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/terms" element={<Terms brand="AgentField" backTo="/agent/login" />} />
       </Routes>
     );
   }
@@ -119,6 +122,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/terms" element={<Terms brand="AgentField" backTo="/" />} />
           </Routes>
         </div>
       </main>

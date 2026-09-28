@@ -12,6 +12,7 @@ import CarEditor from './pages/CarEditor.jsx';
 import Requests from './pages/Requests.jsx';
 import Earnings from './pages/Earnings.jsx';
 import Notifications from './pages/Notifications.jsx';
+import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const nav = useNavigate();
@@ -34,10 +35,10 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   return (
     <>
       <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
-      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#1CA9A3', '--brand-2': '#128F8A' }}>
+      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#ffffff', '--brand-2': '#ffffff' }}>
         <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}><ChevronLeft /></button>
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon" style={{ background: 'linear-gradient(135deg, #1CA9A3, #128F8A)' }}>O</div>
+          <div className="sidebar-logo-icon">O</div>
           <div className="sidebar-logo-text">
             <h2>OwnerHub</h2>
             <span>Car Owner</span>
@@ -55,7 +56,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
         </nav>
 
         <div className="sidebar-user">
-          <div className="sidebar-avatar" style={{ background: 'linear-gradient(135deg, #1CA9A3, #128F8A)' }}>{user.name?.[0] || 'O'}</div>
+          <div className="sidebar-avatar">{user.name?.[0] || 'O'}</div>
           <div className="sidebar-user-info">
             <div className="name">{user.name}</div>
             <div className="role">Car Owner</div>
@@ -98,6 +99,7 @@ export default function App() {
   if (!user && !isAuth) {
     return (
       <Routes>
+        <Route path="/terms" element={<Terms brand="OwnerHub" backTo="/login" />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -113,6 +115,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/terms" element={<Terms brand="OwnerHub" backTo="/login" />} />
       </Routes>
     );
   }
@@ -130,6 +133,7 @@ export default function App() {
             <Route path="/earnings" element={<Earnings />} />
             <Route path="/kyc" element={<Kyc />} />
             <Route path="/notifications" element={<Notifications />} />
+            <Route path="/terms" element={<Terms brand="OwnerHub" backTo="/" />} />
           </Routes>
         </div>
       </main>

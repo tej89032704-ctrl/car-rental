@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
+import { RcVerifyBlock, verificationPillClass } from '../../../../packages/shared/src/RcVerify.jsx';
 
 export default function CarEditor() {
   const { id } = useParams();
@@ -10,6 +11,9 @@ export default function CarEditor() {
   const [pricing, setPricing] = useState({ daily_rate_paise: '', weekly_rate_paise: '', monthly_rate_paise: '', security_deposit_paise: '0' });
   const [blockDate, setBlockDate] = useState('');
   const [avail, setAvail] = useState([]);
+  const [verify, setVerify] = useState(null);
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifying, setVerifying] = useState(false);
 
   async function load() {
     try {
@@ -24,6 +28,7 @@ export default function CarEditor() {
       const from = new Date().toISOString().slice(0, 10);
       const to = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10);
       setAvail(await api(`/cars/${id}/availability?from=${from}&to=${to}`));
+      setVerify(await api(`/cars/${id}/verification`).catch(() => null));
     } catch (e) { setErr(e.message); }
   }
   useEffect(() => { load(); }, [id]);
@@ -31,6 +36,17 @@ export default function CarEditor() {
   async function act(fn) {
     setErr(''); setMsg('');
     try { const r = await fn(); if (r?.message) setMsg(r.message); load(); } catch (e) { setErr(e.message); }
+  }
+
+  async function runVerify() {
+    setErr(''); setMsg('');
+    setVerifying(true);
+    try {
+      const r = await api(`/cars/${id}/verify`, { method: 'POST' });
+      setVerifyResult(r);
+      setMsg(r.message || (r.live ? 'Live RC check complete' : 'RC check complete (demo mode)'));
+      load();
+    } catch (e) { setErr(e.message); } finally { setVerifying(false); }
   }
 
   if (!car) return err ? <div className="alert err">{err}</div> : <p className="muted">Loading…</p>;
@@ -64,6 +80,22 @@ export default function CarEditor() {
             {car.documents && null}
           </div>
         ))}
+      </div>
+
+      <div className="card">
+        <h2>RC verification</h2>
+        <p>
+          Status: <span className={`pill ${verificationPillClass(car.verification_status)} h-fit`}>{car.verification_status}</span>
+          {car.verified_at && <span className="muted" style={{ marginLeft: 8 }}>verified {new Date(car.verified_at).toLocaleDateString()}</span>}
+        </p>
+        <p className="muted">RC details are checked against the RTO (VAHAN) database before a car can go live. You can self-check anytime; the super admin re-checks at approval.</p>
+        {(verifyResult || verify?.history?.[0]) && <RcVerifyBlock v={verifyResult || verify.history[0]} />}
+        <div className="verify-actions" style={{ marginTop: 10 }}>
+          <button className="btn sm" disabled={verifying} onClick={runVerify}>
+            {verifying ? 'Checking RTO…' : car.verification_status === 'verified' ? 'Re-verify RC' : 'Run RC verification'}
+          </button>
+          {!verifyResult?.live && !verify?.history?.[0]?.live && <span className="muted">Demo mode — no live RTO key configured yet.</span>}
+        </div>
       </div>
 
       <div className="card">

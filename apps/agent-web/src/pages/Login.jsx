@@ -62,6 +62,10 @@ export default function Login() {
               Already registered?{' '}
               <Link to="/agent/login">Sign in</Link>
             </div>
+            <div className="link-row">
+              By continuing you agree to our{' '}
+              <Link to="/terms">Terms &amp; Conditions</Link>.
+            </div>
           </div>
           <p className="muted agent-note">
             Agents are salaried field staff — separate from the public app. Contact Super Admin to set up your account.

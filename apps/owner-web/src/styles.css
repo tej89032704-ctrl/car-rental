@@ -1,39 +1,39 @@
 /* ═══════════════════════════════════════════════════════
-   DriveNow — Portal Base Styles (Owner)
+   CAR-ENT — Portal Base Styles (Owner)
    Inspired by revv.co.in — teal brand system, Poppins/Roboto
    ═══════════════════════════════════════════════════════ */
 
 :root {
-  --font: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-  --font-display: 'Poppins', 'Roboto', 'Segoe UI', sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
 
   /* Revv-style teal brand */
-  --brand: #1CA9A3;
-  --brand-2: #128F8A;
-  --brand-bright: #0EBABA;
-  --brand-soft: rgba(28, 169, 163, 0.12);
-  --gold: #D3AB4F;
-  --gold-2: #B8912F;
-  --coral: #E66742;
+  --brand: #000000;
+  --brand-2: #1d1d1f;
+  --brand-bright: #1d1d1f;
+  --brand-soft: rgba(0,0,0,0.05);
+  --gold: #6e6e73;
+  --gold-2: #1d1d1f;
+  --coral: #1d1d1f;
 
-  --bg: #F6F8FA;
-  --bg-soft: #EDF3F5;
+  --bg: #ffffff;
+  --bg-soft: #f5f5f7;
   --card: #ffffff;
-  --ink: #151B26;
-  --ink-2: #3A4556;
-  --muted: #6B7280;
-  --ok: #059669;
-  --warn: #B45309;
-  --bad: #DC2626;
-  --line: #E5E7EB;
-  --line-soft: #F0F3F7;
+  --ink: #1d1d1f;
+  --ink-2: #333336;
+  --muted: #6e6e73;
+  --ok: #1d1d1f;
+  --warn: #6e6e73;
+  --bad: #d70015;
+  --line: #d2d2d7;
+  --line-soft: #e8e8ed;
 
   --radius: 14px;
   --radius-lg: 18px;
-  --shadow-sm: 0 1px 2px rgba(21, 27, 38, 0.05), 0 2px 8px rgba(21, 27, 38, 0.05);
-  --shadow-md: 0 6px 16px rgba(21, 27, 38, 0.09), 0 2px 6px rgba(21, 27, 38, 0.06);
-  --shadow-lg: 0 20px 50px rgba(21, 27, 38, 0.16);
-  --navy: #0E1B2C;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.03);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
+  --shadow-lg: 0 18px 46px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.05);
+  --navy: #1d1d1f;
 }
 
 * { box-sizing: border-box; }
@@ -104,7 +104,7 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
 .car-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  border-color: rgba(28, 169, 163, 0.5);
+  border-color: rgba(0,0,0,0.275);
 }
 .car-card img {
   width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
@@ -132,20 +132,20 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
 
 /* ── Buttons (Revv teal) ── */
 .btn {
-  display: inline-block; background: linear-gradient(135deg, #1CA9A3, #128F8A);
+  display: inline-block; background: linear-gradient(135deg, #000000, #1d1d1f);
   color: #fff; border: none; border-radius: 12px; padding: 12px 22px;
   font-family: var(--font-display); font-weight: 600; font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(28, 169, 163, 0.28);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.154);
   transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
 }
-.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(28, 169, 163, 0.38); filter: brightness(1.03); }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.209); filter: brightness(1.03); }
 .btn:active { transform: translateY(0); }
 .btn.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
 .btn.sec:hover { border-color: var(--brand); color: var(--brand); background: #fff; box-shadow: none; }
-.btn.ok { background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 4px 12px rgba(5,150,105,.25); }
-.btn.bad { background: linear-gradient(135deg, #DC2626, #B91C1C); box-shadow: 0 4px 12px rgba(220,38,38,.25); }
-.btn.warn { background: linear-gradient(135deg, #D97706, #B45309); box-shadow: 0 4px 12px rgba(217,119,6,.25); }
+.btn.ok { background:#000000; box-shadow:none; }
+.btn.bad { background:#d70015; box-shadow:none; }
+.btn.warn { background:#1d1d1f; box-shadow:none; }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 .btn.sm { padding: 8px 15px; font-size: 13px; border-radius: 10px; }
 
@@ -157,11 +157,11 @@ input.f, select.f, textarea.f {
   background: #fff; color: var(--ink); font-family: var(--font);
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-input.f:hover, select.f:hover, textarea.f:hover { border-color: #CBD5E1; }
+input.f:hover, select.f:hover, textarea.f:hover { border-color: #d2d2d7; }
 input.f:focus, select.f:focus, textarea.f:focus {
-  border-color: var(--brand); box-shadow: 0 0 0 3px rgba(28, 169, 163, 0.15); outline: none;
+  border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,0,0,0.083); outline: none;
 }
-input.f::placeholder, textarea.f::placeholder { color: #9AA7BD; }
+input.f::placeholder, textarea.f::placeholder { color: #86868b; }
 .row { display: flex; gap: 12px; flex-wrap: wrap; } .row > * { flex: 1; min-width: 160px; }
 
 /* ── Tables ── */
@@ -174,19 +174,19 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
 .t tr:last-child td { border-bottom: none; }
 
 /* ── Status pills ── */
-.pill { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
-.pill.requested { background:#FEF3C7;color:#92400E;border-color:#FDE68A; }
-.pill.confirmed, .pill.approved, .pill.active { background:#D1FAE5;color:#065F46;border-color:#A7F3D0; }
-.pill.ongoing { background:#DCFCE7;color:#166534;border-color:#BBF7D0; }
-.pill.completed, .pill.paid { background:#E0E7FF;color:#3730A3;border-color:#C7D2FE; }
-.pill.cancelled, .pill.rejected, .pill.banned, .pill.suspended { background:#FEE2E2;color:#991B1B;border-color:#FECACA; }
-.pill.pending, .pill.pending_review, .pill.pending_otp { background:#F3F4F6;color:#374151;border-color:#E5E7EB; }
+.pill { background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7; }
+.pill.requested { background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7; }
+.pill.confirmed, .pill.approved, .pill.active { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
+.pill.ongoing { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
+.pill.completed, .pill.paid { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
+.pill.cancelled, .pill.rejected, .pill.banned, .pill.suspended { background:#ffffff;color:#1d1d1f;border-color:#1d1d1f; }
+.pill.pending, .pill.pending_review, .pill.pending_otp { background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7; }
 
 /* ── Alerts ── */
 .alert { padding: 13px 16px; border-radius: 12px; font-size: 14px; margin: 10px 0; border: 1px solid transparent; }
-.alert.err { background:#FEF2F2;color:#991B1B;border-color:#FECACA; }
-.alert.info { background:#EFF6FF;color:#1E40AF;border-color:#BFDBFE; }
-.alert.good { background:#F0FDF4;color:#065F46;border-color:#BBF7D0; }
+.alert.err { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
+.alert.info { background:#f5f5f7;color:#1d1d1f;border-color:#e8e8ed; }
+.alert.good { background:#f5f5f7;color:#1d1d1f;border-color:#e8e8ed; }
 
 /* ── Muted ── */
 .muted { color: var(--muted); font-size: 13px; }
@@ -196,18 +196,18 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
   position: relative; overflow: hidden;
   border-radius: 22px;
   padding: 52px 42px; margin-bottom: 28px;
-  border: 1px solid #DFEFED;
+  border: 1px solid #e8e8ed;
   background:
-    radial-gradient(640px 280px at 88% -10%, rgba(14, 186, 186, 0.20), transparent 60%),
-    radial-gradient(560px 240px at 4% 110%, rgba(28, 169, 163, 0.13), transparent 60%),
-    linear-gradient(135deg, #ffffff 0%, #F1FAF9 55%, #E9F5F4 100%);
+    radial-gradient(640px 280px at 88% -10%, rgba(0,0,0,0.110), transparent 60%),
+    radial-gradient(560px 240px at 4% 110%, rgba(0,0,0,0.072), transparent 60%),
+    linear-gradient(135deg, #ffffff 0%, #f5f5f7 100%);
   box-shadow: var(--shadow-sm);
 }
 .hero::after {
   content: '';
   position: absolute; right: -70px; top: -70px;
   width: 250px; height: 250px; border-radius: 50%;
-  border: 30px solid rgba(14, 186, 186, 0.09);
+  border: 30px solid rgba(0,0,0,0.050);
   pointer-events: none;
 }
 .hero h1 {
@@ -217,7 +217,9 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
 }
 .hero p {
   position: relative; z-index: 1;
-  margin: 6px 0 0; font-size: 16px; color: var(--muted); max-width: 560px;
+  /* --ink-2, not --muted: the hero carries a radial vignette, and #6e6e73 drops
+     to ~4:1 underneath it. #333336 stays above 9:1 even at full vignette. */
+  margin: 6px 0 0; font-size: 16px; color: var(--ink-2); max-width: 560px;
 }
 .hero-badges {
   position: relative; z-index: 1;
@@ -260,6 +262,22 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
 }
 .tab:hover { border-color: var(--brand); color: var(--brand); transform: translateY(-1px); }
 .tab.on {
-  background: linear-gradient(135deg, #1CA9A3, #128F8A); border-color: #1CA9A3;
-  color: #fff; box-shadow: 0 4px 12px rgba(28,169,163,.35);
+  background: linear-gradient(135deg, #000000, #1d1d1f); border-color: #000000;
+  color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.193);
 }
+
+/* ── Live car verification (RC / VAHAN) ── */
+.car-actions, .verify-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.verify-result {
+  margin-top: 10px; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--bg-soft);
+}
+.verify-result.is-ok { border-color: #d2d2d7; }
+.verify-result.is-bad { border-color: #d70015; background: #fff; }
+.verify-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.verify-msg { margin: 0 0 8px; }
+.verify-vehicle { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
+.info-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.info-label { color: var(--muted); }
+.info-value { color: var(--ink); font-weight: 600; text-align: right; }
+code { background: var(--line-soft); padding: 1px 5px; border-radius: 5px; font-size: 12px; }

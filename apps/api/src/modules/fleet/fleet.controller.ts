@@ -3,6 +3,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
 import { Roles, Public } from '../../common/auth/guards';
 import { FleetService } from './fleet.service';
+import { CarVerificationService } from './car-verification.service';
 
 const carSchema = z.object({
   make: z.string().min(1),
@@ -28,7 +29,10 @@ const availabilitySchema = z.object({
 
 @Controller()
 export class FleetController {
-  constructor(private fleet: FleetService) {}
+  constructor(
+    private fleet: FleetService,
+    private carVerify: CarVerificationService,
+  ) {}
 
   private parse<T>(schema: z.ZodType<T>, body: unknown): T {
     const r = schema.safeParse(body);
@@ -37,73 +41,93 @@ export class FleetController {
   }
 
   @Roles('car_owner') @Post('cars')
-  create(@Req() req: any, @Body() body: unknown) {
-    return this.fleet.createCar(req.user.id, this.parse(carSchema, body));
+  async create(@Req() req: any, @Body() body: unknown) {
+    return await this.fleet.createCar(req.user.id, this.parse(carSchema, body));
   }
 
   @Public() @Get('cars/search')
-  search(@Query('category') category?: string) {
-    return this.fleet.searchAvailable(category || undefined);
+  async search(@Query('category') category?: string) {
+    return await this.fleet.searchAvailable(category || undefined);
   }
 
   @Roles('car_owner') @Get('cars/mine')
-  mine(@Req() req: any, @Query('status') status?: string) {
-    return this.fleet.myCars(req.user.id, status || undefined);
+  async mine(@Req() req: any, @Query('status') status?: string) {
+    return await this.fleet.myCars(req.user.id, status || undefined);
   }
 
   @Roles('car_owner') @Patch('cars/:id')
-  update(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
-    return this.fleet.updateCar(req.user.id, id, carSchema.partial().parse(body));
+  async update(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+    return await this.fleet.updateCar(req.user.id, id, carSchema.partial().parse(body));
   }
 
   @Roles('car_owner') @Delete('cars/:id')
-  remove(@Req() req: any, @Param('id') id: string) {
-    return this.fleet.softDeleteCar(req.user.id, id);
+  async remove(@Req() req: any, @Param('id') id: string) {
+    return await this.fleet.softDeleteCar(req.user.id, id);
   }
 
   @Public() @Get('cars/:id')
-  detail(@Req() req: any, @Param('id') id: string) {
-    return this.fleet.carDetail(id, req.user);
+  async detail(@Req() req: any, @Param('id') id: string) {
+    return await this.fleet.carDetail(id, req.user);
   }
 
   @Roles('car_owner') @Post('cars/:id/photos')
   @UseInterceptors(FilesInterceptor('files', 10))
-  photos(@Req() req: any, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
+  async photos(@Req() req: any, @Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
     if (!files?.length) throw new BadRequestException('files required');
-    return this.fleet.addPhotos(req.user.id, id, files);
+    return await this.fleet.addPhotos(req.user.id, id, files);
   }
 
   @Roles('car_owner') @Post('cars/:id/documents')
   @UseInterceptors(FileInterceptor('file'))
-  documents(@Req() req: any, @Param('id') id: string, @Body('doc_type') docType: string, @UploadedFile() file: Express.Multer.File) {
+  async documents(@Req() req: any, @Param('id') id: string, @Body('doc_type') docType: string, @UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('file required');
-    return this.fleet.addDocument(req.user.id, id, docType, file);
+    return await this.fleet.addDocument(req.user.id, id, docType, file);
   }
 
   @Roles('car_owner') @HttpCode(200) @Post('cars/:id/submit')
-  submit(@Req() req: any, @Param('id') id: string) {
-    return this.fleet.submitForReview(req.user.id, id);
+  async submit(@Req() req: any, @Param('id') id: string) {
+    return await this.fleet.submitForReview(req.user.id, id);
   }
 
   @Roles('car_owner') @Put('cars/:id/pricing')
-  pricing(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
-    return this.fleet.setPricing(req.user.id, id, this.parse(pricingSchema, body));
+  async pricing(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+    return await this.fleet.setPricing(req.user.id, id, this.parse(pricingSchema, body));
   }
 
   @Roles('car_owner') @Put('cars/:id/availability')
-  availability(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+  async availability(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(availabilitySchema, body);
-    return this.fleet.setAvailability(req.user.id, id, dto.dates, dto.is_available, dto.reason);
+    return await this.fleet.setAvailability(req.user.id, id, dto.dates, dto.is_available, dto.reason);
   }
 
   @Roles('car_owner', 'car_renter', 'super_admin') @Get('cars/:id/availability')
-  getAvailability(@Param('id') id: string, @Query('from') from: string, @Query('to') to: string) {
+  async getAvailability(@Param('id') id: string, @Query('from') from: string, @Query('to') to: string) {
     if (!from || !to) throw new BadRequestException('from and to (YYYY-MM-DD) required');
-    return this.fleet.getAvailability(id, from, to);
+    return await this.fleet.getAvailability(id, from, to);
+  }
+
+  // ---------- live car verification (RC / VAHAN) ----------
+
+  @Roles('car_owner', 'super_admin') @HttpCode(200) @Post('cars/:id/verify')
+  async verifyCar(@Req() req: any, @Param('id') id: string) {
+    return await this.carVerify.verify(req.user, id);
+  }
+
+  @Roles('car_owner', 'super_admin') @Get('cars/:id/verification')
+  async carVerification(@Req() req: any, @Param('id') id: string) {
+    return await this.carVerify.overview(req.user, id);
+  }
+
+  @Roles('car_owner', 'super_admin') @HttpCode(200) @Post('cars/:id/verification/override')
+  async overrideVerification(@Req() req: any, @Param('id') id: string, @Body() body: any) {
+    const reason = String(body?.reason || '').trim();
+    if (!reason) throw new BadRequestException('reason (min 3 characters) required');
+    if (reason.length < 3) throw new BadRequestException('reason must be at least 3 characters');
+    return await this.carVerify.verifyManualOverride(req.user, id, reason);
   }
 
   @Public() @Get('cars/:id/reviews')
-  carReviews(@Param('id') id: string) {
-    return this.fleet.carReviews(id);
+  async carReviews(@Param('id') id: string) {
+    return await this.fleet.carReviews(id);
   }
 }
