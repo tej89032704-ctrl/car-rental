@@ -13,7 +13,7 @@
   top: 50%;
   bottom: auto;
   transform: translateY(var(--fk-shift));
-  width: min(500px, calc(100vw - 44px));
+  width: min(420px, calc(100vw - 44px));
   padding: 5px 8px 10px;
   border-radius: 20px;
   background: rgba(245, 245, 247, 0.86);
@@ -91,9 +91,9 @@
 /* ── rows ── */
 .fk-row {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   justify-content: center;
-  margin-top: 6px;
+  margin-top: 5px;
 }
 .fk-row--stagger { padding-inline: 22px; }   /* iOS-style inset on home row */
 
@@ -101,14 +101,14 @@
 .fk-key {
   flex: 1 1 0;
   min-width: 0;
-  height: 42px;
+  height: 34px;
   padding: 0;
   border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
+  border-radius: 9px;
   background: #ffffff;
   color: #1d1d1f;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 1;
   display: flex;
@@ -132,12 +132,12 @@
 /* ── modifier keys ── */
 .fk-mod {
   flex: 0 0 auto;
-  min-width: 46px;
-  padding: 0 12px;
+  min-width: 40px;
+  padding: 0 10px;
   background: #e8e8ed;
   border-color: rgba(0, 0, 0, 0.04);
   box-shadow: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 .fk-mod:hover { background: #dcdce0; }
@@ -160,22 +160,22 @@
 
 .fk-return {
   flex: 0 0 auto;
-  min-width: 74px;
-  padding: 0 14px;
+  min-width: 64px;
+  padding: 0 12px;
   background: #1d1d1f;
   border-color: #1d1d1f;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 .fk-return:hover { background: #000000; }
 .fk-return:active, .fk-return.fk-down { background: #000000; }
 
-.fk-num { font-size: 20px; }
+.fk-num { font-size: 18px; }
 
 /* compact pad for OTP / numeric fields — three columns, not full width */
-.fk-numpad { width: min(340px, calc(100vw - 44px)); }
-.fk-numpad .fk-key { height: 46px; font-size: 22px; }
+.fk-numpad { width: min(300px, calc(100vw - 44px)); }
+.fk-numpad .fk-key { height: 40px; font-size: 20px; }
 
 /* equal thirds so the numpad bottom row lines up with the rows above */
 .fk-col { flex: 1 1 0; min-width: 0; padding: 0; }
@@ -198,12 +198,12 @@
   .fk { right: 16px; --fk-bottom: 16px; padding: 4px 7px 8px; }
   .fk-top { padding: 2px 4px 5px; }
   .fk-hide { width: 22px; height: 22px; }
-  .fk-row { gap: 5px; margin-top: 5px; }
-  .fk-key { height: 34px; font-size: 16px; border-radius: 9px; }
-  .fk-mod { min-width: 42px; padding: 0 10px; font-size: 13px; }
-  .fk-return { min-width: 66px; padding: 0 12px; font-size: 13px; }
-  .fk-num { font-size: 18px; }
-  .fk-numpad .fk-key { height: 38px; font-size: 20px; }
+  .fk-row { gap: 4px; margin-top: 4px; }
+  .fk-key { height: 29px; font-size: 14px; border-radius: 8px; }
+  .fk-mod { min-width: 36px; padding: 0 8px; font-size: 12px; }
+  .fk-return { min-width: 58px; padding: 0 10px; font-size: 12px; }
+  .fk-num { font-size: 16px; }
+  .fk-numpad .fk-key { height: 34px; font-size: 18px; }
 }
 
 /* ── no room beside the form ───────────────────────────────────────
