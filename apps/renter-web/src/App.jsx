@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { api, clearSession, currentUser } from './api.js';
-import { SearchIcon, CalendarIcon, ShieldIcon, BellIcon, StarIcon, LogoutIcon, MenuIcon, ChevronLeft } from '../../../packages/shared/src/icons.jsx';
+import { SearchIcon, CalendarIcon, ShieldIcon, BellIcon, StarIcon, MoneyIcon, LogoutIcon, MenuIcon, ChevronLeft } from '../../../packages/shared/src/icons.jsx';
 import './sidebar.css';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
@@ -12,6 +12,7 @@ import MyBookings from './pages/MyBookings.jsx';
 import BookingDetail from './pages/BookingDetail.jsx';
 import Kyc from './pages/Kyc.jsx';
 import Notifications from './pages/Notifications.jsx';
+import Reviews from './pages/Reviews.jsx';
 import Lifetime from './pages/Lifetime.jsx';
 import { ForgotPassword, ResetPassword } from './pages/Password.jsx';
 import Terms from '../../../packages/shared/src/Terms.jsx';
@@ -30,9 +31,10 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const links = [
     { to: '/', icon: <SearchIcon />, label: 'Find a Car', end: true },
     { to: '/bookings', icon: <CalendarIcon />, label: 'My Bookings' },
+    { to: '/reviews', icon: <StarIcon />, label: 'My Reviews' },
     { to: '/kyc', icon: <ShieldIcon />, label: 'Verification' },
     { to: '/notifications', icon: <BellIcon />, label: 'Notifications' },
-    { to: '/lifetime', icon: <StarIcon />, label: 'Lifetime' },
+    { to: '/lifetime', icon: <MoneyIcon />, label: 'Lifetime' },
   ];
 
   return (
@@ -75,7 +77,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
 function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const titles = { '/': 'Find a Car', '/bookings': 'My Bookings', '/kyc': 'Verification', '/notifications': 'Notifications', '/lifetime': 'Lifetime Membership' };
+  const titles = { '/': 'Find a Car', '/bookings': 'My Bookings', '/reviews': 'My Reviews', '/kyc': 'Verification', '/notifications': 'Notifications', '/lifetime': 'Lifetime Membership' };
   const title = location.pathname.startsWith('/bookings/') ? 'Booking Details' : (titles[location.pathname] || 'CAR-ENT');
   return (
     <div className="topbar">
@@ -168,6 +170,7 @@ export default function App() {
             <Route path="/bookings" element={<MyBookings />} />
             <Route path="/bookings/:id" element={<BookingDetail />} />
             <Route path="/kyc" element={<Kyc />} />
+            <Route path="/reviews" element={<Reviews />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/lifetime" element={<Lifetime />} />
             <Route path="/terms" element={<Terms brand="CAR-ENT" backTo="/" />} />

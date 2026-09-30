@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { api, clearSession, currentUser } from './api.js';
-import { CarIcon, ClipboardIcon, WalletIcon, ShieldIcon, BellIcon, LogoutIcon, MenuIcon, ChevronLeft } from '../../../packages/shared/src/icons.jsx';
+import { CarIcon, ClipboardIcon, WalletIcon, StarIcon, ShieldIcon, BellIcon, LogoutIcon, MenuIcon, ChevronLeft } from '../../../packages/shared/src/icons.jsx';
 import './sidebar.css';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
@@ -10,6 +10,7 @@ import Kyc from './pages/Kyc.jsx';
 import Cars from './pages/Cars.jsx';
 import CarEditor from './pages/CarEditor.jsx';
 import Requests from './pages/Requests.jsx';
+import Reviews from './pages/Reviews.jsx';
 import Earnings from './pages/Earnings.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Terms from '../../../packages/shared/src/Terms.jsx';
@@ -27,6 +28,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   const links = [
     { to: '/', icon: <CarIcon />, label: 'My Cars', end: true },
     { to: '/requests', icon: <ClipboardIcon />, label: 'Booking Requests' },
+    { to: '/reviews', icon: <StarIcon />, label: 'My Reviews' },
     { to: '/earnings', icon: <WalletIcon />, label: 'Earnings' },
     { to: '/kyc', icon: <ShieldIcon />, label: 'Verification' },
     { to: '/notifications', icon: <BellIcon />, label: 'Notifications' },
@@ -72,7 +74,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
 function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const titles = { '/': 'My Cars', '/requests': 'Booking Requests', '/earnings': 'Earnings & Payouts', '/kyc': 'Verification', '/notifications': 'Notifications' };
+  const titles = { '/': 'My Cars', '/requests': 'Booking Requests', '/reviews': 'My Reviews', '/earnings': 'Earnings & Payouts', '/kyc': 'Verification', '/notifications': 'Notifications' };
   return (
     <div className="topbar">
       <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>
@@ -130,6 +132,7 @@ export default function App() {
             <Route path="/" element={<Cars />} />
             <Route path="/cars/:id" element={<CarEditor />} />
             <Route path="/requests" element={<Requests />} />
+            <Route path="/reviews" element={<Reviews />} />
             <Route path="/earnings" element={<Earnings />} />
             <Route path="/kyc" element={<Kyc />} />
             <Route path="/notifications" element={<Notifications />} />

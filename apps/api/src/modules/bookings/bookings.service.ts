@@ -583,4 +583,86 @@ export class BookingsService {
       dispute: dispute ? { id: dispute.id, status: dispute.status, reason: dispute.reason, resolution_note: dispute.resolution_note } : null,
     };
   }
+  // ---------- Reviews written by this user ----------
+  async getReviewsByReviewer(userId: string): Promise<any[]> {
+    // Reviews live in the booking DB; user names live in the auth DB, so names
+    // are resolved separately (no cross-DB joins anywhere in this codebase).
+    // target_user_id is a car id when target_type = 'car', a user id otherwise.
+    const rows = await this.db().prepare(`
+      SELECT r.id, r.booking_id, r.reviewer_id, r.target_type, r.target_user_id,
+             r.rating, r.comment, r.created_at,
+             b.car_id,
+             c.brand AS car_brand,
+             c.model  AS car_model
+      FROM reviews r
+      JOIN bookings b ON r.booking_id = b.id
+      LEFT JOIN car_cache c ON c.id = b.car_id
+      WHERE r.reviewer_id = ? AND r.is_deleted = 0
+      ORDER BY r.created_at DESC
+    `).all(userId) as any[];
+
+    const nameStmt = getDb('auth').prepare(`SELECT name FROM users WHERE id = ?`);
+    return await Promise.all(rows.map(async (r: any) => ({
+      id: r.id,
+      booking_id: r.booking_id,
+      reviewer_id: r.reviewer_id,
+      target_type: r.target_type,
+      target_user_id: r.target_user_id,
+      target_name: r.target_type === 'car'
+        ? (r.car_brand && r.car_model ? `${r.car_brand} ${r.car_model}` : null)
+        : ((await nameStmt.get(r.target_user_id) as any)?.name ?? null),
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      car: r.car_id ? { id: r.car_id, brand: r.car_brand, model: r.car_model } : null,
+    })));
+  }
+
+  // ---------- Reviews written about this user ----------
+  async getReviewsAboutMe(userId: string, role: string): Promise<{ avg_rating: number; total_reviews: number; reviews: any[] }> {
+    // Reviews about me are typed by MY role: the other party rated me as what I
+    // am. A car_renter is rated 'renter' (by the owner); a car_owner is rated
+    // 'owner' (by the renter) — matching leaveReview's target selection. Pinning
+    // target_type also means a car-target row (target_user_id holds a car id)
+    // can never leak in.
+    const targetType = role === 'car_renter' ? 'renter' : 'owner';
+
+    const stats = await this.db().prepare(`
+      SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS avg_rating
+      FROM reviews
+      WHERE target_type = ? AND target_user_id = ? AND is_deleted = 0
+    `).get(targetType, userId) as any;
+
+    const rows = await this.db().prepare(`
+      SELECT r.id, r.booking_id, r.reviewer_id, r.rating, r.comment, r.created_at, b.car_id
+      FROM reviews r
+      JOIN bookings b ON b.id = r.booking_id
+      WHERE r.target_type = ? AND r.target_user_id = ? AND r.is_deleted = 0
+      ORDER BY r.created_at DESC
+    `).all(targetType, userId) as any[];
+
+    const adb = getDb('auth');
+    const nameStmt = adb.prepare(`SELECT name FROM users WHERE id = ?`);
+    const carStmt = this.db().prepare(`SELECT brand, model FROM car_cache WHERE id = ?`);
+
+    const reviews = await Promise.all(rows.map(async (r: any) => {
+      const car = r.car_id ? ((await carStmt.get(r.car_id)) as any) : null;
+      return {
+        id: r.id,
+        booking_id: r.booking_id,
+        reviewer_id: r.reviewer_id,
+        reviewer_name: ((await nameStmt.get(r.reviewer_id) as any)?.name ?? 'A user'),
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at,
+        car: car ? { id: r.car_id, brand: car.brand, model: car.model } : null,
+      };
+    }));
+
+    return {
+      avg_rating: Math.round((stats.avg_rating || 0) * 10) / 10,
+      total_reviews: stats.count,
+      reviews,
+    };
+  }
 }

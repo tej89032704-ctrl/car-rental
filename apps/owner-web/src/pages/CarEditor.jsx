@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { RcVerifyBlock, verificationPillClass } from '../../../../packages/shared/src/RcVerify.jsx';
+import { Stars, RatingSummary } from '../../../../packages/shared/src/Reviews.jsx';
 
 export default function CarEditor() {
   const { id } = useParams();
@@ -14,6 +15,8 @@ export default function CarEditor() {
   const [verify, setVerify] = useState(null);
   const [verifyResult, setVerifyResult] = useState(null);
   const [verifying, setVerifying] = useState(false);
+  const [carReviews, setCarReviews] = useState(null);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   async function load() {
     try {
@@ -29,7 +32,18 @@ export default function CarEditor() {
       const to = new Date(Date.now() + 60 * 864e5).toISOString().slice(0, 10);
       setAvail(await api(`/cars/${id}/availability?from=${from}&to=${to}`));
       setVerify(await api(`/cars/${id}/verification`).catch(() => null));
-    } catch (e) { setErr(e.message); }
+    } catch (e) {
+      setErr(e.message);
+    }
+
+    // Reviews are cosmetic — a failure here must not blank the page.
+    try {
+      setCarReviews(await api(`/cars/${id}/reviews`));
+    } catch {
+      setCarReviews({ reviews: [], avg_rating: 0, total_reviews: 0 });
+    } finally {
+      setReviewsLoading(false);
+    }
   }
   useEffect(() => { load(); }, [id]);
 
@@ -77,7 +91,6 @@ export default function CarEditor() {
           <div key={t} className="info-row">
             <span className="info-label">{t.replace('_', ' ')}</span>
             <input type="file" onChange={(e) => e.target.files[0] && act(() => api(`/cars/${id}/documents`, { method: 'POST', form: (() => { const fd = new FormData(); fd.append('doc_type', t); fd.append('file', e.target.files[0]); return fd; })() }))} />
-            {car.documents && null}
           </div>
         ))}
       </div>
@@ -137,6 +150,34 @@ export default function CarEditor() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Reviews section */}
+      <div className="card">
+        <h2>Reviews</h2>
+        {reviewsLoading || !carReviews ? <p className="muted">Loading reviews…</p> : carReviews.reviews.length === 0 ? (
+          <p className="muted">No reviews yet.</p>
+        ) : (
+          <>
+            <div className="rating-summary">
+              <RatingSummary avg={carReviews.avg_rating} count={carReviews.total_reviews} emptyText="No reviews yet" />
+            </div>
+            <div className="review-list">
+              {carReviews.reviews.map((rev) => (
+                <div key={rev.id} className="review-card">
+                  <div className="review-card-header">
+                    <span className="review-card-name">{rev.reviewer_name}</span>
+                    <span className="rating">
+                      <Stars value={rev.rating} />
+                    </span>
+                  </div>
+                  {rev.comment && <p className="review-card-comment">{rev.comment}</p>}
+                  {rev.created_at && <p className="review-card-date">{new Date(rev.created_at).toLocaleDateString()}</p>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {['draft', 'rejected'].includes(car.status) && (

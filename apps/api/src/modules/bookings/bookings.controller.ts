@@ -116,4 +116,17 @@ export class BookingsController {
   async raiseDispute(@Req() req: any, @Body() body: unknown) {
     return await this.bookings.raiseDispute(req.user.id, this.parse(disputeSchema, body));
   }
+  @Get('reviews/my')
+  @Roles('car_renter', 'car_owner')
+  async myReviews(@Req() req: any) {
+    return await this.bookings.getReviewsByReviewer(req.user.id);
+  }
+
+  // What *other* people said about me — the mirror of /reviews/my.
+  @Get('reviews/about-me')
+  @Roles('car_renter', 'car_owner')
+  async reviewsAboutMe(@Req() req: any) {
+    return await this.bookings.getReviewsAboutMe(req.user.id, req.user.role);
+  }
+
 }
