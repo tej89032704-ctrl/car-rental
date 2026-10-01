@@ -42,7 +42,7 @@ export default function VerifyOtp() {
               inputMode="numeric" autoComplete="one-time-code" required placeholder="000000"
               style={{ textAlign: 'center', fontSize: 20, fontWeight: 700, letterSpacing: 6 }} />
           </div>
-          <button className="btn btn-full" style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #000000, #1d1d1f)', color: '#fff', border: 'none', cursor: 'pointer' }}>Verify</button>
+          <button className="btn btn-full">Verify</button>
         </form>
         <p style={{ marginTop: 16, textAlign: 'center' }}>
           <button onClick={resend} style={{ background: 'none', border: 'none', color: '#1d1d1f', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 16px', borderRadius: 8, transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.background = 'rgba(0,0,0,0.05)'} onMouseLeave={e => e.target.style.background = 'none'}>Resend OTP</button>

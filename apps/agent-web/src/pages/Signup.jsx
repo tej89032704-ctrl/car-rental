@@ -56,7 +56,7 @@ export default function Signup() {
               <label className="f">Password</label>
               <input className="f" type="password" value={f.password} onChange={set('password')} placeholder="Min 8 characters" required minLength={8} />
             </div>
-            <button className="btn btn-full agent-full" disabled={busy} style={{ width: '100%', marginTop: 6, padding: 13, fontSize: 15, fontWeight: 700, borderRadius: 12, background: 'linear-gradient(135deg, #000000, #1d1d1f)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button className="btn btn-full agent-full" disabled={busy}>
               {busy ? 'Creating account...' : 'Create agent account'}
             </button>
           </form>

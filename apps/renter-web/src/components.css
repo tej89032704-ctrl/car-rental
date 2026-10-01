@@ -199,22 +199,24 @@
   font-size: 12px;
 }
 
-/* ── Lifetime CTA button ── */
-.btn-lifetime {
+/* Lifetime CTA — token swap only; the elevation comes from .btn.
+   Written as .btn.btn-lifetime (0,2,0) so the generic .btn:hover fill in
+   styles.css can't turn it black. padding 14px + .btn's 1px border =
+   the original borderless 15px box. */
+.btn.btn-lifetime {
   width: 100%;
-  padding: 15px;
+  padding: 14px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   font-family: var(--font-display);
-  background: linear-gradient(135deg, #6e6e73, #1d1d1f);
-  color: #fff;
-  border: none;
+  --btn-bg: #6e6e73;
+  --btn-fg: #ffffff;
+  --btn-edge: transparent;
   border-radius: 12px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-  transition: transform .15s ease, box-shadow .15s ease;
 }
-.btn-lifetime:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+.btn.btn-lifetime:hover { --btn-bg: #424245; }
 
 /* ── Notification empty state ── */
 .notifications-empty {

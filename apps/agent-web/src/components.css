@@ -17,14 +17,16 @@
 .portal-tag.agent { color: #1d1d1f; }
 
 /* ── Agent button ── */
+/* Token/size only — the geometry (padding, margin, radius, width) belongs to
+   .btn-full / .auth-form-side .btn-full. Setting padding here at (0,2,0)
+   out-ranked .btn-full (0,1,0) and grew the CTA to 47px vs 45px elsewhere. */
 .btn.agent-full {
   width: 100%;
-  background: linear-gradient(135deg, #1d1d1f, #000000);
-  margin-top: 4px;
-  padding: 12px;
+  --btn-bg: #1d1d1f;
+  --btn-fg: #ffffff;
+  --btn-edge: transparent;
   font-size: 15px;
 }
-.btn.agent-full:hover { background: linear-gradient(135deg, #1d1d1f, #000000); }
 
 /* ── Agent footer links ── */
 .agent-footer { margin-top: 22px; padding-top: 18px; border-top: 1px solid #e8e8ed; }

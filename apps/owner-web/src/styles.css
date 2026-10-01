@@ -4,8 +4,12 @@
    ═══════════════════════════════════════════════════════ */
 
 :root {
-  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  /* Geist + Geist Mono — the grotesques the Framer marketplace templates
+     (Sentira, Nudge, Utomic) are built on. Falls back to the system stack
+     if the Google Fonts CDN is unreachable. */
+  --font: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* Revv-style teal brand */
   --brand: #000000;
@@ -28,8 +32,8 @@
   --line: #d2d2d7;
   --line-soft: #e8e8ed;
 
-  --radius: 14px;
-  --radius-lg: 18px;
+  --radius: 12px;
+  --radius-lg: 16px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.03);
   --shadow-md: 0 4px 14px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.04);
   --shadow-lg: 0 18px 46px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.05);
@@ -45,13 +49,13 @@ body {
   background: var(--bg);
   background-image: radial-gradient(1200px 500px at 50% -200px, color-mix(in srgb, var(--brand) 7%, transparent), transparent 70%);
   color: var(--ink);
-  line-height: 1.55;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 a { color: inherit; text-decoration: none; }
-h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.03em; }
 
 /* ── Top navigation ── */
 .nav {
@@ -130,24 +134,58 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
 }
 .price::after { content: ''; }
 
-/* ── Buttons (Revv teal) ── */
+/* ── Buttons — flat "Framer marketplace" language ─────────────────────────
+   Derived from the marketplace templates (Sentira, Nudge, Utomic, Neiden):
+   no resting border, no hard offset shadow, weight 500 with -0.01em
+   tracking, 12px radius, and a soft low-alpha elevation on hover.
+   The 1px transparent border is an accounting device — it lets .sec draw a
+   hairline while the padding absorbs it, so every box keeps its exact
+   original size.                                                          */
 .btn {
-  display: inline-block; background: linear-gradient(135deg, #000000, #1d1d1f);
-  color: #fff; border: none; border-radius: 12px; padding: 12px 22px;
-  font-family: var(--font-display); font-weight: 600; font-size: 14px;
+  display: inline-block;
+  --btn-bg: #1d1d1f;
+  --btn-fg: #ffffff;
+  --btn-edge: transparent;
+  --btn-rest: 0 1px 2px rgba(0,0,0,.05), 0 1px 3px rgba(0,0,0,.04);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-edge);
+  border-radius: 12px;
+  padding: 11px 21px;
+  font-family: var(--font-display); font-weight: 500; font-size: 14px;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.154);
-  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  box-shadow: var(--btn-rest);
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease,
+              box-shadow .18s ease, transform .18s ease;
 }
-.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0,0,0,0.209); filter: brightness(1.03); }
-.btn:active { transform: translateY(0); }
-.btn.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); box-shadow: none; }
-.btn.sec:hover { border-color: var(--brand); color: var(--brand); background: #fff; box-shadow: none; }
-.btn.ok { background:#000000; box-shadow:none; }
-.btn.bad { background:#d70015; box-shadow:none; }
-.btn.warn { background:#1d1d1f; box-shadow:none; }
+.btn:hover {
+  transform: translateY(-1px);
+  --btn-bg: #000000;
+  box-shadow: 0 8px 20px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
+}
+.btn:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,.10); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Variants are token swaps. Declared after .btn:hover so an equal-
+   specificity modifier still wins the hover fill; each one that wants its
+   own hover colour adds an explicit :hover of its own. */
+.btn.sec { --btn-bg: #ffffff; --btn-fg: var(--ink); --btn-edge: var(--line); --btn-rest: 0 1px 2px rgba(0,0,0,.04); }
+.btn.sec:hover { --btn-bg: #f5f5f7; }
+.btn.ok { --btn-bg: #000000; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.bad { --btn-bg: #d70015; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.bad:hover { --btn-bg: #b00011; }
+.btn.warn { --btn-bg: #6e6e73; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.warn:hover { --btn-bg: #424245; }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
-.btn.sm { padding: 8px 15px; font-size: 13px; border-radius: 10px; }
+.btn.sm { padding: 7px 14px; font-size: 13px; border-radius: 10px; }
+/* Full-width CTA — also the hook the auth.css shine sweep builds on.
+   padding 12px + .btn's 1px border = the old borderless 13px box. */
+.btn-full {
+  width: 100%; margin-top: 6px; padding: 12px;
+  font-size: 15px; font-weight: 500; letter-spacing: -0.01em;
+  border-radius: 12px;
+}
 
 /* ── Forms ── */
 label.f { display: block; font-size: 13px; font-weight: 700; margin: 10px 0 5px; color: var(--ink-2); }

@@ -17,18 +17,20 @@
 .max-w-200 { max-width: 200px; }
 
 /* ── Button variants ── */
-.btn-approve { background: #000000; color: #fff; }
-.btn-approve:hover { background: #1d1d1f; }
-.btn-reject { background: #d70015; color: #fff; }
-.btn-reject:hover { background: #b00011; }
-.btn-start { background: #000000; color: #fff; }
-.btn-start:hover { background: #1d1d1f; }
-.btn-complete { background: #6e6e73; color: #fff; }
-.btn-complete:hover { background: #424245; }
-.btn-review { background: #6e6e73; color: #fff; }
-.btn-review:hover { background: #424245; }
-.btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-.btn-ghost:hover { background: #f5f5f7; }
+/* Semantic variants — token swaps only (see .btn in styles.css).
+   Written as .btn.btn-x (0,2,0) so the generic .btn:hover fill can't
+   flatten them to black. .btn-ghost and its :hover stay last so an outlined
+   button still wins over a filled modifier on the same element. */
+.btn.btn-approve { --btn-bg: #000000; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.btn-reject { --btn-bg: #d70015; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.btn-reject:hover { --btn-bg: #b00011; }
+.btn.btn-start { --btn-bg: #000000; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.btn-complete { --btn-bg: #6e6e73; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.btn-complete:hover { --btn-bg: #424245; }
+.btn.btn-review { --btn-bg: #6e6e73; --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.btn-review:hover { --btn-bg: #424245; }
+.btn.btn-ghost { --btn-bg: transparent; --btn-fg: var(--ink); --btn-edge: var(--line); --btn-rest: none; }
+.btn.btn-ghost:hover { --btn-bg: #f5f5f7; }
 
 /* ── Page header row (title + action) ── */
 .page-header-row {

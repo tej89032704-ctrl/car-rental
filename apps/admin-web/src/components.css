@@ -18,8 +18,6 @@
 .admin-login-title { font-size: 22px; margin: 0 0 6px; color: #fff; }
 .admin-login-desc { color: #86868b; font-size: 13px; margin: 0 0 20px; }
 .admin-login-label { color: #d2d2d7; }
-.admin-login-btn { background: linear-gradient(135deg,#000000,#1d1d1f); }
-.admin-login-btn:hover { background: linear-gradient(135deg,#000000,#1d1d1f); }
 .admin-login-otp {
   background: #000000 !important; border-color: #424245 !important; color: #fff !important;
 }
