@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
@@ -29,18 +30,34 @@ export class AuthService {
     return bcrypt.compareSync(v, h);
   }
 
+  /**
+   * Refresh tokens are hashed with SHA-256 rather than bcrypt — see
+   * migrations/auth/003_refresh_token_sha256.sql. A refresh token is ~244 bits
+   * of randomness, so there is nothing worth brute-forcing, and unlike bcrypt
+   * this is deterministic, which is what lets refresh() do one indexed lookup
+   * instead of an O(N) bcrypt scan that blocks the event loop for the whole
+   * request.
+   */
+  private hashToken(v: string) {
+    return createHash('sha256').update(v).digest('hex');
+  }
+
   private signAccess(userId: string, role: string) {
     return jwt.sign({ sub: userId, role }, JWT_SECRET, { expiresIn: ACCESS_TTL_SEC });
   }
 
   private async issueTokens(user: { id: string; role: string }) {
     const db = getDb('auth');
+    // Housekeeping on a path that already writes: expired sessions can never
+    // be redeemed again, so keep them from accumulating. Lookup is indexed, so
+    // this is about table hygiene, not correctness.
+    await db.prepare(`DELETE FROM sessions WHERE expires_at <= ?`).run(nowUtc());
     const refreshToken = uuid() + '.' + uuid();
     await db.prepare(
       `INSERT INTO sessions (id, user_id, refresh_token_hash, expires_at, created_at, updated_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(
-      uuid(), user.id, this.hash(refreshToken),
+      uuid(), user.id, this.hashToken(refreshToken),
       new Date(Date.now() + REFRESH_TTL_SEC * 1000).toISOString(),
       nowUtc(), nowUtc(), user.id,
     );
@@ -256,9 +273,18 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const db = getDb('auth');
-    const sessions = await db.prepare(`SELECT * FROM sessions WHERE revoked_at IS NULL`).all() as any[];
-    const session = sessions.find((s) => this.compare(refreshToken, s.refresh_token_hash));
-    if (!session || new Date(session.expires_at) < new Date()) throw new UnauthorizedException('Refresh token invalid or expired');
+    // One indexed lookup — see hashToken() and migration 003. This used to
+    // select every non-revoked session and bcrypt-compare each one until a hit;
+    // at 83 rows that measured ~12s of blocked event loop, and the refreshes
+    // racing alongside it queued behind that only to find the session already
+    // revoked by the winner.
+    const session = await db
+      .prepare(
+        `SELECT * FROM sessions
+          WHERE refresh_token_hash = ? AND revoked_at IS NULL AND expires_at > ?`,
+      )
+      .get(this.hashToken(refreshToken), nowUtc()) as any;
+    if (!session) throw new UnauthorizedException('Refresh token invalid or expired');
     await db.prepare(`UPDATE sessions SET revoked_at = ?, updated_at = ? WHERE id = ?`).run(nowUtc(), nowUtc(), session.id);
     const user = await this.getUserRaw(session.user_id);
     return await this.issueTokens(user);
