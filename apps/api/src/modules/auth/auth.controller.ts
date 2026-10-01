@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, Param, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Reflector } from '@nestjs/core';
 import { z } from 'zod';
@@ -20,6 +20,10 @@ const refreshSchema = z.object({ refresh_token: z.string() });
 const forgotSchema = z.object({ email: z.string().email() });
 const resetSchema = z.object({ token: z.string(), new_password: z.string().min(8) });
 const otpVerifySchema = z.object({ code: z.string().length(6) });
+const updateProfileSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  phone: z.string().regex(/^\+?[0-9]{10,14}$/).optional(),
+});
 const reviewSchema = z.object({
   decision: z.enum(['approve', 'reject', 'first_pass']),
   reason: z.string().optional(),
@@ -97,6 +101,18 @@ export class AuthController {
     const u = await this.auth.getUserRaw(req.user.id);
     if (!u) throw new BadRequestException('User not found');
     return { user: this.auth.toPublicUser(u) };
+  }
+
+  // Editing your own name/phone is part of finishing signup, so this stays
+  // @KycExempt alongside /auth/me and /kyc/me: a user whose KYC is still
+  // pending must be able to correct their own details.
+  @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Patch('auth/me')
+  async updateMe(@Req() req: any, @Body() body: unknown) {
+    const dto = this.parse(updateProfileSchema, body);
+    if (dto.name === undefined && dto.phone === undefined) {
+      throw new BadRequestException('Nothing to update');
+    }
+    return await this.auth.updateProfile(req.user.id, dto);
   }
 
   @Roles('car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/role-change-request')

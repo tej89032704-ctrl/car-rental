@@ -106,6 +106,21 @@
 .info-label { font-size: 13px; color: var(--muted); min-width: 120px; }
 .info-value { font-size: 14px; font-weight: 600; color: var(--ink); }
 
+/* ── Profile header ── */
+.profile-head { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.profile-avatar {
+  width: 56px; height: 56px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--brand, #1d1d1f); color: #fff;
+  font-size: 24px; font-weight: 600;
+}
+.profile-id { flex: 1; min-width: 0; }
+.profile-id h2 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.profile-id p { margin: 2px 0 0; font-size: 14px; }
+.profile-details { margin: 0; padding-top: 6px; border-top: 1px solid var(--line-soft, #f0f1f4); }
+.profile-details .info-row dt,
+.profile-details .info-row dd { margin: 0; }
+
 /* ── Action bar ── */
 .action-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 

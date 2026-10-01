@@ -221,6 +221,42 @@ export class AuthService {
     return await getDb('auth').prepare(`SELECT * FROM users WHERE id = ? AND is_deleted = 0`).get(id);
   }
 
+  /**
+   * Self-service profile edits, deliberately narrow: name and phone only.
+   * Role, KYC status and account status are not things a user may set on
+   * themselves. Phone is re-checked against the same uniqueness rule signup
+   * uses because it doubles as a login credential.
+   */
+  async updateProfile(userId: string, patch: { name?: string; phone?: string }) {
+    const db = getDb('auth');
+    const user = await this.getUserRaw(userId);
+    if (!user) throw new BadRequestException('User not found');
+
+    const name = patch.name ?? user.name;
+    const phone = patch.phone ?? user.phone;
+
+    if (phone !== user.phone) {
+      const clash = await db
+        .prepare(`SELECT id FROM users WHERE phone = ? AND id <> ? AND is_deleted = 0`)
+        .get(phone, userId);
+      if (clash) throw new BadRequestException('That phone number is already in use');
+    }
+
+    const before = { name: user.name, phone: user.phone };
+    if (before.name === name && before.phone === phone) {
+      return { user: this.toPublicUser(user), changed: false };
+    }
+
+    await db.prepare(`UPDATE users SET name = ?, phone = ?, updated_at = ? WHERE id = ?`)
+      .run(name, phone, nowUtc(), userId);
+    writeAudit('auth', {
+      actor_id: userId, action: 'profile.updated', entity_type: 'user', entity_id: userId,
+      before_value: before, after_value: { name, phone },
+    });
+
+    return { user: this.toPublicUser(await this.getUserRaw(userId)), changed: true };
+  }
+
   // ---------- Role change requests (spec Task 1.3: role fixed at signup, changes need SA approval) ----------
   async requestRoleChange(userId: string, desiredRole: string) {
     const db = getDb('auth');
