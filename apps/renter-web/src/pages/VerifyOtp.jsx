@@ -15,7 +15,10 @@ export default function VerifyOtp() {
     setErr('');
     try {
       await api('/auth/otp/phone/verify', { method: 'POST', body: { code } });
-      nav('/kyc');
+      // Phone is confirmed, so collect the remaining profile details before
+      // KYC: verification is the step that actually blocks bookings, and it is
+      // easier to ask for demographics once, in context, than later.
+      nav('/profile-details');
     } catch (e2) { setErr(e2.message); }
   }
 

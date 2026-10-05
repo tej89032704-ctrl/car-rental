@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { api, clearSession, currentUser } from './api.js';
+import { api, clearSession, currentUser, sessionUser } from './api.js';
 import { SearchIcon, CalendarIcon, ShieldIcon, BellIcon, StarIcon, MoneyIcon, LogoutIcon, MenuIcon, ChevronLeft, UserIcon } from '../../../packages/shared/src/icons.jsx';
 import './sidebar.css';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import VerifyOtp from './pages/VerifyOtp.jsx';
+import ProfileDetails from './pages/ProfileDetails.jsx';
 import Search from './pages/Search.jsx';
 import CarDetail from './pages/CarDetail.jsx';
 import MyBookings from './pages/MyBookings.jsx';
@@ -96,15 +97,37 @@ export default function App() {
   const [user, setUser] = useState(currentUser);
   const location = useLocation();
 
-  const authPages = ['/login', '/signup', '/verify-otp', '/forgot-password', '/reset-password'];
-  const isAuth = authPages.includes(location.pathname);
+  // Pages that render the auth shell instead of the sidebar chrome, split by
+  // session requirement. /login and /signup are pointless once signed in, so
+  // they bounce. /verify-otp and /profile-details are the opposite: they only
+  // exist *because* a session exists (both call authenticated endpoints), so
+  // they must not redirect an already-signed-in user away.
+  const anonPages = ['/login', '/signup', '/forgot-password', '/reset-password'];
+  const sessionPages = ['/verify-otp', '/profile-details'];
+  const isAuth = anonPages.includes(location.pathname) || sessionPages.includes(location.pathname);
+
+  // Read storage directly rather than trusting `user` state: Signup calls
+  // setSession() and then navigates in the same tick, and the state copy only
+  // catches up on the next poll. Guarding on the stale value bounced a
+  // just-created account to /login. The polled `user` still drives the chrome.
+  const signedIn = !!sessionUser();
 
   useEffect(() => {
     const t = setInterval(() => setUser(JSON.parse(localStorage.getItem('user') || 'null')), 500);
     return () => clearInterval(t);
   }, []);
 
-  if (!user && !isAuth) {
+  // An OTP or profile-details page with no session cannot do anything useful,
+  // and both would sit on a "Missing token" error, so send them to log in.
+  if (!signedIn && sessionPages.includes(location.pathname)) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (signedIn && anonPages.includes(location.pathname)) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!signedIn && !isAuth) {
     const isPublicBrowse = location.pathname === '/' || location.pathname.startsWith('/cars/') || location.pathname === '/terms';
     if (!isPublicBrowse) return <Navigate to="/login" replace />;
     return (
@@ -144,16 +167,13 @@ export default function App() {
     );
   }
 
-  if (user && isAuth) {
-    return <Navigate to="/" replace />;
-  }
-
   if (isAuth) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/verify-otp" element={<VerifyOtp />} />
+        <Route path="/profile-details" element={<ProfileDetails />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>

@@ -15,7 +15,8 @@ export default function VerifyOtp() {
     setErr('');
     try {
       await api('/auth/otp/phone/verify', { method: 'POST', body: { code } });
-      nav('/');
+      // Phone is confirmed; collect the remaining profile details next.
+      nav('/profile-details');
     } catch (e2) { setErr(e2.message); }
   }
 

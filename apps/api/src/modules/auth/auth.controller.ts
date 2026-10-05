@@ -23,6 +23,29 @@ const otpVerifySchema = z.object({ code: z.string().length(6) });
 const updateProfileSchema = z.object({
   name: z.string().min(2).max(120).optional(),
   phone: z.string().regex(/^\+?[0-9]{10,14}$/).optional(),
+  date_of_birth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'date_of_birth must be YYYY-MM-DD')
+    .refine((v) => {
+      const d = new Date(`${v}T00:00:00Z`);
+      if (Number.isNaN(d.getTime())) return false;
+      // Reject impossible calendar dates that the regex lets through,
+      // e.g. 2026-02-31.
+      return d.toISOString().slice(0, 10) === v;
+    }, 'date_of_birth is not a real date')
+    .refine((v) => new Date(`${v}T00:00:00Z`).getTime() < Date.now(), 'date_of_birth must be in the past')
+    .refine((v) => {
+      // 16 is the floor: car rental requires a valid driving licence, and the
+      // KYC flow will reject anything younger regardless.
+      const years = (Date.now() - new Date(`${v}T00:00:00Z`).getTime()) / (365.25 * 24 * 3600 * 1000);
+      return years >= 16 && years <= 120;
+    }, 'age must be between 16 and 120')
+    .optional(),
+  gender: z.enum(['female', 'male', 'non_binary', 'other', 'prefer_not_to_say']).optional(),
+  address_line: z.string().min(3).max(200).optional(),
+  city: z.string().min(2).max(80).optional(),
+  state: z.string().min(2).max(80).optional(),
+  pincode: z.string().regex(/^\d{4,10}$/, 'pincode must be 4-10 digits').optional(),
 });
 const reviewSchema = z.object({
   decision: z.enum(['approve', 'reject', 'first_pass']),
@@ -109,10 +132,11 @@ export class AuthController {
   @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Patch('auth/me')
   async updateMe(@Req() req: any, @Body() body: unknown) {
     const dto = this.parse(updateProfileSchema, body);
-    if (dto.name === undefined && dto.phone === undefined) {
+    const { name, phone, ...profile } = dto;
+    if (name === undefined && phone === undefined && Object.keys(profile).length === 0) {
       throw new BadRequestException('Nothing to update');
     }
-    return await this.auth.updateProfile(req.user.id, dto);
+    return await this.auth.updateProfile(req.user.id, { name, phone, ...profile });
   }
 
   @Roles('car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/role-change-request')

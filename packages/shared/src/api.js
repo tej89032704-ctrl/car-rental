@@ -19,6 +19,23 @@ export function setSession({ access_token, refresh_token, user }) {
   }
 }
 
+/**
+ * Reads the cached user straight from storage.
+ *
+ * `currentUser` is a module-level snapshot taken when this module was first
+ * imported, and the components that cache it in React state lag behind a
+ * setSession() call by up to one poll interval. Routing guards that need an
+ * up-to-the-moment answer must call this instead, or a signup that logs in and
+ * immediately navigates will be treated as anonymous and bounced to /login.
+ */
+export function sessionUser() {
+  try {
+    return JSON.parse(localStorage.getItem('user') || 'null');
+  } catch {
+    return null;
+  }
+}
+
 export function clearSession() {
   accessToken = ''; refreshToken = ''; currentUser = null;
   ['access_token', 'refresh_token', 'user'].forEach((k) => localStorage.removeItem(k));

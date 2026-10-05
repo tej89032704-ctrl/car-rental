@@ -210,10 +210,31 @@ export class AuthService {
     return { message: 'Password updated. You can log in now.' };
   }
 
+  /**
+   * Age is derived, never stored (see migration 004). Recomputed per read so
+   * it cannot drift, and clamped at 0 because a timezone boundary can put the
+   * birthday one day either side of the local clock.
+   */
+  private ageFrom(dateOfBirth: string | null): number | null {
+    if (!dateOfBirth) return null;
+    const dob = new Date(`${dateOfBirth}T00:00:00Z`);
+    if (Number.isNaN(dob.getTime())) return null;
+    const years = (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000);
+    return Math.max(0, Math.floor(years));
+  }
+
   toPublicUser(u: any) {
     return {
       id: u.id, name: u.name, email: u.email, phone: u.phone,
       role: u.role, status: u.status, kyc_status: u.kyc_status,
+      date_of_birth: u.date_of_birth ?? null,
+      age: this.ageFrom(u.date_of_birth),
+      gender: u.gender ?? null,
+      address_line: u.address_line ?? null,
+      city: u.city ?? null,
+      state: u.state ?? null,
+      pincode: u.pincode ?? null,
+      profile_completed: !!u.profile_completed_at,
     };
   }
 
@@ -227,7 +248,19 @@ export class AuthService {
    * themselves. Phone is re-checked against the same uniqueness rule signup
    * uses because it doubles as a login credential.
    */
-  async updateProfile(userId: string, patch: { name?: string; phone?: string }) {
+  async updateProfile(
+    userId: string,
+    patch: {
+      name?: string;
+      phone?: string;
+      date_of_birth?: string;
+      gender?: string;
+      address_line?: string;
+      city?: string;
+      state?: string;
+      pincode?: string;
+    },
+  ) {
     const db = getDb('auth');
     const user = await this.getUserRaw(userId);
     if (!user) throw new BadRequestException('User not found');
@@ -242,16 +275,54 @@ export class AuthService {
       if (clash) throw new BadRequestException('That phone number is already in use');
     }
 
-    const before = { name: user.name, phone: user.phone };
-    if (before.name === name && before.phone === phone) {
+    // Nullish coalescing, not truthiness: an empty string from a cleared form
+    // field is a real edit and must overwrite the stored value, otherwise
+    // "clear my city" silently does nothing.
+    const next = {
+      date_of_birth: patch.date_of_birth ?? user.date_of_birth ?? null,
+      gender: patch.gender ?? user.gender ?? null,
+      address_line: patch.address_line ?? user.address_line ?? null,
+      city: patch.city ?? user.city ?? null,
+      state: patch.state ?? user.state ?? null,
+      pincode: patch.pincode ?? user.pincode ?? null,
+    };
+
+    const PROFILE_FIELDS = [
+      'date_of_birth', 'gender', 'address_line', 'city', 'state', 'pincode',
+    ] as const;
+
+    // Stamp completion the first time the required set is all present. Once
+    // set it is never cleared, so a user who later blanks a field is not
+    // re-prompted forever; the onboarding form is a nudge, not a gate.
+    const requiredPresent = !!next.date_of_birth && !!next.gender && !!next.city && !!next.state && !!next.pincode;
+    const profileCompletedAt = user.profile_completed_at ?? (requiredPresent ? nowUtc() : null);
+
+    const before = {
+      name: user.name, phone: user.phone,
+      ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f, user[f] ?? null])),
+    };
+    const after = { name, phone, ...next };
+    const unchanged =
+      PROFILE_FIELDS.every((f) => (user[f] ?? null) === (next[f] ?? null)) &&
+      before.name === after.name &&
+      before.phone === after.phone;
+
+    if (unchanged) {
       return { user: this.toPublicUser(user), changed: false };
     }
 
-    await db.prepare(`UPDATE users SET name = ?, phone = ?, updated_at = ? WHERE id = ?`)
-      .run(name, phone, nowUtc(), userId);
+    await db.prepare(
+      `UPDATE users SET name = ?, phone = ?, date_of_birth = ?, gender = ?, address_line = ?,
+         city = ?, state = ?, pincode = ?, profile_completed_at = ?, updated_at = ?
+       WHERE id = ?`,
+    ).run(
+      name, phone, next.date_of_birth, next.gender, next.address_line,
+      next.city, next.state, next.pincode, profileCompletedAt, nowUtc(), userId,
+    );
+
     writeAudit('auth', {
       actor_id: userId, action: 'profile.updated', entity_type: 'user', entity_id: userId,
-      before_value: before, after_value: { name, phone },
+      before_value: before, after_value: { ...after, profile_completed_at: profileCompletedAt },
     });
 
     return { user: this.toPublicUser(await this.getUserRaw(userId)), changed: true };

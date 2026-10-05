@@ -1,1 +1,1 @@
-export { api, setSession, clearSession, currentUser, uploadForm } from '../../../packages/shared/src/api.js';
+export { api, setSession, clearSession, currentUser, sessionUser, uploadForm } from '../../../packages/shared/src/api.js';
