@@ -1,260 +1,212 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api.js';
 import { useNavigate } from 'react-router-dom';
+import { CarIcon } from '../../../../packages/shared/src/icons.jsx';
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [extNewEnd, setExtNewEnd] = useState('');
-  const [reviewBooking, setReviewBooking] = useState(null);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewLoading, setReviewLoading] = useState(false);
+  const [tab, setTab] = useState('up'); // up, past, cancel
+  const [countdownIntervals, setCountdownIntervals] = useState({});
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await api('/bookings/my');
+        setBookings(Array.isArray(data) ? data : []);
+        setError('');
+      } catch (e) {
+        if (String(e.message || '').includes('(401)')) {
+          navigate('/login');
+          return;
+        }
+        setError(e.message || 'Network error — check your connection');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
   const navigate = useNavigate();
 
-  // shared api() returns parsed data and throws Error(message) on failure;
-  // it attaches Authorization itself, so no headers option here.
-  const load = async () => {
-    try {
-      const data = await api('/bookings/my');
-      setBookings(Array.isArray(data) ? data : []);
-      setError('');
-    } catch (e) {
-      if (String(e.message || '').includes('(401)')) { navigate('/login'); return; }
-      setError(e.message || 'Network error — check your connection');
-    } finally {
-      setLoading(false);
+  const handleCancel = async (bookingId) => {
+    // In a real app, we would show a modal for cancellation reason
+    if (window.confirm('Are you sure you want to cancel this booking?')) {
+      try {
+        await api(`/bookings/${bookingId}/cancel`, { method: 'POST' });
+        load();
+      } catch (e) {
+        setError(e.message || 'Cancel failed');
+      }
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Clean up countdown intervals on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(countdownIntervals).forEach(clearInterval);
+    };
+  }, [countdownIntervals]);
 
-  const doCancel = async function(cancelId) {
-    if (!cancelReason.trim()) return;
-    setActionLoading(cancelId);
-    try {
-      await api(`/bookings/${cancelId}/cancel`, { method: 'POST', body: { reason: cancelReason } });
-      setCancelReason(''); load();
-    } catch (e) { setError(e.message || 'Cancel failed'); }
-    finally { setActionLoading(null); }
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  const doExtend = async function(extendId) {
-    if (!extNewEnd.trim()) return;
-    setActionLoading(extendId);
-    try {
-      await api(`/bookings/${extendId}/extend`, { method: 'POST', body: { new_end_date: extNewEnd } });
-      setExtNewEnd(''); load();
-    } catch (e) { setError(e.message || 'Extension request failed'); }
-    finally { setActionLoading(null); }
-  };
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="spinner"></div>
+        <p>Loading your bookings…</p>
+      </div>
+    );
+  }
 
-  const doPay = async function(payId) {
-    if (!window.confirm('Pay the 20% online portion now to confirm this booking?')) return;
-    setActionLoading(payId);
-    try {
-      await api(`/bookings/${payId}/pay`, { method: 'POST' });
-      load();
-    } catch (e) { setError(e.message || 'Payment failed'); }
-    finally { setActionLoading(null); }
-  };
-
-  const doReview = async function() {
-    if (!reviewBooking) return;
-    setReviewLoading(true);
-    try {
-      await api('/reviews', {
-        method: 'POST',
-        body: { booking_id: reviewBooking.id, rating: reviewRating, comment: reviewComment || undefined },
-      });
-      setReviewBooking(null); setReviewRating(5); setReviewComment(''); load();
-    } catch (e) { setError(e.message || 'Review failed'); }
-    finally { setReviewLoading(false); }
-  };
-
-  const doDispute = async function(disputeId) {
-    const reason = window.prompt('Describe the problem (min 5 characters):');
-    if (!reason || reason.length < 5) return;
-    setActionLoading(disputeId);
-    try {
-      await api('/disputes', { method: 'POST', body: { booking_id: disputeId, reason } });
-      load();
-    } catch (e) { setError(e.message || 'Dispute raise failed'); }
-    finally { setActionLoading(null); }
-  };
-
-  if (loading) return (
-    <div className="loading-page">
-      <div className="spinner"></div>
-      <p>Loading your bookings…</p>
-    </div>
-  );
-
-  if (error && !bookings.length) return (
-    <div className="auth-box card">
-      <p className="error">{error}</p>
-      <button className="btn" onClick={load}>Retry</button>
-    </div>
-  );
+  if (error && !bookings.length) {
+    return (
+      <div className="auth-box card">
+        <p className="error">{error}</p>
+        <button className="btn" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="renter-page-header">
         <span className="header-icon">🧾</span>
         <h1>My Bookings</h1>
-        <p className="subtitle">Track your trips, extend stays, leave reviews</p>
+        <p className="subtitle">
+          Your 20% advance is paid online. The rest is paid at pickup.
+        </p>
       </div>
 
-      {error && (
-        <div className="error-banner">
-          {error}
-          <button className="btn dismiss" onClick={() => setError('')}>Dismiss</button>
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="pills" id="bt">
+        <button
+          className={tab === 'up' ? 'on' : ''}
+          data-t="up"
+          onClick={() => setTab('up')}
+        >
+          Upcoming
+        </button>
+        <button
+          className={tab === 'past' ? 'on' : ''}
+          data-t="past"
+          onClick={() => setTab('past')}
+        >
+          Completed
+        </button>
+        <button
+          className={tab === 'cancel' ? 'on' : ''}
+          data-t="cancel"
+          onClick={() => setTab('cancel')}
+        >
+          Cancelled
+        </button>
+      </div>
 
-      {/* Review Modal */}
-      {reviewBooking && (
-        <div className="modal-overlay" onClick={() => { setReviewBooking(null); setReviewComment(''); setReviewRating(5); }}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Review {reviewBooking.car?.brand} {reviewBooking.car?.model} &amp; its owner</h3>
-            </div>
-            <div className="form-group">
-              <label className="f">Rating</label>
-              <div className="rating rating-lg">
-                {[1,2,3,4,5].map((s) => (
-                  <button key={s} onClick={() => setReviewRating(s)}
-                    className={s <= reviewRating ? 'star' : 'star-empty'}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, fontSize: 28 }}>
-                    ★
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="f">Comment (optional)</label>
-              <textarea className="f" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3}
-                placeholder="How was your experience?" />
-            </div>
-            <p className="form-hint">One review rates both the car and the owner — it shows on the car's page for future renters and in the owner's rating.</p>
-            <div className="modal-actions">
-              <button className="btn" onClick={doReview} disabled={reviewLoading}>
-                {reviewLoading ? 'Submitting…' : 'Submit Review'}
-              </button>
-              <button className="btn sec" onClick={() => { setReviewBooking(null); setReviewComment(''); setReviewRating(5); }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Bookings list */}
+      <div id="bl">
+        {bookings.length > 0 ? (
+          bookings.map((booking, index) => {
+            const totalPrice = booking.total_amount_paise / 100;
+            const onlinePaid = booking.online_paid_paise / 100;
+            const atPickup = totalPrice - onlinePaid;
 
-      {!bookings.length ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">🔍</div>
-          <h3>No bookings yet</h3>
-          <p>You haven't made any bookings. Browse cars to get started.</p>
-          <button className="btn" onClick={() => navigate('/')}>Browse Cars</button>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {bookings.map((b) => (
-            <div key={b.id} className="booking-card">
-              <div className="booking-card-header">
+            // Calculate countdown for confirmed bookings
+            let countdown = '';
+            if (booking.status === 'confirmed' && booking.start_date) {
+              const startDate = new Date(booking.start_date);
+              const now = new Date();
+              const diffTime = startDate - now;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              countdown = diffDays > 0 ? `${diffDays} days` : 'Today';
+            }
+
+            return (
+              <div
+                key={booking.id}
+                className="card bkc"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                <div className="ic">
+                  <CarIcon />
+                </div>
                 <div>
-                  <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 600, color: '#1d1d1f' }}>
-                    {b.car?.brand} {b.car?.model} <span style={{ color: '#6e6e73', fontSize: 14, fontWeight: 400 }}>· {b.car?.plate}</span>
-                  </h3>
-                  <p style={{ margin: '0 0 4px', color: '#6e6e73', fontSize: 14 }}>{new Date(b.start_date).toLocaleDateString()} — {new Date(b.end_date).toLocaleDateString()}</p>
-                  <p style={{ margin: 0, color: '#86868b', fontSize: 13 }}>Owner: {b.owner?.name || '—'}</p>
-                </div>
-                <span className={`booking-status status-${b.status}`}>{b.status}</span>
-              </div>
-
-              <div className="booking-card-footer">
-                <div>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f' }}>₹{(b.total_amount_paise / 100).toFixed(0)}</span>
-                  <span style={{ color: '#86868b', fontSize: 13, marginLeft: 6 }}>total</span>
-                  <br />
-                  <span style={{ color: '#1d1d1f', fontSize: 13 }}>Online paid ₹{(b.online_paid_paise / 100).toFixed(0)}</span>
-                  <span style={{ color: '#86868b', fontSize: 13, marginLeft: 6 }}>· due at pickup ₹{(b.remaining_due_paise / 100).toFixed(0)}</span>
-                </div>
-                <div className="booking-card-actions">
-                  {b.status === 'confirmed' && b.online_paid_paise === 0 && (
-                    <button className="btn" onClick={() => doPay(b.id)} disabled={actionLoading === b.id}>
-                      {actionLoading === b.id ? 'Processing…' : `Pay online (20%) — ₹${(b.total_amount_paise * 0.2 / 100).toFixed(0)}`}
-                    </button>
-                  )}
-                  {b.status === 'confirmed' && (
-                    <button className="btn sec" onClick={() => doExtend(b.id)} disabled={actionLoading === b.id}>
-                      {actionLoading === b.id ? '…' : 'Extend'}
-                    </button>
-                  )}
-                  {b.status === 'completed' && (
-                    <>
-                      {b.has_reviewed ? (
-                        <span style={{ color: '#1d1d1f', fontSize: 13, fontWeight: 500, padding: '6px 0' }}>✓ Reviewed</span>
-                      ) : (
-                        <button className="btn" onClick={() => setReviewBooking(b)}>Rate car &amp; owner</button>
-                      )}
-                      <button className="btn bad" onClick={() => doDispute(b.id)} disabled={actionLoading === b.id}>Report Problem</button>
-                    </>
-                  )}
-                  {b.status === 'requested' && (
-                    <button className="btn sec" onClick={() => { if (window.confirm('Cancel this booking?')) doCancel(b.id); }} disabled={actionLoading === b.id}>
-                      {actionLoading === b.id ? '…' : 'Cancel'}
-                    </button>
-                  )}
-                  <button className="btn sec" onClick={() => navigate(`/bookings/${b.id}`)}>View Details</button>
-                </div>
-              </div>
-
-              <div className="booking-card-timeline">
-                {['requested', 'confirmed', 'ongoing', 'completed'].map((step, i) => {
-                  const order = ['requested', 'confirmed', 'ongoing', 'completed'];
-                  const idx = order.indexOf(b.status);
-                  const reached = i <= idx;
-                  const active = i === idx;
-                  const labels = ['Requested', 'Confirmed', 'Ongoing', 'Completed'];
-                  return (
-                    <div key={step} className={`timeline-step ${active ? 'active' : ''} ${reached ? 'reached' : ''}`}>
-                      <span className="timeline-dot" style={{
-                        background: active ? '#1d1d1f' : reached ? '#6e6e73' : '#d2d2d7',
-                        boxShadow: active ? '0 0 0 4px rgba(0,0,0,0.12)' : 'none',
-                      }} />
-                      <span className="timeline-label" style={{ color: active ? '#1d1d1f' : reached ? '#333336' : '#86868b', fontWeight: active ? 700 : 500 }}>{labels[i]}</span>
-                      {i < 3 && <span className="timeline-line" style={{ background: i < idx ? '#1d1d1f' : '#e8e8ed' }} />}
+                  <div className="r" style={{ justifyContent: 'flex-start', gap: '12px' }}>
+                    <b style={{ fontSize: '18px' }}>
+                      {booking.car?.brand} {booking.car?.model}
+                    </b>
+                    <span className={`badge ${booking.status}`}>
+                      {{
+                        confirmed: 'Confirmed',
+                        pending: 'Awaiting owner',
+                        completed: 'Completed',
+                        cancelled: 'Cancelled'
+                      }[booking.status] || booking.status}
+                    </span>
+                  </div>
+                  <div className="mut">
+                    {formatDate(booking.start_date)} · Pickup in {booking.pickup_location || '—'}
+                  </div>
+                  {booking.status === 'confirmed' && (
+                    <div style={{ marginTop: '8px' }}>
+                      Pickup in <span className="cd">{countdown}</span>
                     </div>
-                  );
-                })}
+                  )}
+                  <div className="bar">
+                    {/* Progress bar for online paid portion */}
+                    <div
+                      className="bar-fill"
+                      style={{
+                        width: `${(onlinePaid / totalPrice) * 100}%`,
+                        backgroundColor: 'var(--ink)',
+                        height: '100%',
+                        borderRadius: '8px',
+                      }}
+                    />
+                  </div>
+                  <small className="mut">
+                    ₹{onlinePaid.toFixed(0)} paid online · ₹{atPickup.toFixed(0)} at pickup
+                  </small>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  {tab === 'up' && (
+                    <button
+                      className="btn o"
+                      onClick={() => handleCancel(booking.id)}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {tab !== 'up' && (
+                    <button className="btn o">
+                      View
+                    </button>
+                  )}
+                </div>
               </div>
+            );
+          })
+        ) : (
+          <div className="empty-state">
+            <p className="mut">Nothing here yet.</p>
+          </div>
+        )}
+      </div>
 
-              {b.status === 'requested' && (
-                <div className="booking-panel cancel-panel">
-                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>Reason for cancellation (optional):</label>
-                  <textarea className="f" value={ cancelReason || '' } onChange={ (e) => setCancelReason(e.target.value) } rows={2} placeholder="e.g. Found a better deal, travel plans changed…" />
-                </div>
-              )}
-
-              {b.status === 'confirmed' && (
-                <div className="booking-panel extend-panel">
-                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>Request extension — new end date:</label>
-                  <input className="f" type="date" value={extNewEnd} onChange={ (e) => setExtNewEnd(e.target.value) } min={new Date(b.end_date).toISOString().split('T')[0]} />
-                  <button className="btn ok" style={{ marginTop: 8 }} onClick={() => doExtend(b.id)} disabled={!extNewEnd.trim() || actionLoading === b.id}>
-                    {actionLoading === b.id ? 'Requesting…' : 'Request Extension'}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
+      {/* Back to search link */}
       <div className="back-link">
-        <button className="btn sec" onClick={() => navigate('/')}>← Back to Search</button>
+        <button className="btn sec" onClick={() => navigate('/')}>
+          ← Back to Search
+        </button>
       </div>
     </>
   );

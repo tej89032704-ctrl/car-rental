@@ -1,134 +1,190 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api, currentUser } from '../api.js';
-import { Stars, RatingSummary } from '../../../../packages/shared/src/Reviews.jsx';
-
-/**
- * Two distinct things renters/owners care about:
- *   1. "Written by me" — what I said about a car/owner/renter after a trip
- *   2. "About me"      — what other people said about me
- * Each has its own endpoint, so each is loaded independently: one failing
- * must not blank the other.
- */
-const TARGET_LABEL = { car: 'Car', owner: 'Owner', renter: 'Renter' };
-const TARGET_PILL = { car: 'active', owner: 'confirmed', renter: 'requested' };
+import { Link } from 'react-router-dom';
 
 export default function Reviews() {
-  const [written, setWritten] = useState(null);
-  const [about, setAbout] = useState(null);
-  const [err, setErr] = useState('');
-  const [aboutErr, setAboutErr] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [newReview, setNewReview] = useState({ rating: 0, comment: '' });
+  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
-    if (!currentUser) return;
-    api('/reviews/my').then(setWritten).catch((e) => setErr(e.message));
-    api('/reviews/about-me').then(setAbout).catch((e) => setAboutErr(e.message));
-  }, []);
+    const loadReviews = async () => {
+      if (!currentUser) return;
+      try {
+        const data = await api('/reviews/my');
+        setReviews(Array.isArray(data) ? data : []);
+        setError('');
+      } catch (e) {
+        if (String(e.message || '').includes('(401)')) {
+          // navigate to login
+          window.location.href = '/login';
+          return;
+        }
+        setError(e.message || 'Failed to load reviews');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReviews();
+  }, [currentUser]);
 
-  const writtenList = Array.isArray(written) ? written : [];
+  const handleRatingChange = (rating) => {
+    setNewReview(prev => ({ ...prev, rating }));
+  };
+
+  const handleCommentChange = (e) => {
+    setNewReview(prev => ({ ...prev, comment: e.target.value }));
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (newReview.rating === 0) {
+      alert('Please select a rating');
+      return;
+    }
+    setPosting(true);
+    try {
+      await api('/reviews', {
+        method: 'POST',
+        body: {
+          rating: newReview.rating,
+          comment: newReview.comment || undefined,
+        }
+      });
+      setNewReview({ rating: 0, comment: '' });
+      // Reload reviews
+      const data = await api('/reviews/my');
+      setReviews(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || 'Failed to post review');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-page">
+        <div className="spinner"></div>
+        <p>Loading your reviews…</p>
+      </div>
+    );
+  }
+
+  if (error && !reviews.length) {
+    return (
+      <div className="auth-box card">
+        <p className="error">{error}</p>
+        <button className="btn" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Calculate average rating
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : 0;
+  const totalReviews = reviews.length;
 
   return (
     <>
-      <div className="page-header">
+      <div className="renter-page-header">
+        <span className="header-icon">📝</span>
         <h1>My Reviews</h1>
-        <p className="subtitle">Ratings you've left after trips — and what others said about you</p>
+        <p className="subtitle">What you shared about your trips.</p>
       </div>
 
-      {/* ---------- 2. What others said about me ---------- */}
-      <section className="card">
-        <h2>About me</h2>
-        {aboutErr && <div className="alert err">{aboutErr}</div>}
-        {!about && !aboutErr && <p className="muted">Loading…</p>}
-        {about && (
-          <>
-            <div className="car-rating-row" style={{ justifyContent: 'flex-start', gap: 16 }}>
-              <RatingSummary avg={about.avg_rating} count={about.total_reviews} emptyText="No one has reviewed you yet" />
-            </div>
-
-            {about.reviews.length === 0 && (
-              <p className="muted" style={{ marginTop: 10 }}>
-                Once a trip ends, the other party can rate you. Those comments will show up here.
-              </p>
-            )}
-
-            {about.reviews.length > 0 && (
-              <div className="review-list">
-                {about.reviews.map((r) => (
-                  <div className="review-card" key={r.id}>
-                    <div className="review-card-header">
-                      <span className="review-card-name">{r.reviewer_name}</span>
-                      <span className="rating"><Stars value={r.rating} /></span>
-                    </div>
-                    {r.car && (
-                      <div style={{ marginBottom: 6 }}>
-                        <span className="pill active">{r.car.brand} {r.car.model}</span>
-                      </div>
-                    )}
-                    {r.comment && <p className="review-card-comment">{r.comment}</p>}
-                    <p className="review-card-date">
-                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      {/* ---------- 1. What I wrote ---------- */}
-      <section className="card">
-        <h2>Written by me</h2>
-        {err && <div className="alert err">{err}</div>}
-        {written === null && !err && <p className="muted">Loading…</p>}
-
-        {written !== null && writtenList.length === 0 && (
-          <div className="notifications-empty">
-            <div className="empty-icon">⭐</div>
-            <p>You haven't reviewed a trip yet.</p>
-            <p className="muted" style={{ fontSize: 13 }}>
-              Reviews can be left once a booking is completed —{' '}
-              <Link to="/bookings">go to My Bookings</Link>.
-            </p>
+      <div className="two">
+        {/* Left column: Average rating and rating breakdown */}
+        <div className="card sp">
+          <div className="big" data-n={totalReviews.toFixed(0)} data-f="0">
+            {totalReviews.toFixed(0)}
           </div>
-        )}
+          <div className="st">
+            {'★'.repeat(Math.floor(avgRating))}
+            {avgRating % 1 >= 0.5 ? '½' : ''}
+            {'☆'.repeat(5 - Math.ceil(avgRating))}
+          </div>
+          <p className="mut">
+            Average from {totalReviews} reviews
+          </p>
+          <div className="chips">
+            {[5, 4, 3, 2, 1].map((n) => (
+              <span key={n} className="chip">
+                {n}
+                <span className="mut">
+                  {reviews.filter(r => r.rating === n).length} reviews
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
 
-        {writtenList.length > 0 && (
-          <>
-            <p className="rating-inline" style={{ margin: '0 0 4px' }}>
-              {writtenList.length} review{writtenList.length !== 1 ? 's' : ''} written
-            </p>
-            <div className="review-list">
-              {writtenList.map((r) => (
-                <div className="review-card" key={r.id}>
-                  <div className="review-card-header">
-                    <span className="review-card-name">
-                      {r.target_name || TARGET_LABEL[r.target_type] || 'Review'}
-                    </span>
-                    <span className="rating"><Stars value={r.rating} /></span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-                    <span className={`pill ${TARGET_PILL[r.target_type] || ''}`}>
-                      {TARGET_LABEL[r.target_type] || r.target_type}
-                    </span>
-                    {r.car && (
-                      <span className="muted" style={{ fontSize: 13 }}>
-                        {r.car.brand} {r.car.model}
-                      </span>
-                    )}
-                  </div>
-
-                  {r.comment && <p className="review-card-comment">{r.comment}</p>}
-                  <p className="review-card-date">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
-                  </p>
-                </div>
+        {/* Right column: Write a review and list of existing reviews */}
+        <div>
+          <div className="card rv">
+            <h3>Write a review</h3>
+            <div className="sin" id="sin">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  data-s={n}
+                  aria-label={`${n} stars`}
+                  className={n === newReview.rating ? 'on' : ''}
+                  onClick={() => handleRatingChange(n)}
+                >
+                  ★
+                </button>
               ))}
             </div>
-          </>
-        )}
-      </section>
+            <textarea
+              id="rt"
+              placeholder="How was your trip?"
+              value={newReview.comment}
+              onChange={handleCommentChange}
+              rows="4"
+            />
+            <button
+              className="btn"
+              id="rs"
+              onClick={handleSubmitReview}
+              disabled={posting}
+            >
+              {posting ? 'Posting…' : 'Post review'}
+            </button>
+          </div>
+          <div id="rl">
+            {reviews.map((r, index) => (
+              <div
+                key={r.id}
+                className="card rv sp"
+                style={{ animationDelay: `${index * 60}ms` }}
+              >
+                <div className="r">
+                  <b>{r.target_name || 'Trip'}</b>
+                  <span className="mut">{new Date(r.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="st">
+                  {'★'.repeat(r.rating)}
+                </div>
+                <p>{r.comment || 'No comment provided'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Back to search link */}
+      <div className="back-link">
+        <button className="btn sec" onClick={() => window.location.href = '/'}>
+          ← Back to Search
+        </button>
+      </div>
     </>
   );
 }

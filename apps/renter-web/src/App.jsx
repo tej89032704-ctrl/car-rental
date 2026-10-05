@@ -84,9 +84,7 @@ function Topbar({ mobileOpen, setMobileOpen }) {
   const title = location.pathname.startsWith('/bookings/') ? 'Booking Details' : (titles[location.pathname] || 'CAR-ENT');
   return (
     <div className="topbar">
-      <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>
       <span className="topbar-title">{title}</span>
-      <div className="topbar-actions" />
     </div>
   );
 }
@@ -181,9 +179,9 @@ export default function App() {
   }
 
   return (
-    <div className="sidebar-layout">
+    <div className={`sidebar-layout ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      <main className={`sidebar-main ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <main className="sidebar-main">
         <Topbar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <div className="sidebar-content">
           <Routes>
