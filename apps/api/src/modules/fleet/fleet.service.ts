@@ -82,21 +82,66 @@ export class FleetService {
     return await this.db().prepare(sql).all(...params);
   }
 
+  /**
+   * The owner as a renter is allowed to see, and nothing more.
+   *
+   * This feeds a public endpoint (GET /cars/:id is @Public), so the fields
+   * are an allowlist, not a filtered copy of the user row: no id, email,
+   * phone, date of birth or gender. Location is city/state only and is
+   * omitted entirely when unset rather than rendered as a blank row.
+   *
+   * Spans three schemas, so it is assembled in the service layer rather than
+   * a join -- the same rule the payouts aggregation follows.
+   */
+  private async publicOwner(ownerId: string) {
+    const u = await getDb('auth')
+      .prepare(`SELECT name, city, state, created_at, kyc_status FROM users WHERE id = ? AND is_deleted = 0`)
+      .get(ownerId) as any;
+    if (!u) return null;
+
+    const stats = await getDb('booking').prepare(`
+      SELECT COUNT(*) AS count, COALESCE(AVG(rating), 0) AS avg_rating
+      FROM reviews
+      WHERE target_type = 'owner' AND target_user_id = ? AND reviewer_id <> ? AND is_deleted = 0
+    `).get(ownerId, ownerId) as any;
+
+    const listed = await this.db()
+      .prepare(`SELECT COUNT(*) AS count FROM cars WHERE owner_id = ? AND status = 'active' AND is_deleted = 0`)
+      .get(ownerId) as any;
+
+    return {
+      name: u.name,
+      city: u.city ?? null,
+      state: u.state ?? null,
+      member_since: u.created_at,
+      // A verified owner is the single most useful trust signal on the page,
+      // so surface it as a boolean the UI can render as a badge.
+      verified: u.kyc_status === 'approved',
+      rating: stats.count > 0 ? Math.round(stats.avg_rating * 10) / 10 : null,
+      review_count: stats.count,
+      cars_listed: listed.count,
+    };
+  }
+
   async carDetail(carId: string, requester?: { id: string; role: string }) {
     const car = await this.db().prepare(`SELECT * FROM cars WHERE id = ? AND is_deleted = 0`).get(carId) as any;
     if (!car) throw new NotFoundException('Car not found');
-    const photos = await this.db().prepare(`SELECT * FROM car_photos WHERE car_id = ? AND is_deleted = 0 ORDER BY sort_order`).all(carId);
-    const pricing = await this.db().prepare(`SELECT * FROM car_pricing WHERE car_id = ?`).get(carId);
-    const base = { ...car, photos, pricing };
+
+    // Decide visibility before assembling the response. Reading the photos and
+    // the owner's profile costs four queries across three schemas, and a
+    // caller who is about to get a 404 or a 403 should not cause any of them.
     if (!requester) {
       if (car.status !== 'active') throw new NotFoundException('Car not found');
-      return base;
-    }
-    if (requester.role === 'car_owner') await this.getOwnedCar(carId, requester.id);
-    else if (requester.role === 'car_renter' && car.status !== 'active') {
+    } else if (requester.role === 'car_owner') {
+      await this.getOwnedCar(carId, requester.id);
+    } else if (requester.role === 'car_renter' && car.status !== 'active') {
       throw new ForbiddenException('Car not available');
     }
-    return base;
+
+    const photos = await this.db().prepare(`SELECT * FROM car_photos WHERE car_id = ? AND is_deleted = 0 ORDER BY sort_order`).all(carId);
+    const pricing = await this.db().prepare(`SELECT * FROM car_pricing WHERE car_id = ?`).get(carId);
+    const owner = await this.publicOwner(car.owner_id);
+    return { ...car, photos, pricing, owner };
   }
 
   async updateCar(ownerId: string, carId: string, dto: any) {

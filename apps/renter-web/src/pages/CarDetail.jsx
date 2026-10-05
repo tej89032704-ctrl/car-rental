@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, currentUser } from '../api.js';
+import CarGallery from '../../../../packages/shared/src/CarGallery.jsx';
+import OwnerCard from '../../../../packages/shared/src/OwnerCard.jsx';
 
 export default function CarDetail() {
   const { id } = useParams();
@@ -33,7 +35,7 @@ export default function CarDetail() {
     <>
       <div className="card">
         <div className="car-detail-layout">
-          <img className="car-detail-img" src={car.photos?.[0]?.file_url || 'https://via.placeholder.com/400x220'} alt="" />
+          <CarGallery photos={car.photos} make={car.make} model={car.model} />
           <div className="car-detail-info">
             <h1 style={{ marginTop: 0 }}>{car.make} {car.model}</h1>
             <p className="muted">{car.year} · {car.category} · {car.transmission} · {car.fuel_type} · {car.seats} seats · {car.plate_number}
@@ -50,6 +52,7 @@ export default function CarDetail() {
               {p.monthly_rate_paise && <p className="muted">Monthly ₹{(p.monthly_rate_paise / 100).toFixed(0)}</p>}
               {p.security_deposit_paise > 0 && <p className="muted">Refundable deposit: ₹{(p.security_deposit_paise / 100).toFixed(0)}</p>}
             </>}
+            <OwnerCard owner={car.owner} className="car-detail-owner" />
           </div>
         </div>
       </div>
