@@ -10,6 +10,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { AgentsModule } from './modules/agents/agents.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { GeoModule } from './modules/geo/geo.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AdminModule } from './modules/admin/admin.module';
     PaymentsModule,
     AgentsModule,
     AdminModule,
+    GeoModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

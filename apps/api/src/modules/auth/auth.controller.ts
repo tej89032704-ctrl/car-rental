@@ -46,6 +46,22 @@ const updateProfileSchema = z.object({
   city: z.string().min(2).max(80).optional(),
   state: z.string().min(2).max(80).optional(),
   pincode: z.string().regex(/^\d{4,10}$/, 'pincode must be 4-10 digits').optional(),
+  // Nullable as well as optional: omitting a key leaves the pin alone, sending
+  // an explicit null clears it. Without the null, a user could add a pin but
+  // never remove one.
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+}).superRefine((v, ctx) => {
+  // A point is a pair. The DB CHECK enforces this too, but a half-set pin is a
+  // client bug worth naming precisely rather than surfacing as a constraint
+  // violation with a Postgres error code.
+  if ((v.latitude == null) !== (v.longitude == null)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [v.latitude == null ? 'longitude' : 'latitude'],
+      message: 'latitude and longitude must be provided together',
+    });
+  }
 });
 const reviewSchema = z.object({
   decision: z.enum(['approve', 'reject', 'first_pass']),

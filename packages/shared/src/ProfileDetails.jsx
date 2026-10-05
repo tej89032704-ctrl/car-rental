@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setSession } from './api.js';
+import LocationPicker from './LocationPicker.jsx';
 
 /**
  * Post-signup profile details, shared by all three portals.
@@ -42,6 +43,9 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Held apart from `f` because it is a pair of numbers plus a provenance tag,
+  // not a form string, and it is submitted differently.
+  const [pin, setPin] = useState(null);
   const bounds = dobBounds();
 
   // Prefill from the server rather than localStorage: another device may have
@@ -59,6 +63,13 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
           state: u.state || '',
           pincode: u.pincode || '',
         });
+        if (typeof u.latitude === 'number' && typeof u.longitude === 'number') {
+          setPin({
+            latitude: u.latitude,
+            longitude: u.longitude,
+            source: u.location_source || 'manual',
+          });
+        }
       })
       .catch((e) => setErr(e.message))
       .finally(() => setLoading(false));
@@ -76,6 +87,13 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
       const body = Object.fromEntries(
         Object.entries(f).filter(([, v]) => v !== '' && v !== null && v !== undefined),
       );
+      // Sent whenever it differs from what is stored. The API treats an absent
+      // key as "leave it alone" and an explicit pair as "this is the pin", so
+      // only a pin the user actually placed or moved is transmitted.
+      if (pin) {
+        body.latitude = pin.latitude;
+        body.longitude = pin.longitude;
+      }
       if (!Object.keys(body).length) {
         nav(next);
         return;
@@ -150,6 +168,15 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
             <input id="pd-pincode" className="f" value={f.pincode} onChange={set('pincode')}
               placeholder="560001" inputMode="numeric" pattern="\d{4,10}"
               autoComplete="postal-code" />
+          </div>
+
+          <div className="field">
+            <label className="f">Map location</label>
+            <LocationPicker value={pin} onChange={setPin} city={f.city} />
+            <small className="form-hint">
+              Optional. Lets owners see which cars are near you, and renters see roughly where a
+              car is kept. Only shared with people viewing your cars.
+            </small>
           </div>
 
           <button className="btn btn-full" disabled={busy || loading}>

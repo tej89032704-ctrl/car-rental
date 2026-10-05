@@ -5,6 +5,7 @@ import * as jwt from 'jsonwebtoken';
 import { getDb, nowUtc, uuid } from '../../common/db/database';
 import { JWT_SECRET } from '../../common/auth/guards';
 import { writeAudit } from '../../common/audit/audit';
+import { geocodeFirst } from '../../common/geo/geocode';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const ACCESS_TTL_SEC = 15 * 60;
@@ -234,6 +235,9 @@ export class AuthService {
       city: u.city ?? null,
       state: u.state ?? null,
       pincode: u.pincode ?? null,
+      latitude: u.latitude ?? null,
+      longitude: u.longitude ?? null,
+      location_source: u.location_source ?? null,
       profile_completed: !!u.profile_completed_at,
     };
   }
@@ -259,6 +263,8 @@ export class AuthService {
       city?: string;
       state?: string;
       pincode?: string;
+      latitude?: number | null;
+      longitude?: number | null;
     },
   ) {
     const db = getDb('auth');
@@ -291,6 +297,53 @@ export class AuthService {
       'date_of_birth', 'gender', 'address_line', 'city', 'state', 'pincode',
     ] as const;
 
+    // ---- Map coordinates -------------------------------------------------
+    // Two ways to end up with a pin, in priority order:
+    //
+    // 1. The client sent a pair. That is either a pin the user dropped on a map
+    //    or a city they searched for, and it wins outright -- a deliberate
+    //    choice should never be overwritten by a geocode.
+    // 2. The client sent no pair but city/state moved. Resolve the city to a
+    //    point so the map is not blank, and label it 'geocoded' because a city
+    //    centroid is an approximation of where the user actually is.
+    //
+    // Geocoding is best-effort: `geocodeFirst` resolves to null on any failure
+    // and the save continues with no coordinates. A profile edit must not fail
+    // because an external service is slow or down.
+    const sentPair = patch.latitude != null && patch.longitude != null;
+    const sentClear = patch.latitude === null && patch.longitude === null;
+    const cityMoved = (next.city !== (user.city ?? null)) || (next.state !== (user.state ?? null));
+    const wantGeocode = !sentPair && !sentClear && cityMoved && !user.latitude;
+
+    let latitude: number | null = user.latitude ?? null;
+    let longitude: number | null = user.longitude ?? null;
+    let location_source: string | null = user.location_source ?? null;
+
+    if (sentPair) {
+      latitude = patch.latitude as number;
+      longitude = patch.longitude as number;
+      location_source = 'manual';
+    } else if (sentClear) {
+      latitude = null;
+      longitude = null;
+      location_source = null;
+    } else if (wantGeocode) {
+      const hit = await geocodeFirst([next.city, next.state].filter(Boolean).join(', '));
+      if (hit) {
+        latitude = hit.latitude;
+        longitude = hit.longitude;
+        location_source = 'geocoded';
+      }
+    }
+
+    // Only re-run the lookup while the user has no point at all. Someone who
+    // has already placed a pin and later fixes a typo in their city should keep
+    // the pin they chose.
+    const locationChanged =
+      (user.latitude ?? null) !== (latitude ?? null) ||
+      (user.longitude ?? null) !== (longitude ?? null) ||
+      (user.location_source ?? null) !== (location_source ?? null);
+
     // Stamp completion the first time the required set is all present. Once
     // set it is never cleared, so a user who later blanks a field is not
     // re-prompted forever; the onboarding form is a nudge, not a gate.
@@ -305,7 +358,10 @@ export class AuthService {
     const unchanged =
       PROFILE_FIELDS.every((f) => (user[f] ?? null) === (next[f] ?? null)) &&
       before.name === after.name &&
-      before.phone === after.phone;
+      before.phone === after.phone &&
+      // Without this a pin drop that changes nothing else looks like a no-op
+      // and returns changed:false without ever being written.
+      !locationChanged;
 
     if (unchanged) {
       return { user: this.toPublicUser(user), changed: false };
@@ -313,16 +369,19 @@ export class AuthService {
 
     await db.prepare(
       `UPDATE users SET name = ?, phone = ?, date_of_birth = ?, gender = ?, address_line = ?,
-         city = ?, state = ?, pincode = ?, profile_completed_at = ?, updated_at = ?
+         city = ?, state = ?, pincode = ?, latitude = ?, longitude = ?, location_source = ?,
+         profile_completed_at = ?, updated_at = ?
        WHERE id = ?`,
     ).run(
       name, phone, next.date_of_birth, next.gender, next.address_line,
-      next.city, next.state, next.pincode, profileCompletedAt, nowUtc(), userId,
+      next.city, next.state, next.pincode, latitude, longitude, location_source,
+      profileCompletedAt, nowUtc(), userId,
     );
 
     writeAudit('auth', {
       actor_id: userId, action: 'profile.updated', entity_type: 'user', entity_id: userId,
-      before_value: before, after_value: { ...after, profile_completed_at: profileCompletedAt },
+      before_value: { ...before, latitude: user.latitude ?? null, longitude: user.longitude ?? null },
+      after_value: { ...after, latitude, longitude, location_source, profile_completed_at: profileCompletedAt },
     });
 
     return { user: this.toPublicUser(await this.getUserRaw(userId)), changed: true };

@@ -95,7 +95,10 @@ export class FleetService {
    */
   private async publicOwner(ownerId: string) {
     const u = await getDb('auth')
-      .prepare(`SELECT name, city, state, created_at, kyc_status FROM users WHERE id = ? AND is_deleted = 0`)
+      .prepare(
+        `SELECT name, city, state, created_at, kyc_status, latitude, longitude, location_source
+           FROM users WHERE id = ? AND is_deleted = 0`,
+      )
       .get(ownerId) as any;
     if (!u) return null;
 
@@ -113,6 +116,14 @@ export class FleetService {
       name: u.name,
       city: u.city ?? null,
       state: u.state ?? null,
+      // Exact coordinates, deliberately. Rounding to a city centroid was
+      // offered and declined, so the pin a renter sees is the pin the owner
+      // placed. `location_source` travels with it so the UI can say whether it
+      // is a dropped pin or a city the owner typed -- a 'geocoded' point can be
+      // tens of km off and should not be presented as a precise address.
+      latitude: u.latitude ?? null,
+      longitude: u.longitude ?? null,
+      location_source: u.location_source ?? null,
       member_since: u.created_at,
       // A verified owner is the single most useful trust signal on the page,
       // so surface it as a boolean the UI can render as a badge.

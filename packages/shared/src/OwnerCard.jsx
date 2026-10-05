@@ -11,6 +11,8 @@
  * row disappears when there are no reviews, because "no reviews yet" and
  * "0 stars" are different facts.
  */
+import LocationMap from './LocationMap.jsx';
+
 function memberSince(iso) {
   if (!iso) return null;
   const d = new Date(iso);
@@ -46,6 +48,14 @@ export default function OwnerCard({ owner, className = '' }) {
           </div>
         </div>
       </div>
+
+      <LocationMap
+        latitude={owner.latitude}
+        longitude={owner.longitude}
+        source={owner.location_source}
+        city={owner.city}
+        className="owner-map"
+      />
 
       <dl className="owner-stats">
         {hasRating && (

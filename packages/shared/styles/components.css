@@ -151,6 +151,74 @@
 .stat-card .stat-value { font-size: 28px; font-weight: 800; color: var(--ink); line-height: 1; letter-spacing: -.02em; }
 .stat-card .stat-label { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 4px; }
 
+/* ── Location picker (LocationPicker.jsx) ──
+   Shared rather than per-portal because the shared ProfileDetails page renders
+   it, and that page is mounted by the renter, owner and agent portals. Leaving
+   these rules in one portal's stylesheet gives the other two a Leaflet map with
+   no height, which initialises as an invisible zero-height strip. */
+.location-picker { display: flex; flex-direction: column; gap: 8px; }
+.location-search { display: flex; gap: 8px; }
+.location-search input { flex: 1; }
+.location-picker-note { margin: 0; font-size: 12px; color: var(--muted, #6e6e73); }
+.location-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line-soft, #f5f5f7);
+  border-radius: 10px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.location-results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 11px;
+  border: none;
+  border-bottom: 1px solid var(--line-soft, #f5f5f7);
+  background: var(--card, #fff);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink, #1d1d1f);
+}
+.location-results li:last-child button { border-bottom: none; }
+.location-results button:hover { background: var(--bg-soft, #f5f5f7); }
+/* Leaflet needs a real height to initialise: with height:auto the container is
+   a zero-height strip and no tile is ever requested. */
+.location-picker-map {
+  height: 220px;
+  border: 1px solid var(--line-soft, #f5f5f7);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.location-picker-map .leaflet-container { height: 100%; width: 100%; font: inherit; }
+.location-picker-hint { margin: 0; font-size: 12px; color: var(--muted, #6e6e73); line-height: 1.5; }
+
+/* The picker pin, drawn in CSS (see LocationPicker's pinIcon) rather than from
+   Leaflet's bundled PNG: that image is referenced by a relative URL inside
+   node_modules, which the dev server serves over /@fs/ as an absolute path that
+   404s, leaving a dead marker on an otherwise working map.
+
+   `background: none` on the wrapper is load-bearing: Leaflet's own
+   .leaflet-marker-icon rule is more specific than a bare class and would
+   otherwise leave its grey placeholder background behind. */
+.leaflet-marker-icon.location-pin-icon { background: none; border: none; }
+.location-pin-icon-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%) rotate(45deg);
+  /* A literal colour, not var(--brand): that token is near-black in every
+     portal's palette, and the pin sits on photographic map tiles where a black
+     marker reads as a shadow. This is the one accent colour on the map. */
+  background: #e8590c;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
 /* ── Table enhancements ── */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: var(--shadow-sm, none); }
 .table-wrap table.t { margin: 0; }

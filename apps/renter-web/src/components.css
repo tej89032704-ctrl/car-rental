@@ -153,6 +153,89 @@
   border-radius: 14px;
   background: var(--bg-soft, #fafafc);
 }
+
+/* ── Location map (LocationMap.jsx)
+   A 3x3 tile grid with the centre tile under the pin, so the pin lands on the
+   exact coordinate. The grid is 768px but only the middle 256px is visible: the
+   neighbouring tiles exist to cover the pin when it sits near a tile edge, and
+   the container crops the rest. */
+.location-map {
+  position: relative;
+  margin-top: 14px;
+  border: 1px solid var(--line-soft, #f5f5f7);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--line-soft, #f5f5f7);
+}
+.location-map-grid {
+  position: relative;
+  width: 256px;
+  height: 256px;
+  overflow: hidden;
+}
+.location-map-tile {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+.location-map-pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.location-map-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: var(--muted, #6e6e73);
+  font-size: 13px;
+  border: 1px dashed var(--line, #d2d2d7);
+  border-radius: 12px;
+}
+.location-map-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.location-map-failed { background: rgba(190, 60, 40, 0.85); }
+.location-map-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  background: var(--bg-soft, #fafafc);
+  border-top: 1px solid var(--line-soft, #f5f5f7);
+  font-size: 11px;
+  color: var(--muted, #6e6e73);
+}
+.location-map-place { font-weight: 700; font-size: 12px; color: var(--text, #1d1d1f); }
+.location-map-source {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(232, 89, 12, 0.12);
+  color: #c2410c;
+  font-weight: 700;
+}
+.location-map-attrib { margin-left: auto; color: var(--muted, #6e6e73); text-decoration: none; }
+.location-map-attrib:hover { text-decoration: underline; }
+
+/* The location *picker* styles (LocationPicker.jsx) live in
+   packages/shared/styles/components.css instead, because the shared
+   ProfileDetails page that renders it is mounted by three portals. Only the
+   read-only display map (LocationMap.jsx) is renter-specific. */
 .car-detail-owner { margin-top: 24px; }
 .owner-card-head {
   display: flex;
