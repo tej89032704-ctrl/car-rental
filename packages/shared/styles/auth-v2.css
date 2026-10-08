@@ -49,6 +49,13 @@
    opens into; the owner keeps teal as the role tell. */
 .av2[data-role='rent'] { --acc: #ffb400; --acc2: #ff8a00; --rgb: 255, 180, 0; }
 .av2[data-role='list'] { --acc: #2ec4b6; --acc2: #1a8fd6; --rgb: 46, 196, 182; }
+/* Staff roles. Picked so each of the four portals reads at a glance and none
+   collides with a semantic colour already on this page: --red is the error
+   text (.av2-err) and green is the live dot, so neither is free for an
+   accent. Blue keeps ControlRoom calm; violet keeps AgentField distinct from
+   the owner's teal. All four clear 6:1 against .av2-go's dark label. */
+.av2[data-role='admin'] { --acc: #4d9fff; --acc2: #2f7fe0; --rgb: 77, 159, 255; }
+.av2[data-role='agent'] { --acc: #a78bfa; --acc2: #7c5cf5; --rgb: 167, 139, 250; }
 
 .av2 button, .av2 input { font: inherit; }
 .av2 button:focus-visible, .av2 a:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
@@ -173,6 +180,10 @@
 .av2-opt { display: flex; justify-content: flex-end; align-items: center; font-size: 13px; color: var(--mut); margin: 2px 0 18px; }
 .av2-link { color: var(--ink); font-weight: 700; text-decoration: none; background: linear-gradient(var(--acc), var(--acc)) 0 100% / 0 3px no-repeat; transition: background-size 0.3s; }
 .av2-link:hover { background-size: 100% 3px; }
+/* .av2-link is also used on a <button> — the 2FA step's "use a different
+   account" — and a button carries UA chrome (border, padding, font) that an
+   anchor does not. */
+button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-weight: 700; }
 
 /* ── fields with floating labels ─────────────────────────────────────── */
 .av2-f { position: relative; display: block; margin-bottom: 14px; }

@@ -25,6 +25,19 @@ import '../styles/auth-v2.css';
 /** Which API role each half of the role toggle maps to. */
 const API_ROLE = { rent: 'car_renter', list: 'car_owner' };
 
+/**
+ * Which endpoint authenticates each portal. The API keeps the three portals
+ * apart by URL rather than by the role it sends (`PORTAL_ROLES` in
+ * auth.service.ts rejects a role that does not belong to the portal), so
+ * posting admin credentials to /auth/login can never succeed — it answers
+ * 401 "Invalid credentials for this portal" no matter the password.
+ */
+const LOGIN_ENDPOINT = {
+  main: '/auth/login',
+  admin: '/auth/admin/login',
+  agent: '/auth/agent/login',
+};
+
 const COPY = {
   rent: {
     brandline: 'Renter portal',
@@ -66,6 +79,49 @@ const COPY = {
     badges: ['✓ You approve bookings', '✓ You set your price', '✓ Photos and details'],
     mq: ['Add photos', 'Set your price', 'Approve bookings', 'Hand over keys', 'Get paid'],
   },
+  /* Staff roles. Neither has a self-serve signup — accounts are provisioned —
+     so the toggle, the "create an account" path and the forgot-password link
+     are all omitted by the portal's Login page rather than faked here. */
+  admin: {
+    brandline: 'ControlRoom',
+    title: 'Platform operations',
+    sub: 'Approve KYC, verify registrations and release payouts.',
+    btn: 'Sign in',
+    up1t: 'Staff accounts are provisioned',
+    up1s: 'Ask a platform administrator to add you.',
+    up2t: 'Secure your account',
+    up2s: 'Choose a password of at least 8 characters.',
+    yh: 'Every decision is written to the audit log.',
+    gauge: 'Audited',
+    gaugeAt: 0.8,
+    stats: [
+      { k: 'kyc', n: 'KYC', s: 'reviewed before approval' },
+      { k: 'rc', n: 'RC', s: 'checked against VAHAN' },
+      { k: 'pay', n: 'Payouts', s: 'released after trips' },
+    ],
+    badges: ['✓ Audited actions', '✓ 2FA enforced', '✓ Role-scoped access'],
+    mq: ['KYC queue', 'Car verification', 'Payouts', 'Disputes', 'Audit log'],
+  },
+  agent: {
+    brandline: 'AgentField',
+    title: 'Welcome back, agent',
+    sub: 'Sign in to work your assigned KYC and handover queue.',
+    btn: 'Sign in',
+    up1t: 'Field accounts are provisioned',
+    up1s: 'Ask a platform administrator to add you.',
+    up2t: 'Secure your account',
+    up2s: 'Choose a password of at least 8 characters.',
+    yh: 'Documents captured on site, reviewed the same day.',
+    gauge: 'On site',
+    gaugeAt: 0.55,
+    stats: [
+      { k: 'kyc', n: 'KYC', s: 'collected on site' },
+      { k: 'doc', n: 'Docs', s: 'photographed and matched' },
+      { k: 'ho', n: 'Handover', s: 'keys signed over' },
+    ],
+    badges: ['✓ Assigned queue', '✓ Photo evidence', '✓ Same-day review'],
+    mq: ['KYC pickup', 'Document check', 'Selfie match', 'Key handover', 'Photo evidence'],
+  },
 };
 
 /** Design placeholder, used only if the fleet request fails. */
@@ -101,6 +157,8 @@ export default function AuthPage({
   forgotHref = null,
   termsHref = '/terms',
   home = '/',
+  /** 'main' for renter/owner; 'admin' and 'agent' each have their own endpoint. */
+  portal = 'main',
 } = {}) {
   const nav = useNavigate();
   const rootRef = useRef(null);
@@ -109,6 +167,8 @@ export default function AuthPage({
   const upRef = useRef(null);
 
   const locked = roles.length < 2;
+  /** Staff portals have no self-serve signup, so its whole path stays hidden. */
+  const staff = portal !== 'main';
   const [role, setRole] = useState(defaultRole);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -121,6 +181,10 @@ export default function AuthPage({
   const [busy, setBusy] = useState('');
   /* Live fleet read from /cars/search; null until the request settles. */
   const [fleet, setFleet] = useState(null);
+  /* Admin only: set once credentials pass, cleared when the code is verified
+     or the user goes back to the email/password form. */
+  const [twofaToken, setTwofaToken] = useState(null);
+  const [code, setCode] = useState('');
 
   const copy = COPY[role];
   const reduced =
@@ -287,9 +351,40 @@ export default function AuthPage({
     if (!password) return bad(inRef.current, 'Enter your password.');
     setBusy('in');
     try {
-      const data = await api('/auth/login', { method: 'POST', body: { email: email.trim(), password } });
+      const data = await api(LOGIN_ENDPOINT[portal] || LOGIN_ENDPOINT.main, {
+        method: 'POST',
+        body: { email: email.trim(), password },
+      });
+      // The admin endpoint answers with a 2FA challenge instead of tokens;
+      // verifyCode() below trades it for a real session.
+      if (data.requires_2fa) {
+        setTwofaToken(data.twofa_token);
+        setCode('');
+        setBusy('');
+        return;
+      }
       setSession(data);
       nav(home, { state: { role: data.user?.role || API_ROLE[role] } });
+    } catch (e2) {
+      setBusy('');
+      bad(inRef.current, e2.message);
+    }
+  }
+
+  /* ── admin 2FA: exchange the challenge for a real session ───────────── */
+  async function verifyCode(e) {
+    e.preventDefault();
+    if (busy) return;
+    setErr('');
+    if (!/^\d{6}$/.test(code)) return bad(inRef.current, 'Enter the 6-digit code.');
+    setBusy('in');
+    try {
+      const data = await api('/auth/admin/login/verify', {
+        method: 'POST',
+        body: { twofa_token: twofaToken, code },
+      });
+      setSession(data);
+      nav(home, { state: { role: data.user?.role } });
     } catch (e2) {
       setBusy('');
       bad(inRef.current, e2.message);
@@ -362,7 +457,7 @@ export default function AuthPage({
 
       <header className="av2-top">
         <div className="av2-logo"><i /><span>{brand}</span></div>
-        {segBtn(view)}
+        {!staff && segBtn(view)}
       </header>
 
       {view === 'in' && (
@@ -383,6 +478,32 @@ export default function AuthPage({
               <p className="av2-sub">{copy.sub}</p>
               {roleSeg}
 
+              {twofaToken ? (
+                <form ref={inRef} onSubmit={verifyCode} noValidate>
+                  <label className="av2-f">
+                    <input
+                      type="text" inputMode="numeric" maxLength={6}
+                      value={code} placeholder=" " autoComplete="one-time-code"
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    />
+                    <span>6-digit code</span>
+                  </label>
+
+                  <p className="av2-err" role="alert">{busy === 'in' ? '' : err}</p>
+                  <button className={'av2-go' + (busy === 'in' ? ' busy' : '')} type="submit" disabled={!!busy}>
+                    <span className="t">{busy === 'in' ? 'Verifying…' : 'Verify code'}</span>
+                  </button>
+
+                  <div className="av2-opt">
+                    <button
+                      type="button" className="av2-link"
+                      onClick={() => { setTwofaToken(null); setCode(''); setErr(''); }}
+                    >
+                      Use a different account
+                    </button>
+                  </div>
+                </form>
+              ) : (
               <form ref={inRef} onSubmit={signIn} noValidate>
                 <label className="av2-f">
                   <input
@@ -419,10 +540,13 @@ export default function AuthPage({
                   <span className="t">{busy === 'in' ? 'Signing in…' : copy.btn}</span>
                 </button>
               </form>
+              )}
 
-              <p className="av2-sub" style={{ margin: '18px 0 0', fontSize: 14 }}>
-                New here? <Link className="av2-link" to="/signup">Create an account</Link>
-              </p>
+              {!staff && (
+                <p className="av2-sub" style={{ margin: '18px 0 0', fontSize: 14 }}>
+                  New here? <Link className="av2-link" to="/signup">Create an account</Link>
+                </p>
+              )}
             </div>
           </div>
 
