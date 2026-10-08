@@ -1,0 +1,334 @@
+/* ============================================================================
+   CAR-ENT base layer — "PIT LANE" (motorsport telemetry)
+   ----------------------------------------------------------------------------
+   Imported LAST by every main.jsx, so it is the authority over each portal's
+   own styles.css for the selectors it declares. tokens.css sets the palette;
+   this file sets how the interface *reads*.
+
+   Three moves define the look:
+     1. Instrument-black chrome with a signal-amber wordmark and active states.
+     2. JetBrains Mono, uppercase and tracked, on every label and figure —
+        telemetry voice instead of "startup UI" voice.
+     3. Square-ish geometry (4px) and hairline rules instead of pill-soft cards.
+   ========================================================================== */
+
+/* ── Type ────────────────────────────────────────────────────────────── */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+/* The telemetry micro-label: mono, uppercase, tracked. Used on table heads,
+   stat captions and field labels. */
+.t th,
+label.f,
+.stat-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+}
+
+/* ── Instrument chrome header (public browse) ───────────────────────── */
+.guest-topbar {
+  background: color-mix(in srgb, var(--chrome) 96%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--chrome-line);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+.guest-brand { color: var(--chrome-ink); }
+.brand-mark {
+  background: linear-gradient(135deg, var(--acc), var(--acc-2));
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgba(255, 138, 0, 0.45);
+}
+.guest-topbar .btn.sec {
+  --btn-bg: transparent;
+  --btn-fg: var(--chrome-ink);
+  --btn-edge: rgba(255, 255, 255, 0.24);
+}
+.guest-topbar .btn.sec:hover {
+  --btn-bg: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+.guest-topbar .btn.sm { padding: 9px 14px; }
+
+/* ── Cards: hairline panels, not pillows ────────────────────────────── */
+.card {
+  border-radius: var(--radius);
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Primary action: signal amber ───────────────────────────────────── */
+.btn {
+  --btn-bg: var(--acc);
+  --btn-fg: var(--acc-ink);
+  --btn-edge: transparent;
+  --btn-rest: 0 1px 2px rgba(255, 138, 0, 0.35);
+  border-radius: var(--radius);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.btn:hover {
+  --btn-bg: var(--acc-2);
+  box-shadow: 0 6px 18px rgba(255, 138, 0, 0.35);
+}
+.btn:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.btn.sec { --btn-bg: var(--card); --btn-fg: var(--ink); --btn-edge: var(--line); }
+.btn.sec:hover { --btn-bg: var(--bg-soft); box-shadow: var(--shadow-md); }
+.btn.ok { --btn-bg: var(--ok); --btn-fg: #fff; }
+.btn.ok:hover { --btn-bg: #178346; box-shadow: 0 6px 18px rgba(31, 157, 85, 0.3); }
+.btn.bad { --btn-bg: var(--bad); --btn-fg: #fff; }
+.btn.bad:hover { --btn-bg: var(--bad-hover); }
+.btn.warn { --btn-bg: var(--chrome-3); --btn-fg: var(--chrome-ink); }
+.btn.warn:hover { --btn-bg: var(--chrome-2); }
+.btn.sm { border-radius: var(--radius); }
+
+/* ── Forms: square, mono-labelled, amber focus ──────────────────────── */
+label.f {
+  font-size: var(--label);
+  font-weight: 500;
+  color: var(--muted);
+  margin: 12px 0 6px;
+}
+input.f, select.f, textarea.f {
+  background: var(--fld);
+  border-radius: var(--radius);
+  border-color: var(--line);
+}
+input.f:hover, select.f:hover, textarea.f:hover { border-color: var(--muted); }
+input.f:focus, select.f:focus, textarea.f:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-soft);
+  background: var(--card);
+}
+input.f::placeholder, textarea.f::placeholder {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Tables: telemetry readout ──────────────────────────────────────── */
+.t th {
+  font-size: var(--label);
+  font-weight: 500;
+  color: var(--chrome-mut);
+  background: var(--chrome);
+  border-bottom: 1px solid var(--chrome-line);
+  padding: 11px 12px;
+}
+.t td {
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--line-soft);
+}
+.t tbody tr:hover td { background: var(--acc-soft); }
+
+/* ── Figures: monospaced so columns line up ─────────────────────────── */
+.price {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--acc-2);
+}
+
+/* ── Dashboard readouts ─────────────────────────────────────────────── */
+/* Portals render .stat-grid > .stat-card > (.stat-value, .stat-label).
+   The bare `.stat` class they still declare in their own styles.css is
+   never rendered, so the readouts are retargeted to what the DOM has. */
+.stat-grid { gap: 14px; }
+.stat-card {
+  border-radius: var(--radius);
+  border-color: var(--line);
+}
+.stat-card::before {
+  content: '';
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--acc);
+  margin-bottom: 12px;
+}
+.stat-card .stat-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+/* 0,2,0 to out-specify shared/components.css's `.stat-card .stat-label` */
+.stat-card .stat-label { font-size: 11px; font-weight: 500; color: var(--muted); }
+
+/* ── Tabs ───────────────────────────────────────────────────────────── */
+.tabs { gap: 8px; }
+.tab {
+  border-radius: var(--radius);
+  font-weight: 600;
+  background: var(--card);
+}
+.tab:hover { border-color: var(--acc); color: var(--acc-2); }
+.tab.on {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: var(--acc-ink);
+  box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
+}
+
+/* ── Hero: ruled panel with an amber trace, not a soft blob ─────────── */
+.hero {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--acc);
+  background:
+    radial-gradient(700px 300px at 92% -20%, var(--acc-soft), transparent 62%),
+    linear-gradient(135deg, var(--card) 0%, var(--bg-soft) 100%);
+}
+.hero::after {
+  border-radius: 50%;
+  border: 30px solid var(--acc-soft);
+}
+.hero h1 { font-weight: 800; letter-spacing: -0.04em; }
+.hero-badges span {
+  background: var(--card);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hero-badges b { color: var(--acc-2); }
+
+/* ── Status pills: square, mono ─────────────────────────────────────── */
+.pill {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+}
+.pill.confirmed, .pill.approved, .pill.active, .pill.ongoing,
+.pill.completed, .pill.paid { background: var(--ok); color: #fff; border-color: var(--ok); }
+.pill.cancelled, .pill.rejected, .pill.banned, .pill.suspended {
+  background: transparent; color: var(--bad); border-color: var(--bad);
+}
+.pill.pending, .pill.pending_review, .pill.pending_otp, .pill.requested {
+  background: var(--acc-soft); color: var(--acc-2); border-color: var(--acc-line);
+}
+
+/* ── Alerts ─────────────────────────────────────────────────────────── */
+.alert { border-radius: var(--radius); font-size: 14px; }
+.alert.err {
+  background: color-mix(in srgb, var(--bad) 8%, var(--card));
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 35%, transparent);
+  border-left: 3px solid var(--bad);
+}
+.alert.info, .alert.good {
+  background: var(--bg-soft);
+  color: var(--ink);
+  border-color: var(--line);
+  border-left: 3px solid var(--acc);
+}
+/* `.alert warn` was never given a surface by any portal — admin's pricing
+   warning rendered as bare text on the page background. */
+.alert.warn {
+  background: var(--acc-soft);
+  color: var(--acc-2);
+  border-color: var(--acc-line);
+  border-left: 3px solid var(--acc);
+}
+
+/* ── Car grid: tighter geometry, amber hover trace ──────────────────── */
+/* Public browse card (renter Search) */
+.car {
+  border-radius: var(--radius);
+  border-color: var(--line);
+}
+.car:hover {
+  transform: translateY(-4px);
+  border-color: var(--acc-line);
+  box-shadow: 0 16px 34px -20px rgba(11, 12, 14, 0.55);
+}
+.ph .tag {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--track);
+}
+.px {
+  background: var(--acc-soft);
+  color: var(--acc-2);
+  border: 1px solid var(--acc-line);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+/* the rate, in the closing row of the card body */
+.ci .r:last-child > b {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--acc-2);
+}
+.sk { border-radius: var(--radius); }
+
+/* Owner/admin management card */
+.car-card {
+  border-radius: var(--radius);
+  border-color: var(--line);
+}
+.car-card:hover {
+  border-color: var(--acc-line);
+  box-shadow: 0 10px 28px rgba(11, 12, 14, 0.14), 0 0 0 1px var(--acc-line);
+}
+.car-title { font-weight: 700; }
+
+/* ── Sidebar: amber active trace ────────────────────────────────────── */
+/* All four portals render `.sidebar dark` (the `.light` variants in each
+   portal's sidebar.css are never used). Renter's App.jsx emits `active`
+   while its own css only ever styled `.on`, so the current page never lit
+   up; accepting both closes that gap and gives every portal one treatment.
+   The `.sidebar.dark ...` repeat exists only to out-specify owner/admin/
+   agent's own 0,4,0 `::before` rule. */
+.sidebar-link.active,
+.sidebar-link.on {
+  background: var(--acc-soft);
+  color: var(--acc);
+}
+.sidebar-link.active::before,
+.sidebar-link.on::before {
+  background: var(--acc);
+  height: 22px;
+}
+.sidebar.dark .sidebar-link.active::before {
+  background: var(--acc);
+}
+.sidebar-link.active svg,
+.sidebar-link.on svg { opacity: 1; }
+.sidebar-link em {
+  background: var(--acc);
+  color: var(--acc-ink);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+/* ── Global focus: never invisible, always amber ────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -3,12 +3,11 @@
    Matches the design from "CAR-ENT – Renter Dashboard.html"
    ══════════════════════════════════════════════════════════════════════ */
 
- :root{
-   --bg:#f5f5f6;--card:#fff;--ink:#111214;--mut:#6b6f76;--line:#e6e7ea;--fld:#f1f2f4;--side:#16171a;--ok:#1f9d55;--red:#e5322d;--amb:#f5b301;
-   box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
- }
- @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d0e10;--card:#16171b;--ink:#f2f3f5;--mut:#9aa0aa;--line:#262830;--fld:#1d1f24;--side:#09090b}}
- :root[data-theme="dark"]{--bg:#0d0e10;--card:#16171b;--ink:#f2f3f5;--mut:#9aa0aa;--line:#262830;--fld:#1d1f24;--side:#09090b}
+html{
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)
+}
+/* Palette (including data-theme="dark" handling) lives in
+   packages/shared/styles/tokens.css, imported first by main.jsx. */
 
 /* ── Layout ── */
 .sidebar-layout {

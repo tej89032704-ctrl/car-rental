@@ -36,7 +36,7 @@
   padding-top: calc(90px + env(safe-area-inset-top, 0px));
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Bricolage Grotesque', system-ui, sans-serif;
+  font-family: var(--font);
   transition: background 0.7s, color 0.5s;
 }
 .av2 *, .av2 *::before, .av2 *::after { box-sizing: inherit; }
@@ -45,7 +45,9 @@
 @media (prefers-color-scheme: dark) {
   .av2[data-view='up'] { --bg: #0b0c10; --ink: #f2f3f5; --mut: #9aa0aa; --card: #15161c; --line: #2a2c35; --fld: #1c1e25; }
 }
-.av2[data-role='rent'] { --acc: #f5c518; --acc2: #ffa800; --rgb: 245, 197, 24; }
+/* Renter takes the platform's signal amber so login matches the app it
+   opens into; the owner keeps teal as the role tell. */
+.av2[data-role='rent'] { --acc: #ffb400; --acc2: #ff8a00; --rgb: 255, 180, 0; }
 .av2[data-role='list'] { --acc: #2ec4b6; --acc2: #1a8fd6; --rgb: 46, 196, 182; }
 
 .av2 button, .av2 input { font: inherit; }

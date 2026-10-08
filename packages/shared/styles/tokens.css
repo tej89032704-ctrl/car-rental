@@ -1,0 +1,129 @@
+/* ============================================================================
+   CAR-ENT design tokens — "PIT LANE" (motorsport telemetry)
+   ----------------------------------------------------------------------------
+   Single source of truth for all four portals. Imported FIRST in every
+   main.jsx, so anything a portal declares afterwards is an intentional
+   override rather than accidental drift.
+
+   Palette thesis: instrument-black chrome + paper content + ONE hot accent.
+   The old system was pure grayscale (its --gold/--coral aliases pointed at
+   grays), which is why nothing felt branded. Signal amber fixes that.
+   ========================================================================== */
+
+:root {
+  /* ── Type ─────────────────────────────────────────────────────────────
+     Archivo: industrial grotesque, wide apertures, reads as engineering
+     rather than "startup UI". JetBrains Mono carries every label, figure
+     and code-like fragment — the telemetry voice of the interface.        */
+  --font: 'Archivo', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Archivo', 'Geist', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ── Accent: signal amber (the one hot colour) ──────────────────────── */
+  --acc: #ffb400;
+  --acc-2: #ff8a00;
+  --acc-ink: #1a1204;            /* text placed ON amber */
+  --acc-soft: rgba(255, 180, 0, 0.14);
+  --acc-line: rgba(255, 180, 0, 0.45);
+
+  /* ── Secondary signal (owner portal chrome only, used sparingly) ────── */
+  --cyan: #2ec4b6;
+
+  /* ── Semantic ──────────────────────────────────────────────────────── */
+  --red: #e5322d;
+  --bad: #d70015;
+  --bad-hover: #b00011;
+  --ok: #1f9d55;
+  --ok-bright: #3ddc84;
+  --amb: #f5b301;
+  --warn: #b88300;
+  --star: #ffb300;
+  --heart: #ff5a5f;
+
+  /* ── Neutrals: paper content ───────────────────────────────────────── */
+  --bg: #f2f3f5;
+  --bg-soft: #e9eaee;
+  --card: #ffffff;
+  --ink: #0b0c0e;
+  --ink-2: #16181c;
+  --muted: #6b7078;
+  --mut: #6b7078;               /* sidebar alias, kept for existing rules */
+  --fld: #eceef1;               /* input fill */
+  --line: #dcdee2;
+  --line-soft: #e9eaee;
+
+  /* ── Chrome: instrument-black surfaces (sidebar, topbar, table head) ── */
+  --chrome: #101216;
+  --chrome-2: #16181d;
+  --chrome-3: #1d2026;
+  --chrome-line: rgba(255, 255, 255, 0.08);
+  --chrome-ink: #f2f3f5;
+  --chrome-mut: #8a9099;
+  --side: #101216;              /* sidebar surface alias */
+
+  /* ── Brand aliases (legacy names still referenced by portal CSS) ───── */
+  --brand: #0b0c0e;
+  --brand-2: #16181c;
+  --brand-bright: #ffb400;
+  --brand-soft: rgba(11, 12, 14, 0.05);
+  --navy: #16181c;
+  --gold: #ffb400;              /* was a dead gray alias — now the accent */
+  --gold-2: #ff8a00;
+  --coral: #e5322d;
+
+  /* ── Shape ─────────────────────────────────────────────────────────── */
+  --radius: 4px;                /* instrument panels are square-ish */
+  --radius-lg: 8px;
+
+  /* ── Elevation: low, crisp, no pillow shadows ──────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(11, 12, 14, 0.06);
+  --shadow-md: 0 2px 8px rgba(11, 12, 14, 0.08), 0 1px 2px rgba(11, 12, 14, 0.05);
+  --shadow-lg: 0 12px 32px rgba(11, 12, 14, 0.12), 0 2px 8px rgba(11, 12, 14, 0.06);
+
+  /* ── Motion: short, mechanical ─────────────────────────────────────── */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 120ms;
+  --t: 180ms;
+
+  /* ── Telemetry micro-label: the differentiation anchor ─────────────── */
+  --label: 10px;
+  --track: 0.14em;
+}
+
+/* Dark content surfaces. Matches the sidebar's original semantics: the system
+   preference wins unless a portal forces light, and an explicit
+   data-theme="dark" always wins. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d0e10;
+    --bg-soft: #131417;
+    --card: #16181d;
+    --ink: #f2f3f5;
+    --ink-2: #e4e6ea;
+    --muted: #9aa0aa;
+    --mut: #9aa0aa;
+    --fld: #1d1f24;
+    --line: #262830;
+    --line-soft: #1f2127;
+    --side: #09090b;
+    --brand: #f2f3f5;
+    --brand-2: #e4e6ea;
+    --brand-soft: rgba(255, 255, 255, 0.06);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0d0e10;
+  --bg-soft: #131417;
+  --card: #16181d;
+  --ink: #f2f3f5;
+  --ink-2: #e4e6ea;
+  --muted: #9aa0aa;
+  --mut: #9aa0aa;
+  --fld: #1d1f24;
+  --line: #262830;
+  --line-soft: #1f2127;
+  --brand: #f2f3f5;
+  --brand-2: #e4e6ea;
+  --brand-soft: rgba(255, 255, 255, 0.06);
+}

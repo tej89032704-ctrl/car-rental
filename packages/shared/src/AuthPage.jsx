@@ -119,6 +119,8 @@ export default function AuthPage({
   const [step, setStep] = useState(1);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState('');
+  /* Live fleet read from /cars/search; null until the request settles. */
+  const [fleet, setFleet] = useState(null);
 
   const copy = COPY[role];
   const reduced =
