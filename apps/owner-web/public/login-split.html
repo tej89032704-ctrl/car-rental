@@ -408,13 +408,18 @@ canvas.mote{z-index:1}
           form.classList.remove('shake');void form.offsetWidth;form.classList.add('shake');
           return;
         }
-        try{
-          localStorage.setItem('access_token',x.d.access_token||'');
-          localStorage.setItem('refresh_token',x.d.refresh_token||'');
-          localStorage.setItem('user',JSON.stringify(x.d.user||{}));
-        }catch(_){}
+        var role=x.d.user&&x.d.user.role, here=String(location.port||''), there=PORTS[role]||here;
+        if(there!==here&&(here==='5173'||here==='5174')&&(there==='5173'||there==='5174')){
+          /* cross-portal: don't dirty this origin's localStorage; carry session in URL */
+        }else{
+          try{
+            localStorage.setItem('access_token',x.d.access_token||'');
+            localStorage.setItem('refresh_token',x.d.refresh_token||'');
+            localStorage.setItem('user',JSON.stringify(x.d.user||{}));
+          }catch(_){}
+        }
         cta.classList.remove('loading');cta.classList.add('done');label.textContent='Welcome';
-        setTimeout(function(){goHome(x.d.user&&x.d.user.role)},700);
+        setTimeout(function(){goHome(role)},700);
       })
       .catch(function(){
         cta.classList.remove('loading');label.textContent=orig;
