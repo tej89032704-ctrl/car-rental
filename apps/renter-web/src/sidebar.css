@@ -21,9 +21,12 @@ html{
 }
 .sidebar {
   min-height: 100vh;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  align-self: start;
   display: flex;
   flex-direction: column;
-  position: relative;
   z-index: 100;
   overflow: hidden;
 }
@@ -80,6 +83,18 @@ html{
   color: var(--mut);
   font-weight: 700;
 }
+/* App.jsx renders h2/span (not b/small) — dark surface needs light ink. */
+.sidebar.dark .sidebar-logo-text h2 {
+  margin: 0;
+  color: #fff;
+}
+.sidebar.dark .sidebar-logo-text span {
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.45);
+  font-weight: 700;
+  text-transform: uppercase;
+}
 
 /* ── Toggle button ── */
 .sidebar-toggle {
@@ -107,11 +122,16 @@ html{
 .sidebar-layout.sidebar-collapsed .sidebar-toggle {
   transform: rotate(180deg);
 }
+.sidebar-toggle svg {
+  width: 14px;
+  height: 14px;
+}
 
 /* ── Navigation ── */
 .sidebar-nav {
   flex: 1;
   padding: 14px 10px;
+  overflow-y: auto;
 }
 .sidebar-nav::-webkit-scrollbar {
   width: 3px;
@@ -147,8 +167,14 @@ html{
   transition: background .25s, color .25s, transform .25s;
 }
 .sidebar-link svg {
+  width: 20px;
+  height: 20px;
   flex: none;
+  opacity: .8;
   transition: transform .3s;
+}
+.sidebar-link.active svg {
+  opacity: 1;
 }
 .sidebar-link:hover {
   background: #222328;
@@ -228,6 +254,33 @@ html{
   color: var(--mut);
   font-size: 11px;
 }
+/* App.jsx renders .sidebar-avatar + .sidebar-user-info (.name/.role). */
+.sidebar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111;
+  background: #fff;
+}
+.sidebar-user-info {
+  overflow: hidden;
+  flex: 1;
+}
+.sidebar.dark .sidebar-user-info .name {
+  color: #fff;
+}
+.sidebar.dark .sidebar-user-info .role {
+  color: rgba(255,255,255,.45);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
 
 /* ── Logout button ── */
 .sidebar-logout {
@@ -240,6 +293,24 @@ html{
 .sidebar-logout:hover {
   color: #fff;
   transform: translateX(3px);
+}
+.sidebar-logout svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Mobile sidebar overlay (must be out of the grid flow, like the
+      other three portals, or it steals the first grid cell) ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+@media (max-width: 860px) {
+  .sidebar-overlay.visible { display: block; }
 }
 
 /* ── Responsive ── */
@@ -316,6 +387,11 @@ html{
 }
 
 /* ── Car card (from attached HTML) ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 22px;
+}
 .car {
   background: var(--card);
   border: 1px solid var(--line);
