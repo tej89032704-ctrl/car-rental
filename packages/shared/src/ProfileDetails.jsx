@@ -186,7 +186,7 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
 
         <p style={{ marginTop: 16, textAlign: 'center' }}>
           <button type="button" onClick={skip}
-            style={{ background: 'none', border: 'none', color: '#1d1d1f', fontWeight: 700,
+            style={{ background: 'none', border: 'none', color: 'var(--acc-text)', fontWeight: 700,
                      fontSize: 13, cursor: 'pointer', padding: '8px 16px', borderRadius: 8 }}>
             Skip for now
           </button>

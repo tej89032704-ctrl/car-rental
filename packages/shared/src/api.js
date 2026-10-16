@@ -100,6 +100,16 @@ export async function api(path, { method = 'GET', body, form } = {}) {
   return data;
 }
 
+export async function documentBlob(path) {
+  if (!/^\/uploads\/[0-9a-f-]{36}\.[a-zA-Z0-9]+$/.test(path)) throw new Error('Invalid document path');
+  let res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (res.status === 401 && refreshToken && await refreshSession()) {
+    res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${accessToken}` } });
+  }
+  if (!res.ok) throw new Error('Document unavailable or access denied');
+  return await res.blob();
+}
+
 export function uploadForm(fields) {
   const fd = new FormData();
   Object.entries(fields).forEach(([k, v]) => fd.append(k, v));

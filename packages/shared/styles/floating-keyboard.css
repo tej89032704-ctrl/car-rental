@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   Floating keyboard — white/black Apple monochrome
+   Floating keyboard — instrument glass over the shared token palette
    Mounted at each portal root (see FloatingKeyboard.jsx)
    ═══════════════════════════════════════════════════════ */
 
@@ -16,12 +16,12 @@
   width: min(420px, calc(100vw - 44px));
   padding: 5px 8px 10px;
   border-radius: 20px;
-  background: rgba(245, 245, 247, 0.86);
-  -webkit-backdrop-filter: blur(30px) saturate(180%);
-  backdrop-filter: blur(30px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur) saturate(180%);
+  backdrop-filter: var(--glass-blur) saturate(180%);
+  border: 1px solid var(--glass-line);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 1px 0 var(--inset-hi),
     0 2px 6px rgba(0, 0, 0, 0.10),
     0 18px 50px rgba(0, 0, 0, 0.22);
   user-select: none;
@@ -54,7 +54,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6e6e73;
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -67,7 +67,7 @@
   min-width: 28px;
   height: 4px;
   border-radius: 999px;
-  background: #d2d2d7;
+  background: var(--edge-hi);
 }
 
 .fk-hide {
@@ -78,15 +78,15 @@
   border: none;
   border-radius: 50%;
   background: transparent;
-  color: #6e6e73;
+  color: var(--muted);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
 }
-.fk-hide:hover { background: rgba(0, 0, 0, 0.06); color: #1d1d1f; }
-.fk-hide:active { background: #1d1d1f; color: #ffffff; }
+.fk-hide:hover { background: var(--acc-soft); color: var(--acc-text); }
+.fk-hide:active { background: var(--acc-grad); color: var(--acc-ink); }
 
 /* ── rows ── */
 .fk-row {
@@ -103,11 +103,11 @@
   min-width: 0;
   height: 34px;
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--edge);
   border-radius: 9px;
-  background: #ffffff;
-  color: #1d1d1f;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--font-mono);
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
@@ -118,13 +118,13 @@
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: background 0.07s ease, color 0.07s ease, border-color 0.07s ease, transform 0.07s ease;
 }
-.fk-key:hover { background: #f5f5f7; }
+.fk-key:hover { background: var(--bg-soft); }
 
 .fk-key:active,
 .fk-key.fk-down {
-  background: #1d1d1f;
-  border-color: #1d1d1f;
-  color: #ffffff;
+  background: var(--acc-grad);
+  border-color: transparent;
+  color: var(--acc-ink);
   transform: translateY(1px);
   outline: none;
 }
@@ -134,19 +134,19 @@
   flex: 0 0 auto;
   min-width: 40px;
   padding: 0 10px;
-  background: #e8e8ed;
-  border-color: rgba(0, 0, 0, 0.04);
+  background: var(--bg-soft);
+  border-color: var(--edge);
   box-shadow: none;
   font-size: 13px;
   font-weight: 600;
 }
-.fk-mod:hover { background: #dcdce0; }
-.fk-mod.fk-down { background: #1d1d1f; border-color: #1d1d1f; color: #ffffff; }
+.fk-mod:hover { background: var(--line); }
+.fk-mod.fk-down { background: var(--acc-grad); border-color: transparent; color: var(--acc-ink); }
 
 .fk-mod.fk-on {                 /* shift latched */
-  background: #1d1d1f;
-  border-color: #1d1d1f;
-  color: #ffffff;
+  background: var(--acc-grad);
+  border-color: transparent;
+  color: var(--acc-ink);
 }
 
 .fk-space {
@@ -154,22 +154,22 @@
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: #6e6e73;
+  color: var(--muted);
 }
-.fk-space:hover { color: #1d1d1f; background: #ffffff; }
+.fk-space:hover { color: var(--acc-text); background: var(--card); }
 
 .fk-return {
   flex: 0 0 auto;
   min-width: 64px;
   padding: 0 12px;
-  background: #1d1d1f;
-  border-color: #1d1d1f;
-  color: #ffffff;
+  background: var(--acc-grad);
+  border-color: transparent;
+  color: var(--acc-ink);
   font-size: 13px;
   font-weight: 600;
 }
-.fk-return:hover { background: #000000; }
-.fk-return:active, .fk-return.fk-down { background: #000000; }
+.fk-return:hover { filter: brightness(1.06); }
+.fk-return:active, .fk-return.fk-down { filter: brightness(1.06); }
 
 .fk-num { font-size: 18px; }
 

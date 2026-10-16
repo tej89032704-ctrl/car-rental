@@ -1,3 +1,4 @@
+import PrivateDocument from './PrivateDocument.jsx';
 import { useEffect, useState } from 'react';
 import { api, currentUser } from './api.js';
 import { TYPE_LABEL, CHECK_LABEL, CHECK_TEXT, checkPill, VerifyPill } from './KycStatus.jsx';
@@ -287,11 +288,7 @@ export default function KycVerify({ variant = 'renter' }) {
                     <td>
                       {TYPE_LABEL[d.doc_type] || d.doc_type}
                       {d.file_url ? (
-                        <img
-                          src={d.file_url}
-                          alt={TYPE_LABEL[d.doc_type] || d.doc_type}
-                          style={{ display: 'block', width: 64, height: 64, objectFit: 'cover', borderRadius: 8, marginTop: 6, border: '1px solid var(--line)' }}
-                        />
+                        <PrivateDocument url={d.file_url} thumbnail />
                       ) : null}
                     </td>
                     <td>{d.doc_number || '—'}</td>

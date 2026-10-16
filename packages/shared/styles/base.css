@@ -5,11 +5,14 @@
    own styles.css for the selectors it declares. tokens.css sets the palette;
    this file sets how the interface *reads*.
 
-   Three moves define the look:
-     1. Instrument-black chrome with a signal-amber wordmark and active states.
-     2. JetBrains Mono, uppercase and tracked, on every label and figure —
-        telemetry voice instead of "startup UI" voice.
-     3. Square-ish geometry (4px) and hairline rules instead of pill-soft cards.
+   Five moves define the look:
+     1. Glass instrument chrome — the topbar sits over content, blurred.
+     2. Surfaces carry depth (elevation ladder + inset highlight), so cards
+        are panels rather than boxes with a border drawn around them.
+     3. One gradient accent for the primary action; everything else stays
+        flat so the gradient keeps its meaning.
+     4. JetBrains Mono, uppercase and tracked, on every label and figure.
+     5. Softer geometry (12–24px) and hairlines instead of wireframe corners.
    ========================================================================== */
 
 /* ── Type ────────────────────────────────────────────────────────────── */
@@ -18,6 +21,8 @@ h1, h2, h3 {
   font-weight: 700;
   letter-spacing: -0.035em;
 }
+h1 { font-size: 1.85rem; line-height: 1.15; }
+h2 { font-size: 1.3rem; line-height: 1.25; }
 
 /* The telemetry micro-label: mono, uppercase, tracked. Used on table heads,
    stat captions and field labels. */
@@ -29,19 +34,20 @@ label.f,
   letter-spacing: var(--track);
 }
 
-/* ── Instrument chrome header (public browse) ───────────────────────── */
+/* ── Instrument chrome header (public browse) — glass ─────────────────── */
 .guest-topbar {
-  background: color-mix(in srgb, var(--chrome) 96%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--chrome-line);
-  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset,
+              0 8px 24px -16px rgba(11, 12, 14, 0.4);
 }
 .guest-brand { color: var(--chrome-ink); }
 .brand-mark {
-  background: linear-gradient(135deg, var(--acc), var(--acc-2));
+  background: var(--acc-grad);
   border-radius: var(--radius);
-  box-shadow: 0 4px 14px rgba(255, 138, 0, 0.45);
+  box-shadow: 0 4px 14px -4px var(--acc-glow);
 }
 .guest-topbar .btn.sec {
   --btn-bg: transparent;
@@ -54,39 +60,60 @@ label.f,
 }
 .guest-topbar .btn.sm { padding: 9px 14px; }
 
-/* ── Cards: hairline panels, not pillows ────────────────────────────── */
+/* ── Cards: lit panels, not pillows ──────────────────────────────────── */
 .card {
-  border-radius: var(--radius);
-  border-color: var(--line);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--radius-lg);
+  border-color: var(--edge);
+  background: var(--card);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow var(--t) var(--ease), transform var(--t) var(--ease),
+              border-color var(--t) var(--ease);
+}
+.card:hover {
+  border-color: var(--edge-hi);
+  box-shadow: var(--shadow-lg);
 }
 
-/* ── Primary action: signal amber ───────────────────────────────────── */
+/* ── Primary action: signal amber gradient ───────────────────────────── */
 .btn {
-  --btn-bg: var(--acc);
+  --btn-bg: var(--acc-grad);
   --btn-fg: var(--acc-ink);
   --btn-edge: transparent;
-  --btn-rest: 0 1px 2px rgba(255, 138, 0, 0.35);
+  --btn-rest: var(--shadow-acc);
   border-radius: var(--radius);
   font-weight: 600;
   letter-spacing: -0.005em;
+  box-shadow: var(--shadow-acc);
 }
 .btn:hover {
-  --btn-bg: var(--acc-2);
-  box-shadow: 0 6px 18px rgba(255, 138, 0, 0.35);
+  --btn-bg: var(--acc-grad);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px -12px var(--acc-glow);
 }
+.btn:active { transform: translateY(0); }
 .btn:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
-.btn.sec { --btn-bg: var(--card); --btn-fg: var(--ink); --btn-edge: var(--line); }
-.btn.sec:hover { --btn-bg: var(--bg-soft); box-shadow: var(--shadow-md); }
-.btn.ok { --btn-bg: var(--ok); --btn-fg: #fff; }
-.btn.ok:hover { --btn-bg: #178346; box-shadow: 0 6px 18px rgba(31, 157, 85, 0.3); }
-.btn.bad { --btn-bg: var(--bad); --btn-fg: #fff; }
-.btn.bad:hover { --btn-bg: var(--bad-hover); }
+.btn.sec {
+  --btn-bg: var(--card);
+  --btn-fg: var(--ink);
+  --btn-edge: var(--edge-hi);
+  --btn-rest: var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
+}
+.btn.sec:hover {
+  --btn-bg: var(--bg-soft);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.btn.ok { --btn-bg: linear-gradient(118deg, var(--ok), #178346); --btn-fg: #fff; }
+.btn.ok:hover { box-shadow: 0 10px 24px -12px rgba(31, 157, 85, 0.7); }
+.btn.bad { --btn-bg: linear-gradient(118deg, var(--bad), var(--bad-hover)); --btn-fg: #fff; }
+.btn.bad:hover { box-shadow: 0 10px 24px -12px rgba(215, 0, 21, 0.6); }
 .btn.warn { --btn-bg: var(--chrome-3); --btn-fg: var(--chrome-ink); }
 .btn.warn:hover { --btn-bg: var(--chrome-2); }
-.btn.sm { border-radius: var(--radius); }
+.btn.sm { border-radius: 10px; padding: 7px 14px; font-size: 13px; }
 
-/* ── Forms: square, mono-labelled, amber focus ──────────────────────── */
+/* ── Forms: raised fields, mono labels, amber focus ───────────────────── */
 label.f {
   font-size: var(--label);
   font-weight: 500;
@@ -96,12 +123,15 @@ label.f {
 input.f, select.f, textarea.f {
   background: var(--fld);
   border-radius: var(--radius);
-  border-color: var(--line);
+  border-color: var(--edge);
+  box-shadow: inset 0 1px 2px rgba(11, 12, 14, 0.05);
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease),
+              background var(--t) var(--ease);
 }
-input.f:hover, select.f:hover, textarea.f:hover { border-color: var(--muted); }
+input.f:hover, select.f:hover, textarea.f:hover { border-color: var(--edge-hi); }
 input.f:focus, select.f:focus, textarea.f:focus {
   border-color: var(--acc);
-  box-shadow: 0 0 0 3px var(--acc-soft);
+  box-shadow: 0 0 0 4px var(--acc-soft);
   background: var(--card);
 }
 input.f::placeholder, textarea.f::placeholder {
@@ -110,7 +140,7 @@ input.f::placeholder, textarea.f::placeholder {
   letter-spacing: 0.02em;
 }
 
-/* ── Tables: telemetry readout ──────────────────────────────────────── */
+/* ── Tables: telemetry readout ───────────────────────────────────────── */
 .t th {
   font-size: var(--label);
   font-weight: 500;
@@ -123,66 +153,87 @@ input.f::placeholder, textarea.f::placeholder {
   font-variant-numeric: tabular-nums;
   border-bottom: 1px solid var(--line-soft);
 }
+.t tbody tr { transition: background var(--t-fast) var(--ease); }
 .t tbody tr:hover td { background: var(--acc-soft); }
 
-/* ── Figures: monospaced so columns line up ─────────────────────────── */
+/* ── Figures: monospaced so columns line up ──────────────────────────── */
 .price {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--acc-2);
+  color: var(--acc-text);
 }
 
-/* ── Dashboard readouts ─────────────────────────────────────────────── */
+/* ── Dashboard readouts ──────────────────────────────────────────────── */
 /* Portals render .stat-grid > .stat-card > (.stat-value, .stat-label).
    The bare `.stat` class they still declare in their own styles.css is
    never rendered, so the readouts are retargeted to what the DOM has. */
 .stat-grid { gap: 14px; }
 .stat-card {
-  border-radius: var(--radius);
-  border-color: var(--line);
+  border-radius: var(--radius-lg);
+  border-color: var(--edge);
+  background: linear-gradient(160deg, var(--card) 0%, var(--bg-soft) 140%);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--t) var(--ease-out), box-shadow var(--t) var(--ease),
+              border-color var(--t) var(--ease);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--acc-line);
+  box-shadow: var(--shadow-lg);
 }
 .stat-card::before {
   content: '';
   display: block;
   width: 22px;
-  height: 2px;
-  background: var(--acc);
+  height: 3px;
+  border-radius: 3px;
+  background: var(--acc-grad);
   margin-bottom: 12px;
+  box-shadow: 0 2px 8px -2px var(--acc-glow);
 }
 .stat-card .stat-value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 /* 0,2,0 to out-specify shared/components.css's `.stat-card .stat-label` */
 .stat-card .stat-label { font-size: 11px; font-weight: 500; color: var(--muted); }
 
-/* ── Tabs ───────────────────────────────────────────────────────────── */
+/* ── Tabs ────────────────────────────────────────────────────────────── */
 .tabs { gap: 8px; }
 .tab {
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   font-weight: 600;
   background: var(--card);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--t) var(--ease);
 }
-.tab:hover { border-color: var(--acc); color: var(--acc-2); }
+.tab:hover {
+  border-color: var(--acc-line);
+  color: var(--acc-text);
+  transform: translateY(-1px);
+}
 .tab.on {
-  background: var(--acc);
-  border-color: var(--acc);
+  background: var(--acc-grad);
+  border-color: transparent;
   color: var(--acc-ink);
-  box-shadow: 0 4px 12px rgba(255, 138, 0, 0.3);
+  box-shadow: 0 6px 18px -8px var(--acc-glow);
 }
 
-/* ── Hero: ruled panel with an amber trace, not a soft blob ─────────── */
+/* ── Hero: glowing ruled panel ───────────────────────────────────────── */
 .hero {
-  border-radius: var(--radius);
-  border: 1px solid var(--line);
-  border-top: 3px solid var(--acc);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--edge);
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, var(--acc), var(--acc-3)) 1;
   background:
     radial-gradient(700px 300px at 92% -20%, var(--acc-soft), transparent 62%),
     linear-gradient(135deg, var(--card) 0%, var(--bg-soft) 100%);
+  box-shadow: var(--shadow-lg);
 }
 .hero::after {
   border-radius: 50%;
@@ -191,33 +242,49 @@ input.f::placeholder, textarea.f::placeholder {
 .hero h1 { font-weight: 800; letter-spacing: -0.04em; }
 .hero-badges span {
   background: var(--card);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-sm);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.hero-badges b { color: var(--acc-2); }
+.hero-badges b { color: var(--acc-text); }
 
-/* ── Status pills: square, mono ─────────────────────────────────────── */
+/* ── Status pills ────────────────────────────────────────────────────── */
 .pill {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
+  border-width: 1px;
+  border-style: solid;
+  font-weight: 600;
+  /* The fallback is load-bearing. Statuses are rendered from data
+     (`pill ${row.status}`), and the set is open — draft, inactive, closed and
+     anything added later land here, so the default has to be a real neutral
+     chip rather than an unset background. */
+  background: var(--bg-soft);
+  color: var(--ink);
+  border-color: var(--edge-hi);
 }
 .pill.confirmed, .pill.approved, .pill.active, .pill.ongoing,
-.pill.completed, .pill.paid { background: var(--ok); color: #fff; border-color: var(--ok); }
+.pill.completed, .pill.paid, .pill.verified { background: var(--ok); color: #fff; border-color: var(--ok); }
 .pill.cancelled, .pill.rejected, .pill.banned, .pill.suspended {
   background: transparent; color: var(--bad); border-color: var(--bad);
 }
 .pill.pending, .pill.pending_review, .pill.pending_otp, .pill.requested {
-  background: var(--acc-soft); color: var(--acc-2); border-color: var(--acc-line);
+  background: var(--acc-soft); color: var(--acc-text); border-color: var(--acc-line);
 }
 
-/* ── Alerts ─────────────────────────────────────────────────────────── */
-.alert { border-radius: var(--radius); font-size: 14px; }
+/* ── Alerts ──────────────────────────────────────────────────────────── */
+.alert {
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  box-shadow: var(--shadow-sm);
+}
 .alert.err {
   background: color-mix(in srgb, var(--bad) 8%, var(--card));
   color: var(--bad);
@@ -227,43 +294,45 @@ input.f::placeholder, textarea.f::placeholder {
 .alert.info, .alert.good {
   background: var(--bg-soft);
   color: var(--ink);
-  border-color: var(--line);
+  border-color: var(--edge);
   border-left: 3px solid var(--acc);
 }
 /* `.alert warn` was never given a surface by any portal — admin's pricing
    warning rendered as bare text on the page background. */
 .alert.warn {
   background: var(--acc-soft);
-  color: var(--acc-2);
+  color: var(--acc-text);
   border-color: var(--acc-line);
   border-left: 3px solid var(--acc);
 }
 
-/* ── Car grid: tighter geometry, amber hover trace ──────────────────── */
+/* ── Car grid: lifted hover, amber trace ─────────────────────────────── */
 /* Public browse card (renter Search) */
 .car {
-  border-radius: var(--radius);
-  border-color: var(--line);
+  border-radius: var(--radius-lg);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-sm);
 }
 .car:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px);
   border-color: var(--acc-line);
-  box-shadow: 0 16px 34px -20px rgba(11, 12, 14, 0.55);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--acc-line);
 }
 .ph .tag {
-  background: var(--acc);
+  background: var(--acc-grad);
   color: var(--acc-ink);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: var(--track);
+  box-shadow: 0 4px 12px -6px var(--acc-glow);
 }
 .px {
   background: var(--acc-soft);
-  color: var(--acc-2);
+  color: var(--acc-text);
   border: 1px solid var(--acc-line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: var(--track);
@@ -275,23 +344,24 @@ input.f::placeholder, textarea.f::placeholder {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--acc-2);
+  color: var(--acc-text);
 }
-.sk { border-radius: var(--radius); }
+.sk { border-radius: var(--radius-lg); }
 
 /* Owner/admin management card */
 .car-card {
-  border-radius: var(--radius);
-  border-color: var(--line);
+  border-radius: var(--radius-lg);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-sm);
 }
 .car-card:hover {
   border-color: var(--acc-line);
-  box-shadow: 0 10px 28px rgba(11, 12, 14, 0.14), 0 0 0 1px var(--acc-line);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--acc-line);
 }
 .car-title { font-weight: 700; }
 
-/* ── Sidebar: amber active trace ────────────────────────────────────── */
-/* All four portals render `.sidebar dark` (the `.light` variants in each
+/* ── Sidebar: amber active trace ─────────────────────────────────────── */
+/* All portals render `.sidebar dark` (the `.light` variants in each
    portal's sidebar.css are never used). Renter's App.jsx emits `active`
    while its own css only ever styled `.on`, so the current page never lit
    up; accepting both closes that gap and gives every portal one treatment.
@@ -304,31 +374,34 @@ input.f::placeholder, textarea.f::placeholder {
 }
 .sidebar-link.active::before,
 .sidebar-link.on::before {
-  background: var(--acc);
-  height: 22px;
+  background: var(--acc-grad);
+  height: 24px;
+  border-radius: 0 3px 3px 0;
 }
 .sidebar.dark .sidebar-link.active::before {
-  background: var(--acc);
+  background: var(--acc-grad);
 }
 .sidebar-link.active svg,
 .sidebar-link.on svg { opacity: 1; }
 .sidebar-link em {
-  background: var(--acc);
+  background: var(--acc-grad);
   color: var(--acc-ink);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-weight: 600;
 }
 
-/* ── Global focus: never invisible, always amber ────────────────────── */
+/* ── Global focus: never invisible, always amber ─────────────────────── */
 :focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
+::selection { background: var(--acc-soft); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

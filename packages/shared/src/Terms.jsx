@@ -12,33 +12,35 @@ import { Link } from 'react-router-dom';
  */
 export default function Terms({ backTo, brand = 'CAR-ENT' }) {
   return (
-    <div className="tc-shell" style={{ minHeight: '100vh', background: 'var(--bg, #fff)', color: 'var(--ink, #1d1d1f)' }}>
+    <div className="tc-shell" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
       <style>{`/* scoped Terms styles */
-        .tc-shell { font-family: var(--font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif); }
-        .tc-top { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,.82); backdrop-filter: saturate(180%) blur(16px); border-bottom: 1px solid var(--line-soft, #e8e8ed); }
+        .tc-shell { font-family: var(--font); }
+        /* A bare alpha-white here would stay white under the dark ladder, so the
+           sticky bar takes the shared glass fill and blur instead. */
+        .tc-top { position: sticky; top: 0; z-index: 5; background: var(--glass); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); border-bottom: 1px solid var(--line-soft); }
         .tc-top-in { max-width: 780px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
         .tc-brand { font-weight: 800; letter-spacing: -.02em; font-size: 16px; }
-        .tc-brand b { color: var(--brand, #000); }
-        .tc-back { color: var(--muted, #6e6e73); font-size: 13px; text-decoration: none; font-weight: 600; }
-        .tc-back:hover { color: var(--ink, #1d1d1f); }
+        .tc-brand b { color: var(--acc-text); }
+        .tc-back { color: var(--muted); font-size: 13px; text-decoration: none; font-weight: 600; }
+        .tc-back:hover { color: var(--ink); }
         .tc-body { max-width: 780px; margin: 0 auto; padding: 44px 20px 72px; }
-        .tc-kicker { color: var(--muted, #6e6e73); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
-        .tc-h1 { font-family: var(--font-display, var(--font)); font-size: 40px; line-height: 1.08; letter-spacing: -.03em; margin: 10px 0 10px; }
-        .tc-updated { color: var(--muted, #6e6e73); font-size: 14px; margin-bottom: 26px; }
-        .tc-lead { font-size: 17px; line-height: 1.6; color: var(--ink, #1d1d1f); border-left: 3px solid var(--brand, #000); padding-left: 16px; margin: 0 0 36px; }
+        .tc-kicker { color: var(--muted); font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+        .tc-h1 { font-family: var(--font-display); font-size: 40px; line-height: 1.08; letter-spacing: -.03em; margin: 10px 0 10px; }
+        .tc-updated { color: var(--muted); font-size: 14px; margin-bottom: 26px; }
+        .tc-lead { font-size: 17px; line-height: 1.6; color: var(--ink); border-left: 3px solid var(--acc); padding-left: 16px; margin: 0 0 36px; }
         .tc-section { margin: 0 0 30px; }
         .tc-h2 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 10px; }
         .tc-h3 { font-size: 15px; font-weight: 700; margin: 18px 0 6px; }
-        .tc-p { font-size: 14.5px; line-height: 1.65; color: #3a3a3c; margin: 0 0 10px; }
-        .tc-p b { color: var(--ink, #1d1d1f); }
-        .tc-p .ph { color: var(--muted, #6e6e73); font-style: italic; }
+        .tc-p { font-size: 14.5px; line-height: 1.65; color: var(--ink-2); margin: 0 0 10px; }
+        .tc-p b { color: var(--ink); }
+        .tc-p .ph { color: var(--muted); font-style: italic; }
         .tc-ul { margin: 4px 0 12px; padding-left: 20px; }
-        .tc-ul li { font-size: 14.5px; line-height: 1.6; color: #3a3a3c; margin-bottom: 6px; }
+        .tc-ul li { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); margin-bottom: 6px; }
         .tc-table { width: 100%; border-collapse: collapse; margin: 14px 0 18px; font-size: 13.5px; }
-        .tc-table th { text-align: left; font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted, #6e6e73); padding: 8px 10px; border-bottom: 1px solid var(--line, #d2d2d7); }
-        .tc-table td { padding: 10px; border-bottom: 1px solid var(--line-soft, #e8e8ed); vertical-align: top; line-height: 1.5; }
-        .tc-note { background: var(--bg-soft, #f5f5f7); border: 1px solid var(--line-soft, #e8e8ed); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; line-height: 1.55; color: #3a3a3c; margin: 16px 0; }
-        .tc-tag { display: inline-block; background: var(--brand-soft, rgba(0,0,0,.05)); color: var(--ink, #1d1d1f); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+        .tc-table th { text-align: left; font-family: var(--font-mono); font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); }
+        .tc-table td { padding: 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; line-height: 1.5; }
+        .tc-note { background: var(--bg-soft); border: 1px solid var(--line-soft); border-radius: 12px; padding: 14px 16px; font-size: 13.5px; line-height: 1.55; color: var(--ink-2); margin: 16px 0; }
+        .tc-tag { display: inline-block; background: var(--acc-soft); color: var(--acc-text); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
       `}</style>
 
       <header className="tc-top">

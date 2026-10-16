@@ -17,11 +17,24 @@
 }
 
 .av2 {
-  --red: #e5322d;
-  --ok: #1f9d55;
+  /* Semantic stops come from the token layer, so this page cannot drift from
+     the system it opens into. */
+  --red: var(--red);
+  --ok: var(--ok);
 
-  /* Palette per view. The sign-in card is dark in both colour schemes; the
-     sign-up split follows the OS preference, which is what the design does. */
+  /* One accent, everywhere. This page used to hand each role its own hue —
+     teal for owners, blue for ControlRoom, violet for the agent field — which
+     meant five different products by the time you had signed in to all of
+     them. The role is told by the copy and the segmented control instead, and
+     the platform's signal amber is the only hot colour on the page. --rgb is
+     that same stop in channel form, for the many alpha uses below. */
+  --acc: var(--acc);
+  --acc2: var(--acc-2);
+  --rgb: 255, 180, 0;
+
+  /* Palette per view. The sign-in card is instrument-black in both colour
+     schemes; the sign-up split follows the OS preference, which is what the
+     design does. */
   box-sizing: border-box;
   position: fixed;
   inset: 0;
@@ -40,22 +53,14 @@
   transition: background 0.7s, color 0.5s;
 }
 .av2 *, .av2 *::before, .av2 *::after { box-sizing: inherit; }
-.av2[data-view='in'] { --bg: #0b0c10; --ink: #f2f3f5; --mut: #9aa0aa; --card: #15161c; --line: #2a2c35; --fld: #1c1e25; --sc: rgba(var(--rgb), 0.85); --sp: rgba(var(--rgb), 0.17); }
-.av2[data-view='up'] { --bg: #eceef2; --ink: #16171b; --mut: #6b7078; --card: #fff; --line: #e1e4e9; --fld: #f3f5f8; --sc: rgba(var(--rgb), 0.6); --sp: rgba(var(--rgb), 0.25); }
-@media (prefers-color-scheme: dark) {
-  .av2[data-view='up'] { --bg: #0b0c10; --ink: #f2f3f5; --mut: #9aa0aa; --card: #15161c; --line: #2a2c35; --fld: #1c1e25; }
-}
-/* Renter takes the platform's signal amber so login matches the app it
-   opens into; the owner keeps teal as the role tell. */
-.av2[data-role='rent'] { --acc: #ffb400; --acc2: #ff8a00; --rgb: 255, 180, 0; }
-.av2[data-role='list'] { --acc: #2ec4b6; --acc2: #1a8fd6; --rgb: 46, 196, 182; }
-/* Staff roles. Picked so each of the four portals reads at a glance and none
-   collides with a semantic colour already on this page: --red is the error
-   text (.av2-err) and green is the live dot, so neither is free for an
-   accent. Blue keeps ControlRoom calm; violet keeps AgentField distinct from
-   the owner's teal. All four clear 6:1 against .av2-go's dark label. */
-.av2[data-role='admin'] { --acc: #4d9fff; --acc2: #2f7fe0; --rgb: 77, 159, 255; }
-.av2[data-role='agent'] { --acc: #a78bfa; --acc2: #7c5cf5; --rgb: 167, 139, 250; }
+.av2[data-view='in'] { color-scheme: dark; --bg: var(--chrome); --ink: var(--chrome-ink); --mut: var(--chrome-mut); --card: var(--chrome-2); --line: var(--chrome-line); --fld: var(--chrome-3); --sc: rgba(var(--rgb), 0.85); --sp: rgba(var(--rgb), 0.17); }
+/* The sign-up split rides the shared ladder, so those rungs apply here
+   automatically — the hand-written dark overrides that used to live below
+   are gone. */
+.av2[data-view='up'] { --bg: var(--bg); --ink: var(--ink); --mut: var(--muted); --card: var(--card); --line: var(--edge); --fld: var(--fld); --sc: rgba(var(--rgb), 0.6); --sp: rgba(var(--rgb), 0.25); }
+/* All five roles share the platform accent (the .av2 block above).
+   AuthPage.jsx still sets data-role, and the attribute keeps working as a
+   hook — it just no longer repaints the page a different colour. */
 
 .av2 button, .av2 input { font: inherit; }
 .av2 button:focus-visible, .av2 a:focus-visible { outline: 3px solid var(--acc); outline-offset: 2px; }
@@ -94,6 +99,11 @@
   align-items: center;
   padding: 18px 28px;
   pointer-events: none;
+  /* Floating chrome, so it gets the gel treatment. It sits over both an
+     instrument-black and a paper view, hence the ink-agnostic tint. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 82%, transparent), transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .av2-top > * { pointer-events: auto; }
 .av2-logo { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; color: var(--ink); }
@@ -116,17 +126,17 @@
   padding: 4px;
   background: var(--fld);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
 }
 .av2-seg .pill {
   position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px);
-  background: var(--ink); border-radius: 10px;
+  background: var(--ink); border-radius: var(--radius); box-shadow: var(--shadow-sm);
   transition: transform 0.45s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 .av2-seg[data-i='1'] .pill { transform: translateX(100%); }
 .av2-seg button {
   position: relative; z-index: 1; border: 0; background: none; color: var(--mut);
-  padding: 10px 16px; font-weight: 700; cursor: pointer; border-radius: 10px;
+  padding: 10px 16px; font-weight: 700; cursor: pointer; border-radius: var(--radius);
   white-space: nowrap; transition: color 0.3s;
 }
 .av2-seg button.on { color: var(--card); }
@@ -141,10 +151,12 @@
 /* ── live inventory pill ─────────────────────────────────────────────── */
 .av2-live {
   display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
-  padding: 7px 14px; border-radius: 99px;
+  padding: 7px 14px; border-radius: var(--radius-pill);
   background: var(--fld); border: 1px solid var(--line); color: var(--mut);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
-.av2-live i { width: 8px; height: 8px; border-radius: 50%; background: #3ddc84; animation: av2-ping 1.8s infinite; }
+.av2-live i { width: 8px; height: 8px; border-radius: 50%; background: var(--ok-bright); animation: av2-ping 1.8s infinite; }
 .av2-live b { color: var(--ink); }
 .av2-live.flash { animation: av2-fl 0.5s; }
 @keyframes av2-ping {
@@ -159,19 +171,19 @@
   position: relative;
   isolation: isolate;
   padding: 36px;
-  border-radius: 24px;
+  border-radius: var(--radius-xl);
   background: var(--card);
-  box-shadow: 0 0 60px -12px rgba(var(--rgb), 0.35);
+  box-shadow: 0 0 60px -14px var(--acc-glow), var(--shadow-pop);
 }
 .av2-card::before {
-  content: ''; position: absolute; inset: -2px; border-radius: 26px; z-index: -2;
-  background: conic-gradient(from var(--av2-a), var(--acc), transparent 28%, var(--red) 52%, transparent 78%, var(--acc));
+  content: ''; position: absolute; inset: -2px; border-radius: calc(var(--radius-xl) + 2px); z-index: -2;
+  background: conic-gradient(from var(--av2-a), var(--acc), transparent 28%, var(--acc-3) 52%, transparent 78%, var(--acc));
   animation: av2-rot 4s linear infinite;
 }
-.av2-card::after { content: ''; position: absolute; inset: 0; border-radius: 24px; z-index: -1; background: var(--card); }
+.av2-card::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-xl); z-index: -1; background: var(--card); }
 @keyframes av2-rot { to { --av2-a: 360deg; } }
-.av2-brandline { display: flex; align-items: center; gap: 10px; color: var(--mut); font-size: 13px; margin-bottom: 16px; }
-.av2-h2 { font-size: 32px; margin: 0 0 6px; letter-spacing: -0.02em; }
+.av2-brandline { display: flex; align-items: center; gap: 10px; color: var(--mut); font-family: var(--font-mono); font-size: 11px; letter-spacing: var(--track); text-transform: uppercase; margin-bottom: 16px; }
+.av2-h2 { font-family: var(--font-display); font-size: 32px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.035em; }
 .av2-sub { margin: 0 0 20px; color: var(--mut); }
 .av2-sub.sw { animation: av2-sw 0.45s both; }
 @keyframes av2-sw { from { opacity: 0; transform: translateY(10px); } }
@@ -189,14 +201,15 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 .av2-f { position: relative; display: block; margin-bottom: 14px; }
 .av2-f input {
   width: 100%; height: 54px; padding: 20px 46px 6px 14px;
-  border: 1.5px solid var(--line); border-radius: 12px;
+  border: 1.5px solid var(--line); border-radius: var(--radius);
   background: var(--fld); color: var(--ink); transition: 0.2s;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 .av2-f input:hover { border-color: var(--mut); }
 .av2-f input:focus { outline: 0; border-color: var(--acc); box-shadow: 0 0 0 4px rgba(var(--rgb), 0.28); transform: translateY(-1px); }
 .av2-f > span { position: absolute; left: 14px; top: 17px; color: var(--mut); pointer-events: none; transition: 0.18s; font-size: 15px; }
 .av2-f input:focus + span,
-.av2-f input:not(:placeholder-shown) + span { top: 7px; font-size: 11px; font-weight: 700; }
+.av2-f input:not(:placeholder-shown) + span { top: 7px; font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: var(--track); text-transform: uppercase; }
 .av2-eye {
   position: absolute; right: 8px; top: 9px; width: 36px; height: 36px;
   border: 0; background: none; border-radius: 10px; cursor: pointer; font-size: 17px; transition: 0.2s;
@@ -205,11 +218,11 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 
 .av2-go {
   position: relative; overflow: hidden; width: 100%; height: 54px;
-  border: 0; border-radius: 12px; background: var(--acc); color: #16171b;
-  font-weight: 800; font-size: 16px; cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+  border: 0; border-radius: var(--radius); background: var(--acc-grad); color: var(--acc-ink);
+  font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: -0.01em; cursor: pointer;
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease), filter var(--t) var(--ease);
 }
-.av2-go:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -10px rgba(var(--rgb), 0.7); }
+.av2-go:hover { transform: translateY(-2px); filter: brightness(1.05); box-shadow: 0 14px 30px -12px var(--acc-glow); }
 .av2-go:active { transform: scale(0.98); }
 /* Sheen sweep on hover. */
 .av2-go::after {
@@ -251,13 +264,13 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 .av2-split {
   width: min(1060px, 100%); min-height: 640px;
   display: grid; grid-template-columns: 1fr 1fr;
-  border-radius: 26px; overflow: hidden;
-  background: var(--card); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.4);
+  border-radius: var(--radius-xl); overflow: hidden;
+  background: var(--card); box-shadow: var(--shadow-lg), var(--shadow-pop);
 }
 .av2-fs { padding: 44px; animation: av2-sl 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; display: flex; flex-direction: column; justify-content: center; }
 .av2-yel {
-  position: relative; overflow: hidden; color: #16171b; padding: 34px;
-  background: linear-gradient(135deg, var(--acc), var(--acc2));
+  position: relative; overflow: hidden; color: var(--acc-ink); padding: 34px;
+  background: var(--acc-grad);
   display: flex; flex-direction: column; justify-content: space-between; gap: 18px;
   animation: av2-sr 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -272,7 +285,7 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 .av2-yel > * { position: relative; }
 .av2-yel h3 { font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: -0.02em; max-width: 300px; }
 .av2-yel .av2-mq { width: 100%; }
-.av2-yel .av2-track { color: #16171b; opacity: 0.7; }
+.av2-yel .av2-track { color: var(--acc-ink); opacity: 0.7; }
 
 .av2-prog { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--mut); margin-bottom: 22px; }
 .av2-prog div { flex: 1; height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; }
@@ -286,7 +299,7 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 .av2-meter small { width: 60px; text-align: right; color: var(--mut); font-size: 12px; }
 .av2-meter[data-s='1'] i:nth-child(1) { background: var(--red); }
 .av2-meter[data-s='2'] i:nth-child(-n + 2) { background: var(--acc); }
-.av2-meter[data-s='3'] i:nth-child(-n + 3) { background: #9ccc2b; }
+.av2-meter[data-s='3'] i:nth-child(-n + 3) { background: var(--ok-bright); }
 .av2-meter[data-s='4'] i:nth-child(-n + 4) { background: var(--ok); }
 
 .av2-chk { display: flex; gap: 10px; align-items: center; font-size: 13px; color: var(--mut); margin: 4px 0 16px; cursor: pointer; }
@@ -302,7 +315,7 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 .av2-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .av2-stats div {
   background: rgba(255, 255, 255, 0.55); backdrop-filter: blur(6px);
-  border-radius: 14px; padding: 12px; transition: transform 0.25s;
+  border-radius: var(--radius-lg); padding: 12px; transition: transform 0.25s;
 }
 .av2-stats div:hover { transform: translateY(-5px) rotate(-1.5deg); }
 .av2-stats b { display: block; font-size: 24px; }
@@ -311,9 +324,10 @@ button.av2-link { border: 0; padding: 0; cursor: pointer; font: inherit; font-we
 
 /* ── floating badges ─────────────────────────────────────────────────── */
 .av2-fl {
-  position: absolute !important; background: #16171b; color: #fff; font-size: 13px;
-  font-weight: 700; padding: 8px 14px; border-radius: 99px;
-  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+  position: absolute !important; background: var(--chrome-2); color: var(--chrome-ink);
+  border: 1px solid var(--chrome-line); font-family: var(--font-mono); font-size: 11px;
+  letter-spacing: 0.04em; font-weight: 500; padding: 9px 14px; border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-pop);
   transition: transform 0.25s ease-out; animation: av2-bobf 3.5s ease-in-out infinite;
 }
 @keyframes av2-bobf { 50% { margin-top: -8px; } }

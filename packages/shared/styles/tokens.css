@@ -1,13 +1,18 @@
 /* ============================================================================
    CAR-ENT design tokens — "PIT LANE" (motorsport telemetry)
-   ----------------------------------------------------------------------------
-   Single source of truth for all four portals. Imported FIRST in every
+   Single source of truth for all five portals. Imported FIRST in every
    main.jsx, so anything a portal declares afterwards is an intentional
    override rather than accidental drift.
 
    Palette thesis: instrument-black chrome + paper content + ONE hot accent.
-   The old system was pure grayscale (its --gold/--coral aliases pointed at
-   grays), which is why nothing felt branded. Signal amber fixes that.
+   Signal amber is the brand; the premium work is in the *finish* — a real
+   elevation ladder, a gradient accent, glass for floating chrome, and a
+   radius scale that stops reading as a wireframe.
+
+   Elevation ladder (the core of the premium feel):
+     --s1 canvas  → --s2 panels → --s3 cards → --s4 raised → --s5 overlays
+   Depth comes from stepping these, not from stacking heavy shadows on one
+   flat white box. Shadows only reinforce what the surfaces already say.
    ========================================================================== */
 
 :root {
@@ -22,12 +27,20 @@
   /* ── Accent: signal amber (the one hot colour) ──────────────────────── */
   --acc: #ffb400;
   --acc-2: #ff8a00;
-  --acc-ink: #1a1204;            /* text placed ON amber */
+  --acc-3: #ff6a00;            /* gradient end — depth on primary actions */
+  --acc-ink: #1a1204;          /* text placed ON amber */
   --acc-soft: rgba(255, 180, 0, 0.14);
   --acc-line: rgba(255, 180, 0, 0.45);
-
-  /* ── Secondary signal (owner portal chrome only, used sparingly) ────── */
-  --cyan: #2ec4b6;
+  --acc-glow: rgba(255, 138, 0, 0.38);
+  /* Accent used as *text or a small glyph* on a light surface. --acc and
+     --acc-2 are fills: as type on white they land at 1.7:1 and 2.6:1 and a
+     whole family of prices, chips and labels was being set in them. This
+     stop is 5.9:1 on white and 5.3:1 on --bg-soft, so accent type is now
+     legible; the fills stay hot because they carry dark ink instead. */
+  --acc-text: #8a4a00;
+  /* The primary action gradient: one direction, one hot family. Used for
+     CTA fills and the accent traces, never as card wallpaper. */
+  --acc-grad: linear-gradient(118deg, var(--acc) 0%, var(--acc-2) 58%, var(--acc-3) 100%);
 
   /* ── Semantic ──────────────────────────────────────────────────────── */
   --red: #e5322d;
@@ -40,17 +53,33 @@
   --star: #ffb300;
   --heart: #ff5a5f;
 
+  /* ── Elevation ladder: LIGHT ─────────────────────────────────────────
+     Five steps instead of "white card on grey page". Each step is a real
+     colour, so panels separate by tone before any shadow is applied.   */
+  --s1: #eef0f3;               /* canvas */
+  --s2: #f4f5f7;               /* recessed panel / sidebar well */
+  --s3: #ffffff;               /* card */
+  --s4: #ffffff;               /* raised: menu, popover, modal */
+  --s5: #ffffff;               /* overlay: toast, tooltip */
+
   /* ── Neutrals: paper content ───────────────────────────────────────── */
-  --bg: #f2f3f5;
+  --bg: var(--s1);
   --bg-soft: #e9eaee;
-  --card: #ffffff;
+  --card: var(--s3);
   --ink: #0b0c0e;
   --ink-2: #16181c;
   --muted: #6b7078;
   --mut: #6b7078;               /* sidebar alias, kept for existing rules */
-  --fld: #eceef1;               /* input fill */
-  --line: #dcdee2;
-  --line-soft: #e9eaee;
+  --fld: #f1f2f5;               /* input fill — a step, not a grey blob */
+  --line: #e2e4e9;
+  --line-soft: #edeff2;
+
+  /* Hairlines. Two weights: structural and decorative. The high one is
+     what makes a bordered panel read as machined rather than sketched. */
+  --edge: rgba(16, 20, 28, 0.10);
+  --edge-hi: rgba(16, 20, 28, 0.17);
+  /* Top-edge inset highlight: the 1px of light along a raised surface. */
+  --inset-hi: rgba(255, 255, 255, 0.85);
 
   /* ── Chrome: instrument-black surfaces (sidebar, topbar, table head) ── */
   --chrome: #101216;
@@ -60,6 +89,12 @@
   --chrome-ink: #f2f3f5;
   --chrome-mut: #8a9099;
   --side: #101216;              /* sidebar surface alias */
+
+  /* Glass — floating chrome only: topbar, command palette, modal scrim.
+     Deliberately NOT for dense data cards, where blur costs legibility. */
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-line: rgba(255, 255, 255, 0.6);
+  --glass-blur: blur(16px);
 
   /* ── Brand aliases (legacy names still referenced by portal CSS) ───── */
   --brand: #0b0c0e;
@@ -71,19 +106,43 @@
   --gold-2: #ff8a00;
   --coral: #e5322d;
 
-  /* ── Shape ─────────────────────────────────────────────────────────── */
-  --radius: 4px;                /* instrument panels are square-ish */
-  --radius-lg: 8px;
+  /* ── Shape ───────────────────────────────────────────────────────────
+     The old 4px read as wireframe. 14/12/10 keeps controls crisp while
+     panels finally look like deliberate containers. */
+  --radius: 12px;               /* controls, inputs, tabs, pills */
+  --radius-lg: 16px;            /* cards, panels */
+  --radius-xl: 24px;            /* hero, modal, split sheets */
+  --radius-pill: 999px;
 
-  /* ── Elevation: low, crisp, no pillow shadows ──────────────────────── */
-  --shadow-sm: 0 1px 2px rgba(11, 12, 14, 0.06);
-  --shadow-md: 0 2px 8px rgba(11, 12, 14, 0.08), 0 1px 2px rgba(11, 12, 14, 0.05);
-  --shadow-lg: 0 12px 32px rgba(11, 12, 14, 0.12), 0 2px 8px rgba(11, 12, 14, 0.06);
+  /* ── Elevation: layered, low-alpha, warm-neutral ─────────────────────
+     A wide soft layer for float, a tight one for grounding, plus the
+     inset highlight. Three parts make a surface feel lit, not pasted. */
+  --shadow-sm: 0 1px 2px rgba(11, 12, 14, 0.05),
+               inset 0 1px 0 var(--inset-hi);
+  --shadow-md: 0 2px 4px rgba(11, 12, 14, 0.04),
+               0 8px 20px -8px rgba(11, 12, 14, 0.12),
+               inset 0 1px 0 var(--inset-hi);
+  --shadow-lg: 0 4px 10px -4px rgba(11, 12, 14, 0.07),
+               0 28px 56px -22px rgba(11, 12, 14, 0.28),
+               inset 0 1px 0 var(--inset-hi);
+  --shadow-pop: 0 18px 40px -16px rgba(11, 12, 14, 0.30),
+                0 4px 12px -4px rgba(11, 12, 14, 0.14);
+  --shadow-acc: 0 10px 26px -12px var(--acc-glow);
 
   /* ── Motion: short, mechanical ─────────────────────────────────────── */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);   /* entrances, lifts */
   --t-fast: 120ms;
   --t: 180ms;
+  --t-slow: 320ms;
+
+  /* ── Spacing: 4px base, narrow recurring set ───────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
 
   /* ── Telemetry micro-label: the differentiation anchor ─────────────── */
   --label: 10px;
@@ -92,20 +151,49 @@
 
 /* Dark content surfaces. Matches the sidebar's original semantics: the system
    preference wins unless a portal forces light, and an explicit
-   data-theme="dark" always wins. */
+   data-theme="dark" always wins. The ladder here is what does the work —
+   cards sit clearly above the canvas instead of melting into it. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0d0e10;
-    --bg-soft: #131417;
-    --card: #16181d;
-    --ink: #f2f3f5;
-    --ink-2: #e4e6ea;
-    --muted: #9aa0aa;
-    --mut: #9aa0aa;
-    --fld: #1d1f24;
-    --line: #262830;
-    --line-soft: #1f2127;
-    --side: #09090b;
+    --s1: #0b0d11;              /* canvas — near-black, not pure black */
+    --s2: #10141a;              /* recessed panel */
+    --s3: #151a21;              /* card */
+    --s4: #1b212b;              /* raised */
+    --s5: #212834;              /* overlay */
+
+    --bg: var(--s1);
+    --bg-soft: #10141a;
+    --card: var(--s3);
+    --ink: #eef1f6;
+    --ink-2: #dfe3ea;
+    --muted: #949cab;
+    --mut: #949cab;
+    --fld: #1a1f27;
+    --line: #242a34;
+    --line-soft: #1d222b;
+
+    --edge: rgba(232, 240, 255, 0.09);
+    --edge-hi: rgba(232, 240, 255, 0.16);
+    --inset-hi: rgba(255, 255, 255, 0.055);
+
+    --glass: rgba(17, 21, 27, 0.74);
+    --glass-line: rgba(232, 240, 255, 0.12);
+
+    /* On the dark ladder the hot amber already clears 9:1, so accent text is
+       simply the accent itself. */
+    --acc-text: #ffb400;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--inset-hi);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.42),
+                 0 10px 24px -10px rgba(0, 0, 0, 0.7),
+                 inset 0 1px 0 var(--inset-hi);
+    --shadow-lg: 0 4px 12px -6px rgba(0, 0, 0, 0.55),
+                 0 32px 64px -26px rgba(0, 0, 0, 0.85),
+                 inset 0 1px 0 var(--inset-hi);
+    --shadow-pop: 0 20px 44px -18px rgba(0, 0, 0, 0.85),
+                  0 4px 14px -6px rgba(0, 0, 0, 0.6);
+
+    --side: #0a0c10;
     --brand: #f2f3f5;
     --brand-2: #e4e6ea;
     --brand-soft: rgba(255, 255, 255, 0.06);
@@ -113,16 +201,41 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #0d0e10;
-  --bg-soft: #131417;
-  --card: #16181d;
-  --ink: #f2f3f5;
-  --ink-2: #e4e6ea;
-  --muted: #9aa0aa;
-  --mut: #9aa0aa;
-  --fld: #1d1f24;
-  --line: #262830;
-  --line-soft: #1f2127;
+  --s1: #0b0d11;
+  --s2: #10141a;
+  --s3: #151a21;
+  --s4: #1b212b;
+  --s5: #212834;
+
+  --bg: var(--s1);
+  --bg-soft: #10141a;
+  --card: var(--s3);
+  --ink: #eef1f6;
+  --ink-2: #dfe3ea;
+  --muted: #949cab;
+  --mut: #949cab;
+  --fld: #1a1f27;
+  --line: #242a34;
+  --line-soft: #1d222b;
+
+  --edge: rgba(232, 240, 255, 0.09);
+  --edge-hi: rgba(232, 240, 255, 0.16);
+  --inset-hi: rgba(255, 255, 255, 0.055);
+
+  --glass: rgba(17, 21, 27, 0.74);
+  --glass-line: rgba(232, 240, 255, 0.12);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--inset-hi);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.42),
+               0 10px 24px -10px rgba(0, 0, 0, 0.7),
+               inset 0 1px 0 var(--inset-hi);
+  --shadow-lg: 0 4px 12px -6px rgba(0, 0, 0, 0.55),
+               0 32px 64px -26px rgba(0, 0, 0, 0.85),
+               inset 0 1px 0 var(--inset-hi);
+  --shadow-pop: 0 20px 44px -18px rgba(0, 0, 0, 0.85),
+                0 4px 14px -6px rgba(0, 0, 0, 0.6);
+
+  --side: #0a0c10;
   --brand: #f2f3f5;
   --brand-2: #e4e6ea;
   --brand-soft: rgba(255, 255, 255, 0.06);

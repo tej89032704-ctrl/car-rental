@@ -36,9 +36,20 @@ const LOGIN_ENDPOINT = {
   main: '/auth/login',
   admin: '/auth/admin/login',
   agent: '/auth/agent/login',
+  manager: '/auth/manager/login',
 };
 
 const COPY = {
+  manager: {
+    brandline: 'Operations Hub', title: 'Welcome back, manager',
+    sub: 'Guide your team, follow up enquiries and prepare rental quotes.', btn: 'Open operations hub',
+    up1t: 'Staff accounts are provisioned', up1s: 'Ask a super admin to add you.',
+    up2t: 'Secure your account', up2s: 'Choose a strong password.',
+    yh: 'A clear view of every next step.', gauge: 'Your team', gaugeAt: 0.6,
+    stats: [{ k: 'team', n: 'Team', s: 'assigned agents only' }, { k: 'crm', n: 'CRM', s: 'enquiries and quotes' }, { k: 'scope', n: 'Scoped', s: 'operations, not payouts' }],
+    badges: ['✓ Team visibility', '✓ Rental quotes', '✓ Audited changes'],
+    mq: ['Team workload', 'Customer enquiries', 'Follow-ups', 'Quotes', 'Activity history'],
+  },
   rent: {
     brandline: 'Renter portal',
     title: 'Welcome back',
@@ -647,10 +658,10 @@ export default function AuthPage({
                   />
                   <path
                     className="av2-arc" d="M20 120A100 100 0 0 1 220 120" fill="none"
-                    stroke="#16171b" strokeWidth="12" strokeLinecap="round"
+                    stroke="currentColor" strokeWidth="12" strokeLinecap="round"
                     pathLength="100" strokeDasharray="100" strokeDashoffset={100 - needle * 100}
                   />
-                  <g stroke="#16171b" strokeWidth="2">
+                  <g stroke="currentColor" strokeWidth="2">
                     {Array.from({ length: 11 }, (_, i) => {
                       const a = ((-90 + i * 18) * Math.PI) / 180;
                       const r1 = 86;
@@ -665,14 +676,14 @@ export default function AuthPage({
                   </g>
                   <g
                     className="av2-needle"
-                    style={{ transform: `rotate(${-90 + needle * 180}deg)` }}
+                    style={{ transform: `rotate(${-90 + needle * 180}deg)`, color: 'var(--red)' }}
                   >
-                    <line x1="120" y1="120" x2="120" y2="40" stroke="#e5322d" strokeWidth="4" strokeLinecap="round" />
+                    <line x1="120" y1="120" x2="120" y2="40" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
                   </g>
-                  <circle cx="120" cy="120" r="9" fill="#16171b" />
+                  <circle cx="120" cy="120" r="9" fill="currentColor" />
                   <text
                     x="120" y="150" textAnchor="middle" fontSize="15" fontWeight="800"
-                    fill="#16171b" opacity={needle < 0.99 ? 1 : 0}
+                    fill="currentColor" opacity={needle < 0.99 ? 1 : 0}
                   >
                     {copy.gauge}
                   </text>
