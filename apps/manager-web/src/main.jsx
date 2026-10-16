@@ -1,0 +1,10 @@
+import '../../../packages/shared/styles/tokens.css';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import '../../../packages/shared/styles/components.css';
+import '../../../packages/shared/styles/base.css';
+import '../../agent-web/src/styles.css';
+import '../../agent-web/src/sidebar.css';
+import App from './App.jsx';
+ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><BrowserRouter><App /></BrowserRouter></React.StrictMode>);

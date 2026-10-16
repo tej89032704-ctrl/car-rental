@@ -13,6 +13,7 @@
     "dev:owner": "npm run dev -w apps/owner-web",
     "dev:admin": "npm run dev -w apps/admin-web",
     "dev:agent": "npm run dev -w apps/agent-web",
+    "dev:manager": "npm run dev -w apps/manager-web",
     "build": "npm run build --workspaces --if-present"
   }
 }
