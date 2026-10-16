@@ -1,245 +1,214 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { api, setSession, clearSession } from '../api.js';
-import { dobBounds } from '../../../../packages/shared/src/ProfileDetails.jsx';
+import { api, setSession } from '../api.js';
+import { useData } from '../data.jsx';
+import { avatarBg } from '../lib.js';
 
 const ROLE_LABEL = { car_renter: 'Renter', car_owner: 'Owner', agent: 'Agent', super_admin: 'Administrator' };
-const GENDER_LABEL = {
-  female: 'Female', male: 'Male', non_binary: 'Non-binary',
-  other: 'Other', prefer_not_to_say: 'Prefer not to say',
-};
-const KYC_PILL = {
-  approved: { label: 'KYC verified', cls: 'active' },
-  pending: { label: 'KYC pending', cls: 'pending' },
-  rejected: { label: 'KYC rejected', cls: 'rejected' },
+const KYC_LABEL = { approved: 'KYC verified', pending: 'KYC pending', rejected: 'KYC rejected' };
+
+const EMPTY = {
+  form: { name: '', phone: '' },
+  details: { date_of_birth: '', gender: '', address_line: '', city: '', state: '', pincode: '' },
 };
 
 /**
  * One account, three things people come here for: who am I, is my KYC done,
- * and how do I fix my details. /auth/me is the source of truth rather than the
- * cached localStorage copy, because the cached one goes stale the moment
- * another device edits the same account.
+ * and how do I fix my details. /auth/me (via the shared context) is the
+ * source of truth rather than the cached localStorage copy, because the
+ * cached one goes stale the moment another device edits the same account.
  */
 export default function Profile() {
-  const nav = useNavigate();
-  const [me, setMe] = useState(null);
-  const [form, setForm] = useState({ name: '', phone: '' });
-  // Profile details beyond the auth essentials: collected at signup by
-  // /profile-details, editable here like any other profile field.
-  const [details, setDetails] = useState({
-    date_of_birth: '', gender: '', address_line: '', city: '', state: '', pincode: '',
-  });
-  const [err, setErr] = useState('');
-  const [saved, setSaved] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [subs, setSubs] = useState([]);
-  const [subsErr, setSubsErr] = useState('');
+  const { profile, subs, errors, reload } = useData();
+  const me = profile?.user;
 
+  const [form, setForm] = useState(EMPTY.form);
+  const [details, setDetails] = useState(EMPTY.details);
+  const [err, setErr] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  // Seed the form once per account id: reload() re-reads /auth/me after a
+  // save, and re-seeding on every context refresh would clobber edits the
+  // owner is still typing.
   useEffect(() => {
-    api('/auth/me')
-      .then((d) => {
-        setMe(d.user);
-        setForm({ name: d.user.name || '', phone: d.user.phone || '' });
-        setDetails({
-          date_of_birth: d.user.date_of_birth || '',
-          gender: d.user.gender || '',
-          address_line: d.user.address_line || '',
-          city: d.user.city || '',
-          state: d.user.state || '',
-          pincode: d.user.pincode || '',
-        });
-      })
-      .catch((e) => setErr(e.message));
-    
-    // Load subscription data
-    api('/subscriptions/mine')
-      .then((data) => {
-        setSubs(data || []);
-        setSubsErr('');
-      })
-      .catch((e) => {
-        setSubs([]); // Empty array on error
-        setSubsErr(e.message);
-      });
-  }, []);
+    if (!me) return;
+    setForm({ name: me.name || '', phone: me.phone || '' });
+    setDetails({
+      // The date input wants YYYY-MM-DD; the API may hand back a timestamp.
+      date_of_birth: String(me.date_of_birth || '').slice(0, 10),
+      gender: me.gender || '',
+      address_line: me.address_line || '',
+      city: me.city || '',
+      state: me.state || '',
+      pincode: me.pincode || '',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id]);
 
   async function save(e) {
     e.preventDefault();
     setBusy(true);
     setErr('');
-    setSaved('');
+    setMsg('');
     try {
       const d = await api('/auth/me', { method: 'PATCH', body: { ...form, ...details } });
-      setMe(d.user);
-      // The sidebar polls localStorage every 500ms, so this re-renders it too.
+      // The sidebar caches its own user copy, so refresh it alongside the
+      // shared context, which re-reads every endpoint from the server.
       setSession({ user: d.user });
-      setSaved(d.changed ? 'Profile updated.' : 'No changes to save.');
-    } catch (e) {
-      setErr(e.message);
+      setMsg(d.changed ? 'Profile updated.' : 'No changes to save.');
+      reload();
+    } catch (e2) {
+      setErr(e2.message);
     } finally {
       setBusy(false);
     }
   }
 
-  const kyc = KYC_PILL[me?.kyc_status] || KYC_PILL.pending;
+  const kycLabel = KYC_LABEL[me?.kyc_status] || KYC_LABEL.pending;
+  const activeSubs = (subs || []).filter((s) => s.status === 'active').length;
 
   return (
     <>
-      <div className="page-header">
-        <h1>Profile</h1>
-        <p className="subtitle">Your account details, verification status and contact information</p>
+      <div className="hd">
+        <div>
+          <h2>Profile</h2>
+          <p>Your account details, verification status and contact information</p>
+        </div>
       </div>
 
-      {err && <div className="alert err">{err}</div>}
+      {!profile && !errors.profile && <div className="sk" />}
+      {errors.profile && <div className="alert err">{errors.profile}</div>}
 
-      <section className="card">
-        {!me && !err && <p className="muted">Loading…</p>}
-        {me && (
-          <>
-            <div className="profile-head">
-              <div className="profile-avatar">{me.name?.[0] || 'U'}</div>
-              <div className="profile-id">
-                <h2>{me.name}</h2>
-                <p className="muted">{ROLE_LABEL[me.role] || me.role}</p>
-              </div>
-              <span className={`pill ${kyc.cls}`}>{kyc.label}</span>
+      {me && (
+        <>
+          {/* ---------------------------- avatar header ------------------- */}
+          <div className="sc" style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 24 }}>
+            <div
+              className="av"
+              style={{ width: 72, height: 72, fontSize: 28, background: avatarBg(me.name) }}
+            >
+              {(me.name || '?')[0].toUpperCase()}
             </div>
+            <div style={{ minWidth: 0 }}>
+              <h3 style={{ font: '500 26px Fraunces' }}>{me.name}</h3>
+              <p className="muted" style={{ marginTop: 2 }}>
+                {ROLE_LABEL[me.role] || 'Car owner'}{me.city ? ` · ${me.city}` : ''}
+              </p>
+              <span className="tag a" style={{ display: 'inline-block', marginTop: 8 }}>{kycLabel}</span>
+            </div>
+          </div>
 
-            <dl className="profile-details">
-              <div className="info-row"><dt className="info-label">Email</dt><dd className="info-value">{me.email}</dd></div>
-              <div className="info-row"><dt className="info-label">Phone</dt><dd className="info-value">{me.phone || '—'}</dd></div>
-              <div className="info-row"><dt className="info-label">Age</dt><dd className="info-value">{me.age ?? '—'}</dd></div>
-              <div className="info-row"><dt className="info-label">Gender</dt><dd className="info-value">{GENDER_LABEL[me.gender] || '—'}</dd></div>
-              <div className="info-row"><dt className="info-label">Location</dt><dd className="info-value">{[me.city, me.state].filter(Boolean).join(', ') || '—'}</dd></div>
-              <div className="info-row"><dt className="info-label">Role</dt><dd className="info-value">{ROLE_LABEL[me.role] || me.role}</dd></div>
-              <div className="info-row"><dt className="info-label">Account status</dt><dd className="info-value">{String(me.status || '').replace(/_/g, ' ')}</dd></div>
-            </dl>
+          {/* ------------------------------- the form -------------------- */}
+          <p className="ey">Edit details</p>
+          {msg && <div className="alert good">{msg}</div>}
+          {err && <div className="alert err">{err}</div>}
 
-            {me.kyc_status !== 'approved' && (
-              <div className="alert info">
-                Verification is still outstanding — you can manage this account, but listing a car needs
-                an approved KYC. <Link to="/kyc">Go to Verification</Link>
-              </div>
-            )}
-          </>
-        )}
-      </section>
-
-      <section className="card">
-        <h2>Edit details</h2>
-        {saved && <div className="alert good">{saved}</div>}
-        <form onSubmit={save}>
-          <div className="row">
-            <div className="form-group">
-              <label className="f" htmlFor="pf-name">Full name</label>
-              <input id="pf-name" className="f" value={form.name} required minLength={2} maxLength={120}
+          <form className="fm" onSubmit={save}>
+            <label>
+              Full name
+              <input
+                value={form.name}
+                required
+                minLength={2}
+                maxLength={120}
                 placeholder="Your full name"
-                onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div className="form-group">
-              <label className="f" htmlFor="pf-phone">Phone</label>
-              <input id="pf-phone" className="f" value={form.phone} required
-                pattern="^\+?[0-9]{10,14}$" title="10-14 digits, optional leading +"
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </label>
+
+            <label>
+              Email
+              <input type="email" value={me.email || ''} readOnly />
+              <small className="muted" style={{ display: 'block', marginTop: 6, fontSize: 12, textTransform: 'none', letterSpacing: 0 }}>
+                Your sign-in ID — it can't be changed here.
+              </small>
+            </label>
+
+            <label>
+              Phone
+              <input
+                value={form.phone}
+                required
                 placeholder="+91 98765 43210"
-                onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-          </div>
-          <div className="row">
-            <div className="form-group">
-              <label className="f" htmlFor="pf-dob">Date of birth</label>
-              <input id="pf-dob" className="f" type="date" required
-                min={dobBounds().min} max={dobBounds().max}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </label>
+
+            <label>
+              Date of birth
+              <input
+                type="date"
                 value={details.date_of_birth}
-                onChange={(e) => setDetails({ ...details, date_of_birth: e.target.value })} />
-            </div>
-            <div className="form-group">
-              <label className="f" htmlFor="pf-gender">Gender</label>
-              <select id="pf-gender" className="f" value={details.gender}
-                onChange={(e) => setDetails({ ...details, gender: e.target.value })}>
-                <option value="">Prefer not to say</option>
-                {Object.entries(GENDER_LABEL).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
+                onChange={(e) => setDetails({ ...details, date_of_birth: e.target.value })}
+              />
+            </label>
+
+            <label>
+              Gender
+              <select
+                value={details.gender}
+                style={{ width: '100%', marginTop: 8, padding: '14px 16px', borderRadius: 14, border: '1px solid var(--line)', background: 'var(--bg)', outline: 0, color: 'var(--ink)', font: 'inherit' }}
+                onChange={(e) => setDetails({ ...details, gender: e.target.value })}
+              >
+                <option value="">Not specified</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="non_binary">Non-binary</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
               </select>
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="f" htmlFor="pf-address">Address</label>
-            <input id="pf-address" className="f" value={details.address_line}
-              placeholder="Flat / street"
-              onChange={(e) => setDetails({ ...details, address_line: e.target.value })} />
-          </div>
-          <div className="row">
-            <div className="form-group">
-              <label className="f" htmlFor="pf-city">City</label>
-              <input id="pf-city" className="f" value={details.city}
-                onChange={(e) => setDetails({ ...details, city: e.target.value })} />
-            </div>
-            <div className="form-group">
-              <label className="f" htmlFor="pf-state">State</label>
-              <input id="pf-state" className="f" value={details.state}
-                onChange={(e) => setDetails({ ...details, state: e.target.value })} />
-            </div>
-            <div className="form-group">
-              <label className="f" htmlFor="pf-pincode">PIN code</label>
-              <input id="pf-pincode" className="f" value={details.pincode} inputMode="numeric"
-                pattern="\d{4,10}"
-                onChange={(e) => setDetails({ ...details, pincode: e.target.value })} />
-            </div>
-          </div>
-          <button className="btn" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
-          <p className="form-hint">Your email is your sign-in ID and can't be changed here.</p>
-        </form>
-      </section>
+            </label>
 
-      <section className="card">
-        <h2>Session</h2>
-        <p className="muted">You're signed in on this device. Signing out clears the local session.</p>
-        <div className="action-bar">
-          <Link to="/kyc" className="btn sec">Verification</Link>
-          <button className="btn" onClick={() => { clearSession(); nav('/login'); }}>Sign out</button>
-        </div>
-      </section>
+            <label style={{ gridColumn: '1 / -1' }}>
+              Address line
+              <input
+                value={details.address_line}
+                placeholder="Flat / street"
+                onChange={(e) => setDetails({ ...details, address_line: e.target.value })}
+              />
+            </label>
 
-      {/* Optional chaining, not me.status: `me` is null on the first render
-          (before /auth/me resolves) and this sits outside the {me && ...}
-          guard above, so a bare property read crashed the whole page. */}
-      {me?.status !== 'active' ? (
-        <section className="card">
-          <h2>Subscription</h2>
-          <div className="alert info">
-            Please verify your mobile number to view and manage your subscription.
-            <br />
-            <small>Verification is required to access subscription features.</small>
+            <label>
+              City
+              <input value={details.city} onChange={(e) => setDetails({ ...details, city: e.target.value })} />
+            </label>
+
+            <label>
+              State
+              <input value={details.state} onChange={(e) => setDetails({ ...details, state: e.target.value })} />
+            </label>
+
+            <label>
+              Pincode
+              <input
+                value={details.pincode}
+                inputMode="numeric"
+                onChange={(e) => setDetails({ ...details, pincode: e.target.value })}
+              />
+            </label>
+
+            <div style={{ gridColumn: '1 / -1' }}>
+              <button className="b" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save changes'}</button>
+            </div>
+          </form>
+
+          {/* ---------------------------- account facts ------------------ */}
+          <p className="ey" style={{ marginTop: 32 }}>Account at a glance</p>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <div className="stat-value" style={{ fontSize: 26 }}>{kycLabel}</div>
+              <div className="stat-label">KYC status</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value" style={{ fontSize: 26 }}>{me.profile_completed ? 'Yes' : 'No'}</div>
+              <div className="stat-label">Profile completed</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-value" style={{ fontSize: 26 }}>{activeSubs}</div>
+              <div className="stat-label">Active subscriptions</div>
+            </div>
           </div>
-        </section>
-      ) : (
-        <section className="card">
-          <h2>Subscription</h2>
-          {subsErr && <div className="alert err">{subsErr}</div>}
-          {!subsErr && subs.length === 0 && (
-            <p className="muted">No active subscription. <Link to="/earnings">Subscribe now</Link></p>
-          )}
-          {!subsErr && subs.length > 0 && (
-            <>
-              <div className="stat-grid">
-                {subs.map((sub, index) => (
-                  <div key={index} className="stat-card">
-                    <div className="stat-value">{sub.plan === 'car_owner_monthly' ? '₹100/month' : sub.plan === 'renter_lifetime' ? 'Lifetime' : sub.plan}</div>
-                    <div className="stat-label">{sub.plan === 'car_owner_monthly' ? 'Monthly Subscription' : sub.plan === 'renter_lifetime' ? 'Lifetime Membership' : 'Subscription Plan'}</div>
-                    <div className="stat-value" style={{ fontSize: '0.875rem' }}>{sub.status === 'active' ? 'Active' : sub.status}</div>
-                    <div className="stat-label">Status</div>
-                  </div>
-                ))}
-              </div>
-              {subs.some((s) => s.status === 'active') && (
-                <div className="mt-8">
-                  <p className="muted">Your subscription is active. Manage it in the <Link to="/owner-web/">Owner Portal</Link> if you're a car owner.</p>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+        </>
       )}
     </>
   );

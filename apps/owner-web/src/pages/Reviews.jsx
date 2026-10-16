@@ -1,130 +1,161 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api, currentUser } from '../api.js';
-import { Stars, RatingSummary } from '../../../../packages/shared/src/Reviews.jsx';
+import { useData } from '../data.jsx';
+import { avatarBg, relTime } from '../lib.js';
 
 /**
- * The owner mirror of the renter's My Reviews page. Both hit the same two
- * endpoints, which branch on role server-side:
- *   /reviews/my        — reviews I wrote (owners rate the renter)
- *   /reviews/about-me  — reviews written about me (renters rate the owner)
- * Loaded independently so one failing can't blank the other.
+ * My Reviews — reviews written about the owner (/reviews/about-me), already
+ * loaded by the data provider, so this page never fetches. The reply box has
+ * no endpoint behind it, so replies live in localStorage keyed per review.
  */
-const TARGET_LABEL = { car: 'Car', owner: 'Owner', renter: 'Renter' };
-const TARGET_PILL = { car: 'active', owner: 'confirmed', renter: 'requested' };
+
+const stars = (n) => {
+  const v = Math.max(0, Math.min(5, Math.round(Number(n) || 0)));
+  return <span className="st">{'★'.repeat(v)}{'☆'.repeat(5 - v)}</span>;
+};
+
+const replyKey = (id) => `oh-review-reply-${id}`;
 
 export default function Reviews() {
-  const [written, setWritten] = useState(null);
-  const [about, setAbout] = useState(null);
-  const [err, setErr] = useState('');
-  const [aboutErr, setAboutErr] = useState('');
+  const { about, errors } = useData();
+  const [replies, setReplies] = useState({});
+  const [openId, setOpenId] = useState(null);
+  const [draft, setDraft] = useState('');
 
+  // Replies are per-device, so re-read them whenever the review list changes.
   useEffect(() => {
-    if (!currentUser) return;
-    api('/reviews/my').then(setWritten).catch((e) => setErr(e.message));
-    api('/reviews/about-me').then(setAbout).catch((e) => setAboutErr(e.message));
-  }, []);
+    const next = {};
+    for (const r of (about && about.reviews) || []) {
+      try {
+        const v = localStorage.getItem(replyKey(r.id));
+        if (v) next[r.id] = v;
+      } catch { /* private mode */ }
+    }
+    setReplies(next);
+  }, [about]);
 
-  const writtenList = Array.isArray(written) ? written : [];
+  function openReply(r) {
+    setOpenId(r.id);
+    setDraft(replies[r.id] || '');
+  }
+
+  function saveReply(id) {
+    const text = draft.trim();
+    if (!text) return;
+    try { localStorage.setItem(replyKey(id), text); } catch { /* private mode */ }
+    setReplies((m) => ({ ...m, [id]: text }));
+    setDraft('');
+    setOpenId(null);
+  }
+
+  // The provider seeds a zeroed fallback on failure, but errors.about means
+  // that zero is fake — show the failure alone rather than an empty page.
+  if (errors && errors.about) return <div className="alert err">{errors.about}</div>;
+
+  if (!about) {
+    return (
+      <>
+        <div className="hd"><div><p className="ey">Renter feedback</p><h2>My <em>Reviews</em></h2></div></div>
+        <div className="sk" /><div className="sk" /><div className="sk" />
+      </>
+    );
+  }
+
+  const reviews = Array.isArray(about.reviews) ? about.reviews : [];
+  const total = Number(about.total_reviews) || 0;
+  const avg = Number(about.avg_rating) || 0;
+
+  if (total === 0) {
+    return (
+      <>
+        <div className="hd"><div><p className="ey">Renter feedback</p><h2>My <em>Reviews</em></h2></div></div>
+        <div className="empty-state-section">
+          <div className="empty-icon">★</div>
+          <p>No reviews yet — ratings from finished trips will appear here.</p>
+        </div>
+      </>
+    );
+  }
+
+  // Distribution denominator is the rows we actually have; total_reviews can
+  // outrun the array if the API ever pages it.
+  const denom = reviews.length || 1;
+  const dist = [5, 4, 3, 2, 1].map((n) => ({
+    n,
+    count: reviews.filter((r) => Math.round(Number(r.rating) || 0) === n).length,
+  }));
 
   return (
     <>
-      <div className="page-header">
-        <h1>My Reviews</h1>
-        <p className="subtitle">Ratings you've left after trips — and what renters said about you</p>
+      <div className="hd">
+        <div>
+          <p className="ey">Renter feedback</p>
+          <h2>My <em>Reviews</em></h2>
+          <p>What renters said after their trips.</p>
+        </div>
       </div>
 
-      {/* ---------- What renters said about me ---------- */}
-      <section className="card">
-        <h2 className="page-section-title">⭐ About me</h2>
-        {aboutErr && <div className="alert err">{aboutErr}</div>}
-        {!about && !aboutErr && <p className="muted">Loading…</p>}
-        {about && (
-          <>
-            <div className="car-rating-row" style={{ justifyContent: 'flex-start', gap: 16 }}>
-              <RatingSummary avg={about.avg_rating} count={about.total_reviews} emptyText="No renter has reviewed you yet" />
-            </div>
-
-            {about.reviews.length === 0 && (
-              <p className="muted" style={{ marginTop: 10 }}>
-                Once a trip ends, the renter can rate you. Those comments will show up here.
-              </p>
-            )}
-
-            {about.reviews.length > 0 && (
-              <div className="review-list">
-                {about.reviews.map((r) => (
-                  <div className="review-card" key={r.id}>
-                    <div className="review-card-header">
-                      <span className="review-card-name">{r.reviewer_name}</span>
-                      <span className="rating"><Stars value={r.rating} /></span>
-                    </div>
-                    {r.car && (
-                      <div style={{ marginBottom: 6 }}>
-                        <span className="pill active">{r.car.brand} {r.car.model}</span>
-                      </div>
-                    )}
-                    {r.comment && <p className="review-card-comment">{r.comment}</p>}
-                    <p className="review-card-date">
-                      {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
-                    </p>
-                  </div>
-                ))}
+      <div className="g2">
+        {/* Score card: the big average reads first, the bars explain it. */}
+        <div className="c sc">
+          <div className="big">{avg.toFixed(1)}</div>
+          {stars(avg)}
+          <p className="mt">Based on {total} review{total === 1 ? '' : 's'}</p>
+          <div style={{ marginTop: 18 }}>
+            {dist.map((d) => (
+              <div className="bar" key={d.n}>
+                <span>{d.n}★</span>
+                <i><s style={{ width: `${Math.round((d.count / denom) * 100)}%` }} /></i>
+                <span>{d.count}</span>
               </div>
-            )}
-          </>
-        )}
-      </section>
+            ))}
+          </div>
+        </div>
 
-      {/* ---------- What I wrote ---------- */}
-      <section className="card">
-        <h2 className="page-section-title">✍️ Written by me</h2>
-        {err && <div className="alert err">{err}</div>}
-        {written === null && !err && <p className="muted">Loading…</p>}
-
-        {written !== null && writtenList.length === 0 && (
-          <p className="muted" style={{ marginTop: 6 }}>
-            You haven't rated a renter yet. Once a booking is completed you can leave a rating from{' '}
-            <Link to="/requests">Booking Requests</Link>.
-          </p>
-        )}
-
-        {writtenList.length > 0 && (
-          <>
-            <p className="rating-inline" style={{ margin: '0 0 4px' }}>
-              {writtenList.length} review{writtenList.length !== 1 ? 's' : ''} written
-            </p>
-            <div className="review-list">
-              {writtenList.map((r) => (
-                <div className="review-card" key={r.id}>
-                  <div className="review-card-header">
-                    <span className="review-card-name">
-                      {r.target_name || TARGET_LABEL[r.target_type] || 'Review'}
-                    </span>
-                    <span className="rating"><Stars value={r.rating} /></span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
-                    <span className={`pill ${TARGET_PILL[r.target_type] || ''}`}>
-                      {TARGET_LABEL[r.target_type] || r.target_type}
-                    </span>
-                    {r.car && (
-                      <span className="muted" style={{ fontSize: 13 }}>
-                        {r.car.brand} {r.car.model}
-                      </span>
-                    )}
-                  </div>
-
-                  {r.comment && <p className="review-card-comment">{r.comment}</p>}
-                  <p className="review-card-date">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}
-                  </p>
+        <div>
+          {reviews.map((r) => (
+            <div className="c rv" key={r.id}>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <span className="av" style={{ background: avatarBg(r.reviewer_name) }}>
+                  {String(r.reviewer_name || '?')[0].toUpperCase()}
+                </span>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <b>{r.reviewer_name}</b>
+                  {r.car && <span className="tag a">{r.car.brand} {r.car.model}</span>}
                 </div>
-              ))}
+                <em className="dl">{relTime(r.created_at)}</em>
+              </div>
+
+              {stars(r.rating)}
+              {r.comment && <p>{r.comment}</p>}
+
+              {replies[r.id] && (
+                <p className="mt" style={{ fontSize: 13 }}>Your reply: {replies[r.id]}</p>
+              )}
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="o" style={{ fontSize: 13, padding: '7px 16px' }}
+                  onClick={() => (openId === r.id ? setOpenId(null) : openReply(r))}>
+                  Reply
+                </button>
+              </div>
+
+              {openId === r.id && (
+                <>
+                  <div className="cin">
+                    <input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') saveReply(r.id); }}
+                      placeholder="Write a reply…" aria-label="Reply" />
+                    <button className="b" disabled={!draft.trim()} onClick={() => saveReply(r.id)}>Send</button>
+                  </div>
+                  <p className="mt" style={{ fontSize: 12, marginTop: 6 }}>
+                    Replies are stored on this device — there is no replies API yet.
+                  </p>
+                </>
+              )}
             </div>
-          </>
-        )}
-      </section>
+          ))}
+        </div>
+      </div>
     </>
   );
 }

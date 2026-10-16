@@ -73,9 +73,14 @@ export class FleetService {
   }
 
   async myCars(ownerId: string, status?: string) {
+    // Join pricing in the same query: the panel's fleet card leads with the
+    // per-day rate, and car_pricing sits in this same schema, so this costs
+    // nothing extra and saves the client N detail calls to read a price.
     let sql = `SELECT c.*,
-      (SELECT COUNT(*) FROM car_photos p WHERE p.car_id = c.id AND p.is_deleted = 0) AS photo_count
-      FROM cars c WHERE c.owner_id = ? AND c.is_deleted = 0`;
+      p.daily_rate_paise, p.weekly_rate_paise, p.monthly_rate_paise,
+      (SELECT COUNT(*) FROM car_photos ph WHERE ph.car_id = c.id AND ph.is_deleted = 0) AS photo_count
+      FROM cars c LEFT JOIN car_pricing p ON p.car_id = c.id
+      WHERE c.owner_id = ? AND c.is_deleted = 0`;
     const params: any[] = [ownerId];
     if (status) { sql += ` AND c.status = ?`; params.push(status); }
     sql += ` ORDER BY c.created_at DESC`;
@@ -157,9 +162,21 @@ export class FleetService {
 
   async updateCar(ownerId: string, carId: string, dto: any) {
     const car = await this.getOwnedCar(carId, ownerId);
-    if (car.status === 'rejected' || car.status === 'inactive' && dto.status) {
-      // owners may edit inactive/rejected cars; relock rules below still apply
+
+    // An owner may pause or resume a listing that is already live, and nothing
+    // else: draft/pending/rejected cars only ever reach active through review,
+    // so a PATCH cannot promote itself around the approval queue.
+    let paused: string | undefined;
+    if (dto.status !== undefined) {
+      if (dto.status !== 'active' && dto.status !== 'inactive') {
+        throw new BadRequestException('Status cannot be set directly');
+      }
+      if (car.status !== 'active' && car.status !== 'inactive') {
+        throw new BadRequestException('Only an approved listing can be paused or resumed');
+      }
+      paused = dto.status;
     }
+
     const before = { ...car };
     const fields = ['make', 'model', 'year', 'plate_number', 'category', 'transmission', 'fuel_type', 'seats'];
     const sets: string[] = [];
@@ -170,10 +187,11 @@ export class FleetService {
         params.push(f === 'plate_number' ? String(dto[f]).toUpperCase() : dto[f]);
       }
     }
-    if (sets.length === 0) throw new BadRequestException('Nothing to update');
+    // A pause carries no detail fields, so this guard has to allow it through.
+    if (sets.length === 0 && paused === undefined) throw new BadRequestException('Nothing to update');
     // Rule 5.2 Task 1.5: core detail edits on a live car push it back to pending_review
     const coreChanged = CORE_FIELDS.some((f) => dto[f] !== undefined && dto[f] !== car[f]);
-    let newStatus = car.status;
+    let newStatus = paused ?? car.status;
     if (coreChanged && (car.status === 'active' || car.status === 'inactive')) {
       newStatus = 'pending_review';
     }
@@ -181,11 +199,15 @@ export class FleetService {
     params.push(newStatus, nowUtc(), carId);
     await this.db().prepare(`UPDATE cars SET ${sets.join(', ')} WHERE id = ?`).run(...params);
     writeAudit('fleet', {
-      actor_id: ownerId, action: 'car.updated', entity_type: 'car', entity_id: carId,
+      actor_id: ownerId, action: paused ? (paused === 'inactive' ? 'car.paused' : 'car.resumed') : 'car.updated',
+      entity_type: 'car', entity_id: carId,
       before_value: before, after_value: await this.getOwnedCar(carId, ownerId),
     });
     await this.syncCarCache();
     const after = await this.getOwnedCar(carId, ownerId);
+    if (paused && !coreChanged) {
+      return { car: after, note: paused === 'inactive' ? 'Listing paused' : 'Listing resumed' };
+    }
     return { car: after, note: coreChanged ? 'Core details changed — car moved back to pending_review' : undefined };
   }
 

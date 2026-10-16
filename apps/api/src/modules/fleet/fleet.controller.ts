@@ -58,7 +58,14 @@ export class FleetController {
 
   @Roles('car_owner') @Patch('cars/:id')
   async update(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
-    return await this.fleet.updateCar(req.user.id, id, carSchema.partial().parse(body));
+    // `status` is deliberately not on carSchema -- it is the approval state, so
+    // it must not ride the same Zod pass that validates owner-editable detail.
+    // Pull it out first and let updateCar() apply its own transition rules.
+    const raw = (body ?? {}) as Record<string, unknown>;
+    const { status, ...rest } = raw;
+    const dto: any = carSchema.partial().parse(rest);
+    if (status !== undefined) dto.status = status;
+    return await this.fleet.updateCar(req.user.id, id, dto);
   }
 
   @Roles('car_owner') @Delete('cars/:id')

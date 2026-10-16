@@ -1,265 +1,313 @@
-import { useState, useEffect } from 'react';
-import { api, setSession } from '../api.js';
-import { useNavigate } from 'react-router-dom';
-import { RatingSummary, ReviewComments } from '../../../../packages/shared/src/Reviews.jsx';
+import { useState } from 'react';
+import { api } from '../api.js';
+import { useData, useRequestRows } from '../data.jsx';
+import { avatarBg, dayCount, inrP, rangeLabel } from '../lib.js';
+import { useOverlay, useToast } from '../ui.jsx';
+
+/**
+ * Booking requests: the reference's Pending / Approved / Declined tabs and
+ * row cards, plus the three things this portal already did that the reference
+ * did not -- rating a finished trip, raising a dispute, and deciding a renter's
+ * date extension. Those hang off the same rows as inline panels rather than
+ * separate pages, so the tab rhythm stays intact.
+ *
+ * Rows are read from useRequestRows() and looked up by id, so a decision made
+ * inside the drawer re-renders the row here against fresh server state.
+ */
+
+const TABS = [['p', 'Pending'], ['a', 'Approved'], ['d', 'Declined']];
+
+const STATUS_LABEL = {
+  requested: 'Pending',
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  ongoing: 'On trip',
+  completed: 'Completed',
+  rejected: 'Declined',
+  cancelled: 'Cancelled',
+};
+
+const canReview = (r) => r.status === 'completed' && r.has_reviewed === false;
+const canDispute = (r) => ['confirmed', 'ongoing'].includes(r.status);
 
 export default function Requests() {
-  const [requests, setRequests] = useState([]);
-  const [extensions, setExtensions] = useState([]);
-  const [completed, setCompleted] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [actionLoading, setActionLoading] = useState(null);
-  const [reviewBooking, setReviewBooking] = useState(null);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewLoading, setReviewLoading] = useState(false);
-  const navigate = useNavigate();
+  const rows = useRequestRows();
+  const { extensions, errors, reload } = useData();
+  const open = useOverlay().open;
+  const toast = useToast();
 
-  // shared api() returns parsed data and throws Error(message) on failure;
-  // it attaches Authorization itself, so no headers option here.
-  const load = async () => {
+  const [tab, setTab] = useState('p');
+  const [busy, setBusy] = useState('');
+  const [err, setErr] = useState('');
+  const [panel, setPanel] = useState(null); // { kind: 'review' | 'dispute', id }
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [reason, setReason] = useState('');
+  const [extBusy, setExtBusy] = useState('');
+
+  const counts = { p: 0, a: 0, d: 0 };
+  rows.forEach((r) => { if (counts[r.tab] !== undefined) counts[r.tab] += 1; });
+  const shown = rows.filter((r) => r.tab === tab);
+
+  const activeExts = ((extensions || []).filter(
+    (x) => x.status && !['approved', 'rejected', 'declined', 'cancelled'].includes(x.status),
+  ));
+
+  function openPanel(kind, id) {
+    setPanel({ kind, id });
+    setRating(5);
+    setComment('');
+    setReason('');
+    setErr('');
+  }
+
+  async function run(key, fn, message) {
+    setBusy(key);
+    setErr('');
     try {
-      const [reqData, extData, compData] = await Promise.all([
-        api('/bookings/requests'),
-        api('/extensions'),
-        api('/bookings/completed'),
-      ]);
-      setRequests(Array.isArray(reqData) ? reqData : []);
-      setExtensions(Array.isArray(extData) ? extData : []);
-      setCompleted(Array.isArray(compData) ? compData : []);
-      setError('');
+      await fn();
+      await reload();
+      toast(message);
+      return true;
     } catch (e) {
-      if (String(e.message || '').includes('(401)')) { navigate('/login'); return; }
-      setError(e.message || 'Network error — check your connection');
+      setErr(e.message);
+      return false;
     } finally {
-      setLoading(false);
+      setBusy('');
     }
-  };
+  }
 
-  useEffect(() => { load(); }, []);
+  const decide = (id, decision) => run(
+    id + decision,
+    () => api(`/bookings/${id}/decide`, { method: 'POST', body: { decision } }),
+    decision === 'approve' ? 'Booking approved' : 'Request declined',
+  );
 
-  const doDecide = async function(id, decision) {
-    setActionLoading(id);
-    try {
-      await api(`/bookings/${id}/decide`, { method: 'POST', body: { decision } });
-      load();
-    } catch (e) { setError(e.message || 'Decide failed'); }
-    finally { setActionLoading(null); }
-  };
+  async function submitReview(r) {
+    const ok = await run(
+      `rev:${r.id}`,
+      () => api('/reviews/renter', {
+        method: 'POST',
+        body: { booking_id: r.id, rating, comment: comment.trim() || undefined },
+      }),
+      'Review submitted',
+    );
+    if (ok) setPanel(null);
+  }
 
-  const doStartTrip = async function(id) {
-    setActionLoading(id);
-    try {
-      await api(`/bookings/${id}/start-trip`, { method: 'POST' });
-      load();
-    } catch (e) { setError(e.message || 'Start trip failed'); }
-    finally { setActionLoading(null); }
-  };
+  async function submitDispute(r) {
+    // The API rejects reasons shorter than 5 characters, so mirror that here
+    // instead of letting the round trip fail after the user has typed.
+    if (reason.trim().length < 5) {
+      setErr('Tell us a little more — at least 5 characters.');
+      return;
+    }
+    const ok = await run(
+      `disp:${r.id}`,
+      () => api('/disputes', { method: 'POST', body: { booking_id: r.id, reason: reason.trim() } }),
+      'Dispute raised',
+    );
+    if (ok) setPanel(null);
+  }
 
-  const doComplete = async function(id) {
-    setActionLoading(id);
-    try {
-      await api(`/bookings/${id}/complete`, { method: 'POST' });
-      load();
-    } catch (e) { setError(e.message || 'Complete trip failed'); }
-    finally { setActionLoading(null); }
-  };
-
-  const doExtensionDecide = async function(id, decision) {
-    setActionLoading(id);
+  async function decideExt(id, decision) {
+    setExtBusy(id + decision);
+    setErr('');
     try {
       await api(`/extensions/${id}/decide`, { method: 'POST', body: { decision } });
-      load();
-    } catch (e) { setError(e.message || 'Extension decision failed'); }
-    finally { setActionLoading(null); }
-  };
+      await reload();
+      toast(decision === 'approve' ? 'Extension approved' : 'Extension declined');
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setExtBusy('');
+    }
+  }
 
-  const doDispute = async function(id) {
-    const reason = window.prompt('Describe the issue (min 5 characters):');
-    if (!reason || reason.length < 5) return;
-    setActionLoading(id);
-    try {
-      await api('/disputes', { method: 'POST', body: { booking_id: id, reason } });
-      load();
-    } catch (e) { setError(e.message || 'Dispute raise failed'); }
-    finally { setActionLoading(null); }
-  };
-
-  const doReview = async function() {
-    if (!reviewBooking) return;
-    setReviewLoading(true);
-    try {
-      await api('/reviews/renter', {
-        method: 'POST',
-        body: { booking_id: reviewBooking.id, rating: reviewRating, comment: reviewComment || undefined },
-      });
-      setReviewBooking(null); setReviewRating(5); setReviewComment(''); load();
-    } catch (e) { setError(e.message || 'Review failed'); }
-    finally { setReviewLoading(false); }
-  };
-
-  if (loading) return <div className="loading-page"><div className="spinner"></div><p>Loading requests…</p></div>;
-  if (error && !requests.length && !extensions.length && !completed.length) return <div className="wrap"><div className="alert err">{error}</div><button className="btn" onClick={load}>Retry</button></div>;
+  if (errors.requests) {
+    return (
+      <div className="wrap">
+        <div className="alert err">{errors.requests}</div>
+        <button className="b" onClick={() => reload()}>Retry</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="wrap owner-page">
-      <div className="page-header">
-        <h1>Booking Requests</h1>
-        <p className="subtitle">Manage requests, start trips, handle extensions, review renters</p>
+    <>
+      <div className="hd">
+        <div>
+          <div className="ey">Queue</div>
+          <h2>Booking <em>requests</em></h2>
+          <p>{counts.p} waiting on you · {rows.length} in total</p>
+        </div>
       </div>
 
-      {error && <div className="alert err">{error}<button className="btn btn-ghost btn-sm ml-8" onClick={() => setError('')}>Dismiss</button></div>}
+      <div className="tabs">
+        {TABS.map(([k, label]) => (
+          <button key={k} className={tab === k ? 'on' : ''} onClick={() => { setTab(k); setPanel(null); }}>
+            {label} <em>{counts[k]}</em>
+          </button>
+        ))}
+      </div>
 
-      {/* Review Modal */}
-      {reviewBooking && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Review renter for {reviewBooking.car?.brand} {reviewBooking.car?.model}</h3>
-            </div>
-            <div className="form-group">
-              <label className="f">Rating</label>
-              <div className="star-rating">
-                {[1,2,3,4,5].map((s) => (
-                  <button key={s} onClick={() => setReviewRating(s)} className={s <= reviewRating ? 'filled' : ''}>★</button>
-                ))}
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="f">Comment (optional)</label>
-              <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={3}
-                className="f review-form"
-                placeholder="How was this renter?" />
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn-review" onClick={doReview} disabled={reviewLoading}>
-                {reviewLoading ? 'Submitting…' : 'Submit Review'}
-              </button>
-              <button className="btn btn-ghost" onClick={() => { setReviewBooking(null); setReviewComment(''); setReviewRating(5); }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {err && <div className="alert err">{err}</div>}
 
-      {/* ---------- Pending Booking Requests ---------- */}
-      <h2 className="page-section-title">⚡ Pending Requests</h2>
-      {!requests.length ? (
-        <div className="empty-state-section">
-          <div className="empty-icon">✅</div>
-          <p>No pending requests — you're all caught up</p>
-        </div>
-      ) : (
-        <div className="booking-list mb-28">
-          {requests.map((r) => (
-            <div key={r.id} className="booking-card">
-              <div className="booking-card-header">
-                <div className="booking-card-body">
-                  <h3>{r.car?.brand} {r.car?.model} <span className="muted">({r.car?.plate})</span></h3>
-                  <p>{new Date(r.start_date).toLocaleDateString()} → {new Date(r.end_date).toLocaleDateString()}</p>
-                  <p className="meta-accent">Requested by {r.renter?.name || r.renter_id} · ₹{(r.total_amount_paise / 100).toFixed(2)}</p>
-                  <div className="requester-trust">
-                    <RatingSummary avg={r.renter?.avg_rating} count={r.renter?.total_reviews} emptyText="New renter — no reviews yet" />
-                    <span className="requester-label">Renter rating &amp; comments</span>
-                  </div>
-                  <ReviewComments comments={r.renter?.recent_comments} />
-                </div>
-                <span className="booking-status pill requested">{r.status}</span>
-              </div>
-              <div className="booking-card-footer">
-                <div className="booking-card-actions">
-                  {r.status === 'requested' && (
-                    <>
-                      <button className="btn btn-approve" onClick={() => doDecide(r.id, 'approve')} disabled={actionLoading === r.id}>Approve</button>
-                      <button className="btn btn-reject" onClick={() => doDecide(r.id, 'reject')} disabled={actionLoading === r.id}>Reject</button>
-                    </>
-                  )}
-                  {r.status === 'confirmed' && (
-                    <button className="btn btn-start" onClick={() => doStartTrip(r.id)} disabled={actionLoading === r.id}>Start Trip</button>
-                  )}
-                  {r.status === 'ongoing' && (
-                    <button className="btn btn-complete" onClick={() => doComplete(r.id)} disabled={actionLoading === r.id}>Complete</button>
-                  )}
-                  <button className="btn btn-ghost btn-reject" onClick={() => doDispute(r.id)} disabled={actionLoading === r.id}>Report Issue</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ---------- Extensions ---------- */}
-      <h2 className="page-section-title">🕐 Extension Requests</h2>
-      {!extensions.length ? (
+      {shown.length === 0 && (
         <div className="empty-state-section">
           <div className="empty-icon">📅</div>
-          <p>No extension requests pending</p>
-        </div>
-      ) : (
-        <div className="booking-list mb-28">
-          {extensions.map((ext) => (
-            <div key={ext.id} className="booking-card">
-              <div className="booking-card-header">
-                <div className="booking-card-body">
-                  <h3>{ext.car?.brand} {ext.car?.model} <span className="muted">({ext.car?.plate})</span></h3>
-                  <p>Extension: +{ext.additional_days} day(s) → {new Date(ext.requested_end_date).toLocaleDateString()}</p>
-                  <p className="meta-accent">Renter: {ext.renter_id} · +₹{(ext.additional_amount_paise / 100).toFixed(2)}</p>
-                </div>
-                <span className="booking-status pill requested">{ext.status}</span>
-              </div>
-              <div className="booking-card-footer">
-                <div className="booking-card-actions">
-                  <button className="btn btn-approve" onClick={() => doExtensionDecide(ext.id, 'approve')} disabled={actionLoading === ext.id}>Approve</button>
-                  <button className="btn btn-reject" onClick={() => doExtensionDecide(ext.id, 'reject')} disabled={actionLoading === ext.id}>Reject</button>
-                </div>
-              </div>
-            </div>
-          ))}
+          <p>
+            {tab === 'p' && 'No requests waiting for a decision.'}
+            {tab === 'a' && 'Nothing approved yet — approved trips land here.'}
+            {tab === 'd' && 'Nothing declined.'}
+          </p>
         </div>
       )}
 
-      {/* ---------- Completed Trips ---------- */}
-      <h2 className="page-section-title">✅ Completed Trips</h2>
-      {!completed.length ? (
-        <div className="empty-state-section">
-          <div className="empty-icon">🚗</div>
-          <p>No completed trips yet</p>
-        </div>
-      ) : (
-        <div className="booking-list">
-          {completed.map((c) => (
-            <div key={c.id} className="booking-card">
-              <div className="booking-card-header">
-                <div className="booking-card-body">
-                  <h3>{c.car?.brand} {c.car?.model} <span className="muted">({c.car?.plate})</span></h3>
-                  <p>{new Date(c.start_date).toLocaleDateString()} → {new Date(c.end_date).toLocaleDateString()}</p>
-                  <p className="meta-accent">Renter: {c.renter?.name || c.renter_id} · ₹{(c.total_amount_paise / 100).toFixed(2)}</p>
-                  <RatingSummary avg={c.renter?.avg_rating} count={c.renter?.total_reviews} emptyText="No reviews for this renter yet" />
+      {shown.map((r) => {
+        const name = r.renter?.name || 'Renter';
+        const days = dayCount(r.start_date, r.end_date);
+        const label = STATUS_LABEL[r.status] || r.status;
+        const reviewing = panel?.kind === 'review' && panel.id === r.id;
+        const disputing = panel?.kind === 'dispute' && panel.id === r.id;
+
+        return (
+          <div key={r.id}>
+            <div
+              className="rq c"
+              data-x="req"
+              role="button"
+              tabIndex={0}
+              onClick={() => open('req', r.id)}
+              onKeyDown={(e) => { if (e.key === 'Enter') open('req', r.id); }}
+            >
+              <span className="av" style={{ background: avatarBg(name) }}>{name[0].toUpperCase()}</span>
+              <div className="m">
+                <b>{name}</b>
+                <span className="vf">
+                  {r.renter?.avg_rating
+                    ? `★ ${Number(r.renter.avg_rating).toFixed(1)} · ${r.renter.total_reviews || 0} reviews`
+                    : 'New renter'}
+                </span>
+                <div className="mt">
+                  {r.car?.brand} {r.car?.model} · {rangeLabel(r.start_date, r.end_date)} · {days} day{days === 1 ? '' : 's'}
                 </div>
-                <span className="booking-status pill completed">completed</span>
               </div>
-              <div className="booking-card-footer">
-                <div className="booking-card-actions">
-                  {c.has_reviewed ? (
-                    <span className="pill active">✓ Reviewed</span>
-                  ) : (
-                    <button className="btn btn-review" onClick={() => setReviewBooking(c)}>
-                      Review Renter
+              <div className="am">
+                {inrP(r.total_amount_paise)}
+                <small>{days} day{days === 1 ? '' : 's'}</small>
+              </div>
+              {/* Stopping propagation here keeps a decision click from opening
+                  the drawer that the row itself is bound to. */}
+              <div className="ac" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                {r.tab === 'p' && (
+                  <>
+                    <button className="o r" disabled={!!busy} onClick={() => decide(r.id, 'reject')}>Decline</button>
+                    <button className="b" disabled={!!busy} onClick={() => decide(r.id, 'approve')}>Approve</button>
+                  </>
+                )}
+                {r.tab === 'a' && (
+                  <>
+                    {canDispute(r) && (
+                      <button className="o r"
+                        onClick={() => (disputing ? setPanel(null) : openPanel('dispute', r.id))}>
+                        {disputing ? 'Cancel' : 'Raise dispute'}
+                      </button>
+                    )}
+                    {canReview(r) && (
+                      <button className="o g"
+                        onClick={() => (reviewing ? setPanel(null) : openPanel('review', r.id))}>
+                        {reviewing ? 'Cancel' : 'Leave a review'}
+                      </button>
+                    )}
+                    <span className="tag a">{label}</span>
+                  </>
+                )}
+                {r.tab === 'd' && <span className="tag d">{label}</span>}
+              </div>
+            </div>
+
+            {reviewing && (
+              <div className="card" onClick={(e) => e.stopPropagation()}>
+                <p className="ey">Rate {name}</p>
+                <div className="star-rating" style={{ marginBottom: 12 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" className={n <= rating ? 'filled' : ''}
+                      onClick={() => setRating(n)} aria-label={`${n} of 5`}>★</button>
+                  ))}
+                </div>
+                <textarea className="f" rows={3} value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="How was the trip?" />
+                <div className="card-footer-row">
+                  <span className="muted">{r.car?.brand} {r.car?.model}</span>
+                  <span>
+                    <button className="btn sec sm" onClick={() => setPanel(null)}>Cancel</button>
+                    <button className="b ml-8" disabled={!!busy}
+                      onClick={() => submitReview(r)}>
+                      {busy === `rev:${r.id}` ? 'Submitting…' : 'Submit'}
                     </button>
-                  )}
-                  <button className="btn btn-ghost btn-reject" onClick={() => doDispute(c.id)} disabled={actionLoading === c.id}>Report Issue</button>
+                  </span>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            )}
 
-      <div className="text-center mt-32">
-        <button className="btn btn-ghost" onClick={() => navigate('/')}>← Back to Cars</button>
-      </div>
-    </div>
+            {disputing && (
+              <div className="card" onClick={(e) => e.stopPropagation()}>
+                <p className="ey">Raise a dispute</p>
+                <textarea className="f" rows={3} value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="What went wrong on this booking?" />
+                <div className="card-footer-row">
+                  <span className="muted">An admin will review it.</span>
+                  <span>
+                    <button className="btn sec sm" onClick={() => setPanel(null)}>Cancel</button>
+                    <button className="b ml-8" disabled={!!busy}
+                      onClick={() => submitDispute(r)}>
+                      {busy === `disp:${r.id}` ? 'Raising…' : 'Raise dispute'}
+                    </button>
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {tab === 'p' && activeExts.length > 0 && (
+        <>
+          <div className="page-section-title">Extension requests</div>
+          {activeExts.map((x) => {
+            const carName = typeof x.car === 'string'
+              ? x.car
+              : `${x.car?.brand || ''} ${x.car?.model || ''}`.trim() || 'Your car';
+            return (
+              <div className="rq c" key={x.id}>
+                <span className="av" style={{ background: avatarBg(carName) }}>
+                  {(carName[0] || 'E').toUpperCase()}
+                </span>
+                <div className="m">
+                  <b>Extend by {x.additional_days} day{x.additional_days === 1 ? '' : 's'}</b>
+                  <span className="vf" style={{ color: 'var(--mut)' }}>Renter asked for more time</span>
+                  <div className="mt">
+                    {carName} · now ends {String(x.requested_end_date || '').slice(0, 10)}
+                  </div>
+                </div>
+                <div className="am">
+                  {inrP(x.additional_amount_paise)}
+                  <small>extra</small>
+                </div>
+                <div className="ac" onClick={(e) => e.stopPropagation()}>
+                  <button className="o r" disabled={!!extBusy}
+                    onClick={() => decideExt(x.id, 'reject')}>Decline</button>
+                  <button className="b" disabled={!!extBusy}
+                    onClick={() => decideExt(x.id, 'approve')}>Approve</button>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+    </>
   );
 }

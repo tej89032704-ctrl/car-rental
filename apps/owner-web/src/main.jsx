@@ -9,8 +9,12 @@ import '../../../packages/shared/styles/components.css';
 import '../../../packages/shared/styles/floating-keyboard.css';
 import './styles.css';
 import './components.css';
-/* Design layer last: this file wins over the portal's own rules. */
+/* Shared PIT LANE layer: still carries the portal's structural rules. */
 import '../../../packages/shared/styles/base.css';
+/* OwnerHub layer last, so mint/Fraunces wins wherever the two disagree. The
+   reference's own three sheets are folded into this file in their original
+   order, keeping the cascade faithful to the source. */
+import './theme.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

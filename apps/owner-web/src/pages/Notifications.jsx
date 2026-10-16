@@ -1,28 +1,49 @@
-import { useEffect, useState } from 'react';
-import { api, currentUser } from '../api.js';
+import { useData, useUnread } from '../data.jsx';
+import { relTime } from '../lib.js';
 
 export default function Notifications() {
-  const [items, setItems] = useState([]);
-  const [err, setErr] = useState('');
-  useEffect(() => {
-    if (currentUser) api('/notifications/mine').then(setItems).catch((e) => setErr(e.message));
-  }, []);
+  const { list, unread, mark } = useUnread();
+  const { errors } = useData();
+
+  // Read state is client-side only (localStorage via useUnread), so "read" is
+  // simply "not currently unread" -- no server round-trip, no un-mark.
+  const unreadIds = new Set(unread.map((n) => n.id));
+  const isRead = (n) => !unreadIds.has(n.id);
 
   return (
-    <div className="wrap">
-      <div className="page-header">
-        <h1>Notifications</h1>
+    <div>
+      <div className="hd">
+        <div>
+          <div className="ey">Inbox</div>
+          <h2>Your <em>notifications</em></h2>
+          <p>{unread.length} unread · {list.length} total</p>
+        </div>
+        <button className="o" disabled={unread.length === 0} onClick={() => mark(unread.map((n) => n.id))}>
+          Mark all as read
+        </button>
       </div>
-      {err && <div className="alert err">{err}</div>}
-      {items.length === 0 && <div className="card"><p className="muted">Nothing here yet.</p></div>}
-      {items.length > 0 && (
+
+      {errors.notifications && <div className="alert err">{errors.notifications}</div>}
+
+      {list.length === 0 ? (
+        <div className="empty-state-section">
+          <div className="empty-icon">🔔</div>
+          <p className="muted">Nothing here yet — new activity on your cars will show up here.</p>
+        </div>
+      ) : (
         <div className="notification-list">
-          {items.map((n) => (
-            <div className="notification-item" key={n.id}>
+          {list.map((n) => (
+            <div
+              key={n.id}
+              className={`nt notification-item${isRead(n) ? ' rd' : ''}`}
+              style={{ marginBottom: 0 }}
+              onClick={() => mark([n.id])}
+            >
+              <span className="u" />
               <div className="notification-content">
-                <p className="notification-title">{n.title}</p>
-                <p className="notification-body">{n.body}</p>
-                <p className="notification-time">{new Date(n.created_at).toLocaleString()}</p>
+                <div className="notification-title">{n.title}</div>
+                <div className="notification-body">{n.body}</div>
+                <div className="notification-time">{relTime(n.created_at)}</div>
               </div>
             </div>
           ))}
