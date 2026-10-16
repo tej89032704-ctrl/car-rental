@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, randomInt } from 'crypto';
 import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
@@ -13,11 +13,12 @@ const REFRESH_TTL_SEC = 7 * 24 * 60 * 60;
 const OTP_TTL_SEC = 10 * 60;
 const RESET_TTL_SEC = 15 * 60;
 
-export type Portal = 'main' | 'admin' | 'agent';
+export type Portal = 'main' | 'admin' | 'agent' | 'manager';
 const PORTAL_ROLES: Record<Portal, string[]> = {
   main: ['car_owner', 'car_renter'],
   admin: ['super_admin'],
   agent: ['agent'],
+  manager: ['manager'],
 };
 
 @Injectable()
@@ -66,7 +67,7 @@ export class AuthService {
   }
 
   private async createOtp(userId: string, purpose: 'phone_verify' | 'admin_2fa' | 'password_reset'): Promise<string> {
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(randomInt(100000, 1000000));
     if (purpose === 'password_reset') {
       // long random token emailed as link instead of a numeric code
       const token = require('crypto').randomBytes(24).toString('hex');
@@ -99,7 +100,7 @@ export class AuthService {
   }
 
   async signup(dto: { name: string; email: string; phone: string; password: string; role: string }) {
-    if (dto.role === 'super_admin') throw new BadRequestException('Invalid role');
+    if (!['car_owner', 'car_renter', 'agent'].includes(dto.role)) throw new BadRequestException('Invalid role');
     const db = getDb('auth');
     const exists = await db.prepare(`SELECT id FROM users WHERE email = ? OR phone = ?`).get(dto.email, dto.phone);
     if (exists) throw new BadRequestException('An account with this email or phone already exists');
@@ -141,6 +142,7 @@ export class AuthService {
 
   async loginMain(email: string, password: string) { return await this.loginWithPortal(email, password, 'main'); }
   async loginAgent(email: string, password: string) { return await this.loginWithPortal(email, password, 'agent'); }
+  async loginManager(email: string, password: string) { return await this.loginWithPortal(email, password, 'manager'); }
   async loginAdmin(email: string, password: string) { return await this.loginWithPortal(email, password, 'admin'); }
 
   private async create2faChallenge(userId: string): Promise<string> {
@@ -160,7 +162,7 @@ export class AuthService {
     }
     if (payload.scope !== '2fa') throw new UnauthorizedException('Bad 2FA session');
     const user = await this.getUserRaw(payload.sub);
-    if (user.role !== 'super_admin') throw new UnauthorizedException('Invalid credentials for this portal');
+    if (!user || user.status !== 'active' || user.role !== 'super_admin') throw new UnauthorizedException('Invalid credentials for this portal');
     if (!await this.consumeOtp(user.id, 'admin_2fa', code)) throw new UnauthorizedException('Incorrect verification code');
     return { ...await this.issueTokens(user), user: this.toPublicUser(user) };
   }
@@ -453,6 +455,7 @@ export class AuthService {
     if (!session) throw new UnauthorizedException('Refresh token invalid or expired');
     await db.prepare(`UPDATE sessions SET revoked_at = ?, updated_at = ? WHERE id = ?`).run(nowUtc(), nowUtc(), session.id);
     const user = await this.getUserRaw(session.user_id);
+    if (!user || ['suspended', 'banned'].includes(user.status)) throw new UnauthorizedException('Account unavailable');
     return await this.issueTokens(user);
   }
 }

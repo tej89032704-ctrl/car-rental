@@ -514,9 +514,12 @@ export class BookingsService {
     let swept = 0;
     for (const b of rows) {
       const completedAt = String(b.completed_at).trim();
-      // SQLite datetime() writes 'YYYY-MM-DD HH:MM:SS' (UTC); normalize to ISO before parsing
-      const iso = completedAt.includes('T') ? completedAt
-        : `${completedAt.replace(' ', 'T')}Z`;
+      // Legacy SQLite values have no zone; PostgreSQL timestamp text may
+      // already end in +00 or +00:00. Never append Z after an existing offset.
+      const normalized = completedAt.replace(' ', 'T');
+      const iso = /(?:Z|[+-]\d{2}(?::?\d{2})?)$/i.test(normalized)
+        ? normalized.replace(/([+-]\d{2})$/, '$1:00')
+        : `${normalized}Z`;
       const ms = Date.parse(iso);
       if (Number.isNaN(ms) || ms > cutoff) continue;
       const openDispute = await this.db().prepare(`SELECT id FROM disputes WHERE booking_id = ? AND status = 'open' AND is_deleted = 0`).get(b.id);

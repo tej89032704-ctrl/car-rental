@@ -4,7 +4,10 @@ import * as jwt from 'jsonwebtoken';
 import { getDb } from '../db/database';
 import { Role } from './roles';
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
+export const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-change-me');
+if (!JWT_SECRET || (process.env.NODE_ENV === 'production' && (JWT_SECRET.length < 32 || JWT_SECRET === 'dev-secret-change-me'))) {
+  throw new Error('Production requires a unique JWT_SECRET of at least 32 characters');
+}
 
 export interface RequestUser {
   id: string;
@@ -43,9 +46,10 @@ export class JwtAuthGuard implements CanActivate {
       // invalid/absent token simply leaves the request anonymous.
       if (header?.startsWith('Bearer ')) {
         try {
-          const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: string };
+          const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: string; scope?: string };
+          if (payload.scope) throw new Error('Challenge tokens are not access tokens');
           const user = await loadUser(payload.sub);
-          if (user) req.user = user;
+          if (user && !['suspended', 'banned'].includes(user.status)) req.user = user;
         } catch { /* anonymous access is still allowed */ }
       }
       return true;
@@ -53,9 +57,10 @@ export class JwtAuthGuard implements CanActivate {
 
     if (!header?.startsWith('Bearer ')) throw new UnauthorizedException('Missing token');
     try {
-      const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: string };
+      const payload = jwt.verify(header.slice(7), JWT_SECRET) as { sub: string; scope?: string };
+          if (payload.scope) throw new Error('Challenge tokens are not access tokens');
       const user = await loadUser(payload.sub);
-      if (!user) throw new Error('user gone');
+      if (!user || ['suspended', 'banned'].includes(user.status)) throw new Error('Account unavailable');
       req.user = user;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');

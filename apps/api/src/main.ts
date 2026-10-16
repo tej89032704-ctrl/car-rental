@@ -1,17 +1,15 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import * as path from 'path';
 import { runMigrations } from './common/db/database';
 import { AppModule } from './app.module';
 import { BookingsService } from './modules/bookings/bookings.service';
 import { FleetService } from './modules/fleet/fleet.service';
 
 async function bootstrap() {
-  runMigrations();
+  await runMigrations();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({ origin: true, credentials: true });
-  app.useStaticAssets(path.resolve(__dirname, '../uploads'), { prefix: '/uploads/' });
   const port = Number(process.env.PORT || 4000);
   await app.listen(port);
 
@@ -27,4 +25,7 @@ async function bootstrap() {
 
   console.log(`API running on http://localhost:${port}`);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('API startup failed:', error);
+  process.exitCode = 1;
+});

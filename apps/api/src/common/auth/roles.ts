@@ -1,1 +1,1 @@
-export type Role = 'super_admin' | 'car_owner' | 'car_renter' | 'agent';
+export type Role = 'super_admin' | 'manager' | 'car_owner' | 'car_renter' | 'agent';

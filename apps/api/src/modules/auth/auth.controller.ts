@@ -108,6 +108,12 @@ export class AuthController {
     return await this.auth.loginAgent(dto.email, dto.password);
   }
 
+  @Public() @HttpCode(200) @Post('auth/manager/login')
+  async loginManager(@Body() body: unknown) {
+    const dto = this.parse(credentialsSchema, body);
+    return await this.auth.loginManager(dto.email, dto.password);
+  }
+
   @Public() @HttpCode(200) @Post('auth/refresh')
   async refresh(@Body() body: unknown) {
     const dto = this.parse(refreshSchema, body);
@@ -125,17 +131,17 @@ export class AuthController {
     return await this.auth.resetPassword(dto.token, dto.new_password);
   }
 
-  @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/otp/phone/request')
+  @KycExempt() @Roles('super_admin', 'manager', 'car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/otp/phone/request')
   async requestOtp(@Req() req: any) {
     return await this.auth.requestPhoneOtp(req.user.id);
   }
 
-  @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/otp/phone/verify')
+  @KycExempt() @Roles('super_admin', 'manager', 'car_owner', 'car_renter', 'agent') @HttpCode(200) @Post('auth/otp/phone/verify')
   async verifyOtp(@Req() req: any, @Body() body: unknown) {
     return await this.auth.verifyPhoneOtp(req.user.id, this.parse(otpVerifySchema, body).code);
   }
 
-  @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Get('auth/me')
+  @KycExempt() @Roles('super_admin', 'manager', 'car_owner', 'car_renter', 'agent') @Get('auth/me')
   async me(@Req() req: any) {
     const u = await this.auth.getUserRaw(req.user.id);
     if (!u) throw new BadRequestException('User not found');
@@ -145,7 +151,7 @@ export class AuthController {
   // Editing your own name/phone is part of finishing signup, so this stays
   // @KycExempt alongside /auth/me and /kyc/me: a user whose KYC is still
   // pending must be able to correct their own details.
-  @KycExempt() @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Patch('auth/me')
+  @KycExempt() @Roles('super_admin', 'manager', 'car_owner', 'car_renter', 'agent') @Patch('auth/me')
   async updateMe(@Req() req: any, @Body() body: unknown) {
     const dto = this.parse(updateProfileSchema, body);
     const { name, phone, ...profile } = dto;
@@ -161,7 +167,7 @@ export class AuthController {
     return await this.auth.requestRoleChange(req.user.id, dto.desired_role);
   }
 
-  @Roles('super_admin', 'car_owner', 'car_renter', 'agent') @Get('auth/role-change-requests/mine')
+  @Roles('super_admin', 'manager', 'car_owner', 'car_renter', 'agent') @Get('auth/role-change-requests/mine')
   async myRoleRequests(@Req() req: any) {
     return await this.auth.myRoleChangeRequests(req.user.id);
   }
