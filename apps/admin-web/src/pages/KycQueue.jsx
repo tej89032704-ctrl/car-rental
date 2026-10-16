@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PrivateDocument from '../../../../packages/shared/src/PrivateDocument.jsx';
 import { api } from '../api.js';
 import { TYPE_LABEL, VerifyPill } from '../../../../packages/shared/src/KycStatus.jsx';
 
@@ -40,7 +41,7 @@ export default function KycQueue() {
                       {d.doc_number || '—'}{d.doc_expiry ? ` · valid to ${d.doc_expiry}` : ''}
                     </div>
                     {d.file_url
-                      ? <a className="btn sec sm" style={{ marginTop: 6 }} href={d.file_url} target="_blank" rel="noreferrer">View file</a>
+                      ? <PrivateDocument url={d.file_url} />
                       : <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>verified data only — no file</div>}
                   </td>
                   <td>

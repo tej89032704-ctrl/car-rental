@@ -36,8 +36,8 @@
   border-radius: 16px;
   object-fit: cover;
   height: 250px;
-  background: var(--line-soft, #f5f5f7);
-  box-shadow: var(--shadow-md, none);
+  background: var(--line-soft);
+  box-shadow: var(--shadow-md);
   flex-shrink: 0;
 }
 .car-detail-info {
@@ -61,8 +61,8 @@
   height: 250px;
   border-radius: 16px;
   overflow: hidden;
-  background: var(--line-soft, #f5f5f7);
-  box-shadow: var(--shadow-md, none);
+  background: var(--line-soft);
+  box-shadow: var(--shadow-md);
 }
 .car-gallery-img {
   width: 100%;
@@ -74,10 +74,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--line, #d2d2d7);
+  border: 1px dashed var(--line);
 }
 .car-gallery-empty-text {
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
   font-size: 14px;
 }
 /* Chevrons sit over the image, so they need their own contrast rather than
@@ -91,7 +91,7 @@
   border-radius: 50%;
   border: none;
   background: rgba(0, 0, 0, 0.45);
-  color: #fff;
+  color: var(--chrome-ink);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -109,7 +109,7 @@
   right: 10px;
   bottom: 10px;
   background: rgba(0, 0, 0, 0.55);
-  color: #fff;
+  color: var(--chrome-ink);
   font-size: 12px;
   font-weight: 600;
   padding: 3px 9px;
@@ -128,7 +128,7 @@
   border: 2px solid transparent;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--line-soft, #f5f5f7);
+  background: var(--line-soft);
   cursor: pointer;
   opacity: 0.65;
   transition: opacity 0.15s ease, border-color 0.15s ease;
@@ -142,16 +142,16 @@
 .car-gallery-thumb:hover { opacity: 1; }
 .car-gallery-thumb.active {
   opacity: 1;
-  border-color: var(--brand, #0b7a75);
+  border-color: var(--acc);
 }
 
 /* ── Owner card (OwnerCard.jsx) ── */
 .owner-card {
   margin-top: 22px;
   padding: 16px;
-  border: 1px solid var(--line-soft, #f5f5f7);
+  border: 1px solid var(--line-soft);
   border-radius: 14px;
-  background: var(--bg-soft, #fafafc);
+  background: var(--bg-soft);
 }
 
 /* ── Location map (LocationMap.jsx)
@@ -162,10 +162,10 @@
 .location-map {
   position: relative;
   margin-top: 14px;
-  border: 1px solid var(--line-soft, #f5f5f7);
+  border: 1px solid var(--line-soft);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--line-soft, #f5f5f7);
+  background: var(--line-soft);
 }
 .location-map-grid {
   position: relative;
@@ -184,7 +184,7 @@
   height: 14px;
   margin: -7px 0 0 -7px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid var(--chrome-ink);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .location-map-empty {
@@ -192,9 +192,9 @@
   align-items: center;
   justify-content: center;
   height: 120px;
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
   font-size: 13px;
-  border: 1px dashed var(--line, #d2d2d7);
+  border: 1px dashed var(--line);
   border-radius: 12px;
 }
 .location-map-status {
@@ -205,7 +205,7 @@
   padding: 5px 11px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.62);
-  color: #fff;
+  color: var(--chrome-ink);
   font-size: 12px;
   font-weight: 600;
 }
@@ -216,20 +216,20 @@
   gap: 8px;
   flex-wrap: wrap;
   padding: 7px 10px;
-  background: var(--bg-soft, #fafafc);
-  border-top: 1px solid var(--line-soft, #f5f5f7);
+  background: var(--bg-soft);
+  border-top: 1px solid var(--line-soft);
   font-size: 11px;
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
 }
-.location-map-place { font-weight: 700; font-size: 12px; color: var(--text, #1d1d1f); }
+.location-map-place { font-weight: 700; font-size: 12px; color: var(--ink); }
 .location-map-source {
   padding: 1px 7px;
   border-radius: 999px;
-  background: rgba(232, 89, 12, 0.12);
-  color: #c2410c;
+  background: var(--acc-soft);
+  color: var(--acc-text);
   font-weight: 700;
 }
-.location-map-attrib { margin-left: auto; color: var(--muted, #6e6e73); text-decoration: none; }
+.location-map-attrib { margin-left: auto; color: var(--muted); text-decoration: none; }
 .location-map-attrib:hover { text-decoration: underline; }
 
 /* The location *picker* styles (LocationPicker.jsx) live in
@@ -246,8 +246,8 @@
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: var(--brand, #0b7a75);
-  color: #fff;
+  background: var(--chrome-2);
+  color: var(--chrome-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -270,7 +270,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
   font-size: 13px;
   margin-top: 2px;
 }
@@ -279,11 +279,11 @@
   gap: 24px;
   margin: 14px 0 0;
   padding-top: 12px;
-  border-top: 1px solid var(--line-soft, #f5f5f7);
+  border-top: 1px solid var(--line-soft);
 }
 .owner-stat dt {
   font-size: 12px;
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -294,32 +294,32 @@
 }
 .owner-stat-count {
   font-weight: 400;
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
   font-size: 13px;
 }
 .owner-note {
   margin: 12px 0 0;
   font-size: 13px;
-  color: var(--muted, #6e6e73);
+  color: var(--muted);
   line-height: 1.5;
 }
 
-/* ── Price large — Revv teal ── */
+/* ── Price large — the headline figure, in the signal accent ── */
 .price-lg {
   font-family: var(--font-display);
   font-weight: 700;
-  color: var(--brand);
+  color: var(--acc-text);
   margin-top: 10px;
   font-size: 28px;
   letter-spacing: -0.02em;
 }
 
-/* ── Rating in car detail (Revv gold) ── */
+/* ── Rating in car detail ── */
 .rating-inline {
   margin: 6px 0;
   font-size: 15px;
   font-weight: 600;
-  color: #6e6e73;
+  color: var(--muted);
 }
 .rating-inline .count {
   color: var(--muted);
@@ -339,18 +339,18 @@
 
 /* ── Booking status colors ── */
 .booking-status.status-completed {
-  background: #1d1d1f; color: #ffffff; border-color: #1d1d1f;
+  background: var(--ok); color: var(--chrome-ink); border-color: var(--ok);
 }
 .booking-status.status-cancelled,
 .booking-status.status-rejected {
-  background: #ffffff; color: #1d1d1f; border-color: #1d1d1f;
+  background: transparent; color: var(--bad); border-color: var(--bad);
 }
 .booking-status.status-requested,
 .booking-status.status-pending {
-  background: #f5f5f7; color: #1d1d1f; border-color: #d2d2d7;
+  background: var(--acc-soft); color: var(--acc-text); border-color: var(--acc-line);
 }
 .booking-status.status-confirmed {
-  background: #1d1d1f; color: #ffffff; border-color: #1d1d1f;
+  background: var(--ok); color: var(--chrome-ink); border-color: var(--ok);
 }
 
 /* ── Inline extension / cancel panels ── */
@@ -362,13 +362,13 @@
   border: 1px solid transparent;
 }
 .booking-panel.cancel-panel {
-  background: #f5f5f7; color: #424245; border-color: var(--line, #e8e8ed);
+  background: var(--bg-soft); color: var(--chrome-3); border-color: var(--line);
 }
 .booking-panel.extend-panel {
-  background: #f5f5f7; color: #1d1d1f; border-color: #e8e8ed;
+  background: var(--bg-soft); color: var(--ink); border-color: var(--line);
 }
 
-/* ── Lifetime page (Revv gold accents) ── */
+/* ── Lifetime page (signal-amber accents) ── */
 .lifetime-layout {
   max-width: 580px;
   margin: 0 auto;
@@ -436,7 +436,7 @@
 .lifetime-price-value {
   font-size: 24px;
   font-weight: 700;
-  color: var(--gold, #6e6e73);
+  color: var(--acc-text);
   margin: 0;
   letter-spacing: -0.02em;
 }
@@ -455,10 +455,9 @@
   font-size: 12px;
 }
 
-/* Lifetime CTA — token swap only; the elevation comes from .btn.
-   Written as .btn.btn-lifetime (0,2,0) so the generic .btn:hover fill in
-   styles.css can't turn it black. padding 14px + .btn's 1px border =
-   the original borderless 15px box. */
+/* Lifetime CTA — it is the page's primary action, so it takes the amber
+   gradient. Written as .btn.btn-lifetime to out-specify the generic .btn:hover
+   fill. padding 14px + .btn's 1px border = the original borderless 15px box. */
 .btn.btn-lifetime {
   width: 100%;
   padding: 14px;
@@ -466,13 +465,13 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   font-family: var(--font-display);
-  --btn-bg: #6e6e73;
-  --btn-fg: #ffffff;
+  --btn-bg: var(--acc-grad);
+  --btn-fg: var(--acc-ink);
   --btn-edge: transparent;
   border-radius: 12px;
   cursor: pointer;
 }
-.btn.btn-lifetime:hover { --btn-bg: #424245; }
+.btn.btn-lifetime:hover { --btn-bg: var(--acc-grad); }
 
 /* ── Notification empty state ── */
 .notifications-empty {
@@ -499,13 +498,13 @@
   letter-spacing: 10px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
+  background: var(--card);
   box-sizing: border-box;
   font-family: var(--font);
 }
 .otp-input:focus {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.083);
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--acc-soft);
   outline: none;
 }
 
@@ -524,9 +523,9 @@
 
 /* ── Error banner (inline) ── */
 .error-banner {
-  background: #FEF2F2;
-  color: #1d1d1f;
-  border: 1px solid #d2d2d7;
+  background: color-mix(in srgb, var(--bad) 8%, var(--card));
+  color: var(--bad);
+  border: 1px solid color-mix(in srgb, var(--bad) 35%, transparent);
   padding: 12px 16px;
   border-radius: 12px;
   margin-bottom: 20px;
@@ -573,15 +572,16 @@
   width: 34px; height: 34px; border-radius: 10px;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 16px;
-  background: linear-gradient(135deg, #000000, #1d1d1f);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.193);
+  background: var(--acc-grad);
+  box-shadow: var(--shadow-acc);
   flex-shrink: 0;
 }
 .brand-name { display: inline-flex; align-items: center; line-height: 1; }
-.brand-accent { color: var(--brand); }
-/* footer sits on the dark surface — accent must stay white, never the black brand token */
-.site-footer .brand-accent { color: #fff; }
-.site-footer .brand-mark { background: #ffffff; box-shadow: none; color: #1d1d1f; }
+.brand-accent { color: var(--acc-text); }
+/* footer sits on the dark chrome — the accent has to stay light there, never
+   the paper-side amber */
+.site-footer .brand-accent { color: var(--chrome-ink); }
+.site-footer .brand-mark { background: var(--chrome-ink); box-shadow: none; color: var(--chrome); }
 .guest-actions { display: flex; gap: 10px; }
 .guest-main {
   width: 100%;
@@ -593,8 +593,8 @@
 
 /* ── Marketplace footer ── */
 .site-footer {
-  background: var(--navy, #1d1d1f);
-  color: #a1a1a6;
+  background: var(--chrome);
+  color: var(--chrome-mut);
   margin-top: 40px;
 }
 .site-footer-inner {
@@ -609,7 +609,7 @@
 }
 .site-footer-brand {
   font-family: var(--font-display); font-weight: 700; font-size: 19px;
-  color: #fff; display: flex; align-items: center; gap: 10px;
+  color: var(--chrome-ink); display: flex; align-items: center; gap: 10px;
 }
 .site-footer-tag {
   margin: 12px 0 0; font-size: 13.5px; max-width: 340px; line-height: 1.6;
@@ -619,6 +619,6 @@
   font-size: 14px;
 }
 .site-footer-links a {
-  color: #a1a1a6; transition: color .15s; font-weight: 600;
+  color: var(--chrome-mut); transition: color .15s; font-weight: 600;
 }
-.site-footer-links a:hover { color: #fff; }
+.site-footer-links a:hover { color: var(--chrome-ink); }

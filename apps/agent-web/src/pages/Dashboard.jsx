@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import PrivateDocument from '../../../../packages/shared/src/PrivateDocument.jsx';
 import { api, currentUser } from '../api.js';
 import { TYPE_LABEL, VerifyPill } from '../../../../packages/shared/src/KycStatus.jsx';
 
@@ -152,7 +153,7 @@ export default function Dashboard() {
                   <td><span className="pill pending">{d.status.replace('_', ' ')}</span></td>
                   <td className="kyc-actions">
                     {d.file_url
-                      ? <a className="btn sec sm" href={d.file_url} target="_blank" rel="noreferrer">View</a>
+                      ? <PrivateDocument url={d.file_url} />
                       : <span className="muted" style={{ fontSize: 12 }}>no file</span>}
                     <button className="btn ok sm" onClick={() => act(() => api(`/kyc/review/${d.id}`, { method: 'POST', body: { decision: 'first_pass' } }))}>
                       First-pass OK

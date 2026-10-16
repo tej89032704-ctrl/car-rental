@@ -48,7 +48,7 @@ export default function VerifyOtp() {
           <button className="btn btn-full">Verify</button>
         </form>
         <p style={{ marginTop: 16, textAlign: 'center' }}>
-          <button onClick={resend} style={{ background: 'none', border: 'none', color: '#1d1d1f', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 16px', borderRadius: 8, transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.background = 'rgba(0,0,0,0.05)'} onMouseLeave={e => e.target.style.background = 'none'}>Resend OTP</button>
+          <button onClick={resend} style={{ background: 'none', border: 'none', color: 'var(--acc-text)', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '8px 16px', borderRadius: 8, transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.background = 'var(--acc-soft)'} onMouseLeave={e => e.target.style.background = 'none'}>Resend OTP</button>
         </p>
       </div>
     </div>

@@ -105,7 +105,7 @@ export default function BookingDetail() {
                 <span className="muted">Total rental</span><b>₹{(b.total_amount_paise / 100).toFixed(0)}</b>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 320 }}>
-                <span className="muted">Online paid</span><b style={{ color: '#1d1d1f' }}>₹{(b.online_paid_paise / 100).toFixed(0)}</b>
+                <span className="muted">Online paid</span><b style={{ color: 'var(--acc-text)' }}>₹{(b.online_paid_paise / 100).toFixed(0)}</b>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', maxWidth: 320 }}>
                 <span className="muted">Due at pickup (cash)</span><b>₹{(b.remaining_due_paise / 100).toFixed(0)}</b>
@@ -129,11 +129,11 @@ export default function BookingDetail() {
             return (
               <div key={step} className={`timeline-step ${active ? 'active' : ''} ${reached ? 'reached' : ''}`}>
                 <span className="timeline-dot" style={{
-                  background: active ? '#1d1d1f' : reached ? '#6e6e73' : '#d2d2d7',
-                  boxShadow: active ? '0 0 0 4px rgba(0,0,0,0.12)' : 'none',
+                  background: active ? 'var(--acc)' : reached ? 'var(--muted)' : 'var(--line)',
+                  boxShadow: active ? '0 0 0 4px var(--acc-soft)' : 'none',
                 }} />
-                <span className="timeline-label" style={{ color: active ? '#1d1d1f' : reached ? '#333336' : '#86868b', fontWeight: active ? 700 : 500, textTransform: 'capitalize' }}>{step}</span>
-                {i < 3 && <span className="timeline-line" style={{ background: i < idx ? '#1d1d1f' : '#e8e8ed' }} />}
+                <span className="timeline-label" style={{ color: active ? 'var(--acc-text)' : reached ? 'var(--ink-2)' : 'var(--muted)', fontWeight: active ? 700 : 500, textTransform: 'capitalize' }}>{step}</span>
+                {i < 3 && <span className="timeline-line" style={{ background: i < idx ? 'var(--acc)' : 'var(--line-soft)' }} />}
               </div>
             );
           })}

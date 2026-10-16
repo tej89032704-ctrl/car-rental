@@ -40,7 +40,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
   return (
     <>
       <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
-      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#ffffff', '--brand-2': '#ffffff' }}>
+      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
         <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}><ChevronLeft /></button>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">O</div>

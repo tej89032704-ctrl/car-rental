@@ -1,20 +1,20 @@
 /* ═══════════════════════════════════════════════════════
    Agent Web — Agent-Specific Component Styles
-   Brand: Amber/Orange #000000
+   Brand: signal amber (var(--acc) / var(--acc-grad))
    ═══════════════════════════════════════════════════════ */
 
 /* ── Agent brand overrides ── */
-.agent-brand { --agent-brand: #000000; --agent-brand-2: #1d1d1f; }
+.agent-brand { --agent-brand: var(--acc); --agent-brand-2: var(--acc-2); }
 
 /* ── Agent visual panel ── */
 .auth-visual.agent-gradient {
-  background: linear-gradient(135deg, #1d1d1f 0%, #1d1d1f 50%, #000000 100%);
+  background: linear-gradient(135deg, var(--chrome) 0%, var(--chrome-2) 50%, var(--chrome-3) 100%);
 }
-.auth-visual.agent-gradient .mark { color: #fff; }
+.auth-visual.agent-gradient .mark { color: var(--chrome-ink); }
 .auth-visual.agent-gradient .tagline { color: rgba(255,255,255,.85); }
 
 /* ── Agent portal tag ── */
-.portal-tag.agent { color: #1d1d1f; }
+.portal-tag.agent { color: var(--acc-text); }
 
 /* ── Agent button ── */
 /* Token/size only — the geometry (padding, margin, radius, width) belongs to
@@ -22,20 +22,20 @@
    out-ranked .btn-full (0,1,0) and grew the CTA to 47px vs 45px elsewhere. */
 .btn.agent-full {
   width: 100%;
-  --btn-bg: #1d1d1f;
-  --btn-fg: #ffffff;
+  --btn-bg: var(--acc-grad);
+  --btn-fg: var(--acc-ink);
   --btn-edge: transparent;
   font-size: 15px;
 }
 
 /* ── Agent footer links ── */
-.agent-footer { margin-top: 22px; padding-top: 18px; border-top: 1px solid #e8e8ed; }
+.agent-footer { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 .agent-footer .link-row { font-size: 13px; color: var(--muted); }
 .agent-footer .link-row + .link-row { margin-top: 4px; }
-.agent-footer .link-row a { color: #1d1d1f; font-weight: 700; font-size: 14px; }
+.agent-footer .link-row a { color: var(--acc-text); font-weight: 700; font-size: 14px; }
 
 /* ── Agent card center (OTP, etc.) ── */
-.auth-card-center .portal-tag.agent { color: #1d1d1f; }
+.auth-card-center .portal-tag.agent { color: var(--acc-text); }
 
 /* ── Agent KYC action cell ── */
 .kyc-actions { display: flex; gap: 6px; }

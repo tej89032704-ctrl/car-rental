@@ -13,6 +13,8 @@ import Settings from './pages/Settings.jsx';
 import Payouts from './pages/Payouts.jsx';
 import Disputes from './pages/Disputes.jsx';
 import Agents from './pages/Agents.jsx';
+import CrmWorkspace from '../../../packages/shared/src/CrmWorkspace.jsx';
+import CrmTeam from '../../../packages/shared/src/CrmTeam.jsx';
 import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
@@ -27,6 +29,8 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
   const topLinks = [
     { to: '/', icon: <DashboardIcon />, label: 'Overview', end: true },
+    { to: '/crm', icon: <PeopleIcon />, label: 'Rental CRM' },
+    { to: '/team', icon: <UsersIcon />, label: 'Managers & Teams' },
     { to: '/users', icon: <UsersIcon />, label: 'Users' },
     { to: '/cars', icon: <CarIcon />, label: 'Car Approvals' },
     { to: '/kyc', icon: <ShieldIcon />, label: 'KYC Queue' },
@@ -85,7 +89,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
 function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const titles = { '/': 'Dashboard Overview', '/users': 'User Management', '/cars': 'Car Approvals', '/kyc': 'KYC Review Queue', '/payouts': 'Payout Management', '/disputes': 'Dispute Resolution', '/agents': 'Agent Management', '/settings': 'Platform Settings' };
+  const titles = { '/crm': 'Rental CRM', '/team': 'Managers & Teams', '/': 'Dashboard Overview', '/users': 'User Management', '/cars': 'Car Approvals', '/kyc': 'KYC Review Queue', '/payouts': 'Payout Management', '/disputes': 'Dispute Resolution', '/agents': 'Agent Management', '/settings': 'Platform Settings' };
   return (
     <div className="topbar">
       <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>
@@ -139,6 +143,8 @@ export default function App() {
         <div className="sidebar-content">
           <Routes>
             <Route path="/" element={<Overview />} />
+            <Route path="/crm" element={<CrmWorkspace />} />
+            <Route path="/team" element={<CrmTeam />} />
             <Route path="/users" element={<Users />} />
             <Route path="/cars" element={<CarQueue />} />
             <Route path="/kyc" element={<KycQueue />} />

@@ -17,6 +17,7 @@ import Reviews from './pages/Reviews.jsx';
 import Lifetime from './pages/Lifetime.jsx';
 import Profile from './pages/Profile.jsx';
 import { ForgotPassword, ResetPassword } from './pages/Password.jsx';
+import CrmWorkspace from '../../../packages/shared/src/CrmWorkspace.jsx';
 import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
@@ -32,6 +33,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
   const links = [
     { to: '/', icon: <SearchIcon />, label: 'Find a Car', end: true },
+    { to: '/enquiries', icon: <CalendarIcon />, label: 'Enquiries & Quotes' },
     { to: '/bookings', icon: <CalendarIcon />, label: 'My Bookings' },
     { to: '/reviews', icon: <StarIcon />, label: 'My Reviews' },
     { to: '/kyc', icon: <ShieldIcon />, label: 'Verification' },
@@ -49,7 +51,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
           <div className="sidebar-logo-icon">C</div>
           <div className="sidebar-logo-text">
             <h2>CAR-ENT</h2>
-            <span>Renter Portal</span>
+            <span>Renter / Customer Portal</span>
           </div>
         </div>
 
@@ -80,10 +82,11 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
 function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const titles = { '/': 'Find a Car', '/bookings': 'My Bookings', '/reviews': 'My Reviews', '/kyc': 'Verification', '/notifications': 'Notifications', '/lifetime': 'Lifetime Membership', '/profile': 'Profile' };
+  const titles = { '/enquiries': 'Enquiries & Quotes', '/': 'Find a Car', '/bookings': 'My Bookings', '/reviews': 'My Reviews', '/kyc': 'Verification', '/notifications': 'Notifications', '/lifetime': 'Lifetime Membership', '/profile': 'Profile' };
   const title = location.pathname.startsWith('/bookings/') ? 'Booking Details' : (titles[location.pathname] || 'CAR-ENT');
   return (
     <div className="topbar">
+      <button className="topbar-mobile-toggle" aria-label="Open navigation" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>
       <span className="topbar-title">{title}</span>
     </div>
   );
@@ -187,6 +190,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Search />} />
             <Route path="/cars/:id" element={<CarDetail />} />
+            <Route path="/enquiries" element={<CrmWorkspace />} />
             <Route path="/bookings" element={<MyBookings />} />
             <Route path="/bookings/:id" element={<BookingDetail />} />
             <Route path="/kyc" element={<Kyc />} />

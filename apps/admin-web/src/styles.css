@@ -14,7 +14,7 @@ body {
   margin: 0;
   font-family: var(--font);
   background: var(--bg);
-  background-image: radial-gradient(1200px 500px at 50% -200px, color-mix(in srgb, var(--brand) 6%, transparent), transparent 70%);
+  background-image: radial-gradient(1200px 500px at 50% -200px, color-mix(in srgb, var(--acc) 8%, transparent), transparent 70%);
   color: var(--ink);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -28,14 +28,14 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.03em; }
 .nav {
   display: flex; align-items: center; gap: 20px;
   padding: 0 28px; height: 66px;
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--line);
   position: sticky; top: 0; z-index: 100;
 }
 .nav .logo {
-  font-weight: 800; font-size: 19px; color: var(--brand);
+  font-weight: 800; font-size: 19px; color: var(--acc-text);
   letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px;
 }
 .nav .spacer { flex: 1; }
@@ -44,9 +44,9 @@ h1, h2, h3 { font-weight: 600; letter-spacing: -0.03em; }
   padding: 8px 14px; border-radius: 10px; transition: color .15s, background .15s;
 }
 .nav a.link:hover { color: var(--ink); background: var(--line-soft); }
-.nav a.link.active { color: var(--brand); background: var(--brand-soft); }
+.nav a.link.active { color: var(--acc-text); background: var(--acc-soft); }
 .badge-user {
-  background: var(--brand-soft); color: var(--brand-2);
+  background: var(--acc-soft); color: var(--acc-text);
   padding: 7px 14px; border-radius: 99px; font-size: 13px; font-weight: 700;
 }
 
@@ -74,7 +74,7 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
 .car-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
-  border-color: #e8e8ed;
+  border-color: var(--acc-line);
 }
 .car-card img {
   width: 100%; aspect-ratio: 16 / 10; object-fit: cover;
@@ -85,7 +85,7 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
 .car-body { padding: 14px 16px 16px; }
 .car-title { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .car-meta { color: var(--muted); font-size: 13px; margin-top: 3px; }
-.price { font-weight: 800; color: var(--brand); margin-top: 10px; font-size: 16px; letter-spacing: -0.01em; }
+.price { font-weight: 800; color: var(--acc-text); margin-top: 10px; font-size: 16px; letter-spacing: -0.01em; }
 
 /* ── Buttons — flat "Framer marketplace" language ─────────────────────────
    Derived from the marketplace templates (Sentira, Nudge, Utomic, Neiden):
@@ -96,10 +96,10 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
    original size.                                                          */
 .btn {
   display: inline-block;
-  --btn-bg: #1d1d1f;
-  --btn-fg: #ffffff;
+  --btn-bg: var(--acc-grad);
+  --btn-fg: var(--acc-ink);
   --btn-edge: transparent;
-  --btn-rest: 0 1px 2px rgba(0,0,0,.05), 0 1px 3px rgba(0,0,0,.04);
+  --btn-rest: var(--shadow-acc);
   background: var(--btn-bg);
   color: var(--btn-fg);
   border: 1px solid var(--btn-edge);
@@ -114,22 +114,22 @@ h2 { font-size: 18px; margin: 20px 0 10px; }
 }
 .btn:hover {
   transform: translateY(-1px);
-  --btn-bg: #000000;
-  box-shadow: 0 8px 20px rgba(0,0,0,.16), 0 2px 6px rgba(0,0,0,.08);
+  --btn-bg: var(--acc-grad);
+  box-shadow: 0 14px 30px -12px var(--acc-glow);
 }
-.btn:active { transform: translateY(0); box-shadow: 0 1px 3px rgba(0,0,0,.10); }
-.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.btn:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+.btn:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 
 /* Variants are token swaps. Declared after .btn:hover so an equal-
    specificity modifier still wins the hover fill; each one that wants its
    own hover colour adds an explicit :hover of its own. */
-.btn.sec { --btn-bg: #ffffff; --btn-fg: var(--ink); --btn-edge: var(--line); --btn-rest: 0 1px 2px rgba(0,0,0,.04); }
-.btn.sec:hover { --btn-bg: #f5f5f7; }
-.btn.ok { --btn-bg: #000000; --btn-fg: #ffffff; --btn-edge: transparent; }
-.btn.bad { --btn-bg: #d70015; --btn-fg: #ffffff; --btn-edge: transparent; }
-.btn.bad:hover { --btn-bg: #b00011; }
-.btn.warn { --btn-bg: #6e6e73; --btn-fg: #ffffff; --btn-edge: transparent; }
-.btn.warn:hover { --btn-bg: #424245; }
+.btn.sec { --btn-bg: var(--card); --btn-fg: var(--ink); --btn-edge: var(--edge-hi); --btn-rest: var(--shadow-sm); }
+.btn.sec:hover { --btn-bg: var(--bg-soft); }
+.btn.ok { --btn-bg: linear-gradient(118deg, var(--ok), #178346); --btn-fg: #fff; --btn-edge: transparent; }
+.btn.bad { --btn-bg: var(--bad); --btn-fg: #ffffff; --btn-edge: transparent; }
+.btn.bad:hover { --btn-bg: var(--bad-hover); }
+.btn.warn { --btn-bg: var(--chrome-3); --btn-fg: var(--chrome-ink); --btn-edge: transparent; }
+.btn.warn:hover { --btn-bg: var(--chrome-2); }
 .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
 .btn.sm { padding: 6px 13px; font-size: 13px; border-radius: 10px; }
 /* Full-width CTA — also the hook the auth shine sweep builds on.
@@ -145,48 +145,47 @@ label.f { display: block; font-size: 13px; font-weight: 700; margin: 10px 0 5px;
 input.f, select.f, textarea.f {
   width: 100%; padding: 11px 14px;
   border: 1px solid var(--line); border-radius: 10px; font-size: 14px;
-  background: #fff; color: var(--ink); font-family: inherit;
+  background: var(--fld); color: var(--ink); font-family: inherit;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-input.f:hover, select.f:hover, textarea.f:hover { border-color: #d2d2d7; }
+input.f:hover, select.f:hover, textarea.f:hover { border-color: var(--edge-hi); }
 input.f:focus, select.f:focus, textarea.f:focus {
-  border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,0,0,0.072); outline: none;
+  border-color: var(--acc); box-shadow: 0 0 0 4px var(--acc-soft); outline: none;
 }
-input.f::placeholder, textarea.f::placeholder { color: #86868b; }
+input.f::placeholder, textarea.f::placeholder { color: var(--muted); }
 .row { display: flex; gap: 12px; flex-wrap: wrap; } .row > * { flex: 1; min-width: 160px; }
 
 /* ── Tables ── */
 table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
-.t th { text-align: left; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--line-soft); }
+.t th { text-align: left; color: var(--chrome-mut); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px; border-bottom: 1px solid var(--chrome-line); background: var(--chrome); }
 .t td { padding: 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
 .t tr:last-child td { border-bottom: none; }
 
-/* ── Status pills ── */
-.pill { background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7; }
-.pill.requested { background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7; }
-.pill.confirmed, .pill.approved, .pill.active { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
-.pill.ongoing { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
-.pill.completed, .pill.paid { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
-.pill.cancelled, .pill.rejected, .pill.banned, .pill.suspended { background:#ffffff;color:#1d1d1f;border-color:#1d1d1f; }
-.pill.pending, .pill.pending_review, .pill.pending_otp { background:#f5f5f7;color:#1d1d1f;border-color:#d2d2d7; }
+/* ── Status pills ──
+   Only the neutral default lives here; every .pill.<status> tone is set in
+   base.css, which is imported last and therefore wins the cascade. */
+.pill { background: var(--bg-soft); color: var(--ink); border-color: var(--edge); }
 
-/* ── Alerts ── */
+/* ── Alerts ──
+   .alert.err/.info/.good (and the .warn surface admin's pricing warning
+   needs) are owned by base.css, which loads last. */
 .alert { padding: 13px 16px; border-radius: 12px; font-size: 14px; margin: 10px 0; border: 1px solid transparent; }
-.alert.err { background:#1d1d1f;color:#ffffff;border-color:#1d1d1f; }
-.alert.info { background:#f5f5f7;color:#1d1d1f;border-color:#e8e8ed; }
-.alert.good { background:#f5f5f7;color:#1d1d1f;border-color:#e8e8ed; }
 
 /* ── Muted ── */
 .muted { color: var(--muted); font-size: 13px; }
 
-/* ── Hero ── */
+/* ── Hero ──
+   base.css repaints this as the light amber-ruled panel (it loads last and
+   owns .hero's background, border and shadow), so everything left here has to
+   describe a LIGHT surface. The old near-black gradient plus `color: #fff`
+   left white type on that light panel — the two rules below are the fix. */
 .hero {
   position: relative; overflow: hidden;
   background:
-    radial-gradient(900px 420px at 18% -10%, rgba(0,0,0,0.303), transparent 60%),
-    radial-gradient(700px 400px at 95% 130%, rgba(0,0,0,0.275), transparent 60%),
-    linear-gradient(135deg, #000000 0%, #1d1d1f 55%, #333336 100%);
-  color: #fff; border-radius: 20px;
+    radial-gradient(900px 420px at 18% -10%, var(--acc-soft), transparent 60%),
+    radial-gradient(700px 400px at 95% 130%, var(--acc-soft), transparent 60%),
+    linear-gradient(135deg, var(--card) 0%, var(--bg-soft) 100%);
+  color: var(--ink); border-radius: 20px;
   padding: 52px 40px; margin-bottom: 26px;
   box-shadow: var(--shadow-lg);
 }
@@ -194,18 +193,18 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
   content: '';
   position: absolute; inset: 0;
   background-image:
-    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    linear-gradient(rgba(16,20,28,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,20,28,.05) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, #000 30%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 90% 90% at 50% 40%, #000 30%, transparent 75%);
   pointer-events: none;
 }
 .hero h1 {
-  color: #fff; margin: 0 0 8px; position: relative; z-index: 1;
+  color: var(--ink); margin: 0 0 8px; position: relative; z-index: 1;
   font-size: clamp(28px, 4vw, 42px); line-height: 1.15; font-weight: 800; letter-spacing: -0.03em;
 }
-.hero p { position: relative; z-index: 1; margin: 6px 0 0; font-size: 16px; opacity: .85; max-width: 560px; }
+.hero p { position: relative; z-index: 1; margin: 6px 0 0; font-size: 16px; color: var(--ink-2); opacity: .85; max-width: 560px; }
 
 /* ── Auth box ── */
 .auth-box { max-width: 420px; margin: 60px auto; }
@@ -218,13 +217,13 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
   transition: transform .15s ease, box-shadow .15s ease;
 }
 .stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.stat .v { font-size: 26px; font-weight: 800; color: var(--brand); letter-spacing: -0.02em; }
+.stat .v { font-size: 26px; font-weight: 800; color: var(--acc-text); letter-spacing: -0.02em; }
 .stat .k { color: var(--muted); font-size: 13px; font-weight: 600; margin-top: 2px; }
 
 /* ── Category tabs (segmented control) ── */
 .tabs {
   display: flex; gap: 4px; margin-bottom: 18px; flex-wrap: wrap;
-  background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 4px;
+  background: var(--card); border: 1px solid var(--edge); border-radius: 12px; padding: 4px;
   width: max-content; max-width: 100%; box-shadow: var(--shadow-sm);
 }
 .tab {
@@ -232,10 +231,10 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
   border: none; font-size: 13px; font-weight: 700; cursor: pointer;
   color: var(--muted); font-family: inherit; transition: all .15s ease;
 }
-.tab:hover { color: var(--ink); background: var(--line-soft); }
-.tab.on { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.165); }
+.tab:hover { color: var(--acc-text); background: var(--acc-soft); }
+.tab.on { background: var(--acc-grad); color: var(--acc-ink); box-shadow: 0 6px 18px -8px var(--acc-glow); }
 /* Portal-specific */
-.link-brand { color: var(--brand); font-weight: 700; }
+.link-brand { color: var(--acc-text); font-weight: 700; }
 
 /* ── Live car verification (RC / VAHAN) ── */
 .car-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
@@ -243,8 +242,8 @@ table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
   margin-top: 10px; padding: 12px 14px; border-radius: 12px;
   border: 1px solid var(--line); background: var(--bg-soft);
 }
-.verify-result.is-ok { border-color: #d2d2d7; }
-.verify-result.is-bad { border-color: #d70015; background: #fff; }
+.verify-result.is-ok { border-color: var(--ok); }
+.verify-result.is-bad { border-color: var(--bad); background: var(--card); }
 .verify-head { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
 .verify-msg { margin: 0 0 8px; }
 .verify-vehicle { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }

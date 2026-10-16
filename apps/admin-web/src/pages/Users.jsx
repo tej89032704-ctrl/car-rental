@@ -70,6 +70,8 @@ export default function Users() {
           <option value="car_owner">car_owner</option>
           <option value="car_renter">car_renter</option>
           <option value="agent">agent</option>
+          <option value="manager">manager</option>
+          <option value="super_admin">super_admin</option>
         </select>
       </div>
       <br />

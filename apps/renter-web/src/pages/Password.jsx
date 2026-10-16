@@ -32,7 +32,7 @@ export function ForgotPassword() {
           </div>
           <button className="btn btn-full" disabled={busy}>Send reset link</button>
         </form>
-        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: '#1d1d1f', fontWeight: 700 }}>Back to login</Link></p>
+        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: 'var(--acc-text)', fontWeight: 700 }}>Back to login</Link></p>
       </div>
     </div>
   );
@@ -74,7 +74,7 @@ export function ResetPassword() {
             <button className="btn btn-full" disabled={busy}>Update password</button>
           </form>
         )}
-        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: '#1d1d1f', fontWeight: 700 }}>Back to login</Link></p>
+        <p className="muted" style={{ marginTop: 18, fontSize: 13 }}><Link to="/login" style={{ color: 'var(--acc-text)', fontWeight: 700 }}>Back to login</Link></p>
       </div>
     </div>
   );

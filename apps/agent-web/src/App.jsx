@@ -9,6 +9,7 @@ import VerifyOtp from './pages/VerifyOtp.jsx';
 import ProfileDetails from './pages/ProfileDetails.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Notifications from './pages/Notifications.jsx';
+import CrmWorkspace from '../../../packages/shared/src/CrmWorkspace.jsx';
 import Terms from '../../../packages/shared/src/Terms.jsx';
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
@@ -23,13 +24,14 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
   const links = [
     { to: '/', icon: <DashboardIcon />, label: 'Dashboard', end: true },
+    { to: '/crm', icon: <DashboardIcon />, label: 'Enquiries & Quotes' },
     { to: '/notifications', icon: <BellIcon />, label: 'Notifications' },
   ];
 
   return (
     <>
       <div className={`sidebar-overlay ${mobileOpen ? 'visible' : ''}`} onClick={() => setMobileOpen(false)} />
-      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`} style={{ '--brand': '#ffffff', '--brand-2': '#ffffff' }}>
+      <aside className={`sidebar dark ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
         <button className="sidebar-toggle" onClick={() => setCollapsed(!collapsed)}><ChevronLeft /></button>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">A</div>
@@ -140,6 +142,7 @@ export default function App() {
         <div className="sidebar-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/crm" element={<CrmWorkspace />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/terms" element={<Terms brand="AgentField" backTo="/" />} />
           </Routes>
