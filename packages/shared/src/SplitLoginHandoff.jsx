@@ -72,7 +72,10 @@ export default function SplitLoginHandoff({ storageKey, fallback = null }) {
       setGiveUp(true);
       return;
     }
-    window.location.replace(bounced ? '/login-split.html' : '/login');
+    // BASE_URL is the portal's path prefix: '' (i.e. '/') in dev, '/renter/'
+    // when the production build is served from one shared origin under /renter.
+    const base = import.meta.env.BASE_URL;
+    window.location.replace(bounced ? base + 'login-split.html' : base + 'login');
   }, [storageKey]);
 
   if (!giveUp) return null;

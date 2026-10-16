@@ -19,7 +19,7 @@ export default function Reviews() {
       } catch (e) {
         if (String(e.message || '').includes('(401)')) {
           // navigate to login
-          window.location.href = '/login';
+          window.location.href = import.meta.env.BASE_URL + 'login';
           return;
         }
         setError(e.message || 'Failed to load reviews');
@@ -181,7 +181,7 @@ export default function Reviews() {
 
       {/* Back to search link */}
       <div className="back-link">
-        <button className="btn sec" onClick={() => window.location.href = '/'}>
+        <button className="btn sec" onClick={() => window.location.href = import.meta.env.BASE_URL}>
           ← Back to Search
         </button>
       </div>

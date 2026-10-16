@@ -42,6 +42,10 @@ function splitLogin() {
 }
 
 export default defineConfig({
+  // Production serves this portal from one origin at its own path prefix
+  // (/owner). The build is given that prefix via PORTAL_BASE; local dev leaves
+  // it unset and serves from the origin root exactly as before.
+  base: process.env.PORTAL_BASE || '/',
   plugins: [react(), splitLogin()],
   server: {
     proxy: {

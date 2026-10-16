@@ -354,8 +354,27 @@ canvas.mote{z-index:1}
      signs in is sent to the portal that owns its role (renter → :5173,
      owner → :5174). The two portals are different origins, so when the
      route crosses ports the response is handed to the destination through
-     window.name (not the URL), then immediately cleared on arrival. */
+     window.name (not the URL), then immediately cleared on arrival.
+
+     In production the two portals are no longer two origins on two ports:
+     they are two path prefixes on the ONE origin that also serves the API
+     (/renter and /owner). The handoff becomes a same-origin navigation and
+     is still carried in window.name; only the address it navigates to
+     changes, from a port to a path. */
   var PORTS={car_renter:'5173',car_owner:'5174'};
+  var PATHS={car_renter:'/renter/',car_owner:'/owner/'};
+  /* Reaching this page on one of the two dev ports means we are local dev,
+     where the portals are separate origins; anywhere else they are path
+     prefixes of this origin. */
+  var DEV=location.port==='5173'||location.port==='5174';
+  /* The portal this document belongs to. This file is served from inside the
+     portal it belongs to (/renter/... or /owner/...), so the URL says which. */
+  var HOME=(location.pathname.match(/^(\/(?:renter|owner)\/)/)||['/'])[1];
+  /* Which portal the signed-in role belongs to, in this deployment's terms:
+     a dev port or a production path prefix. An unknown role stays put. */
+  function targetFor(role){return DEV?(PORTS[role]||String(location.port||'')):(PATHS[role]||HOME)}
+  function hereFor(){return DEV?String(location.port||''):HOME}
+  function homeFor(){return DEV?'/':HOME}
   (function inbound(){
     var fromWindow=window.name.indexOf('carent-session:')===0;
     if(!fromWindow)return;
@@ -364,32 +383,32 @@ canvas.mote{z-index:1}
     if(!s)return;
     try{
       var d=JSON.parse(s),role=d.user&&d.user.role;
-      if(!d.access_token||!d.refresh_token||!d.user||PORTS[role]!==String(location.port||''))return;
+      if(!d.access_token||!d.refresh_token||!d.user||targetFor(role)!==hereFor())return;
       localStorage.setItem('access_token',d.access_token);
       localStorage.setItem('refresh_token',d.refresh_token);
       localStorage.setItem('user',JSON.stringify(d.user));
     }catch(e){return}
-    location.replace('/');
+    location.replace(homeFor());
   })();
   function goHome(role,session){
-    var here=String(location.port||''),there=PORTS[role]||here;
-    if(there!==here&&(here==='5173'||here==='5174')&&(there==='5173'||there==='5174')){
+    if(targetFor(role)!==hereFor()){
       window.name='carent-session:'+JSON.stringify({
         access_token:session.access_token,
         refresh_token:session.refresh_token,
         user:session.user
       });
-      location.replace('http://'+location.hostname+':'+there+'/login-split.html');
+      /* Dev crosses an origin (and so needs a full URL); production crosses a
+         path on this same origin. */
+      location.replace(DEV?('http://'+location.hostname+':'+targetFor(role)+'/login-split.html'):(targetFor(role)+'login-split.html'));
     }else{
-      location.replace('/');
+      location.replace(homeFor());
     }
   }
   (function links(){
-    var H='http://'+location.hostname+':';
     var c=document.querySelector('#customer .foot a'),o=document.querySelector('#owner .foot a');
-    if(c)c.href=H+'5173/signup';
-    if(o)o.href=H+'5174/signup';
-    document.querySelectorAll('#customer .link,#owner .link').forEach(function(a){a.href=H+'5173/forgot-password'});
+    if(c)c.href=DEV?('http://'+location.hostname+':5173/signup'):'/renter/signup';
+    if(o)o.href=DEV?('http://'+location.hostname+':5174/signup'):'/owner/signup';
+    document.querySelectorAll('#customer .link,#owner .link').forEach(function(a){a.href=DEV?('http://'+location.hostname+':5173/forgot-password'):'/renter/forgot-password'});
   })();
 
   function setFocus(s){split.classList.remove('focus-customer','focus-owner');if(s)split.classList.add('focus-'+s)}
@@ -436,9 +455,10 @@ canvas.mote{z-index:1}
           form.classList.remove('shake');void form.offsetWidth;form.classList.add('shake');
           return;
         }
-        var role=x.d.user&&x.d.user.role, here=String(location.port||''), there=PORTS[role]||here;
-        if(there!==here&&(here==='5173'||here==='5174')&&(there==='5173'||there==='5174')){
-          /* cross-portal: don't dirty this origin's localStorage; carry session in URL */
+        var role=x.d.user&&x.d.user.role, here=hereFor(), there=targetFor(role);
+        if(there!==here){
+          /* cross-portal: don't dirty this portal's localStorage; the session
+             travels in window.name and the destination page writes it there */
         }else{
           try{
             localStorage.setItem('access_token',x.d.access_token||'');

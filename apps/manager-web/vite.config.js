@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-export default defineConfig({ plugins: [react()], server: { proxy: {
+// Production serves this portal from one origin at its own path prefix
+// (/manager). The build is given that prefix via PORTAL_BASE; local dev leaves
+// it unset and serves from the origin root exactly as before.
+export default defineConfig({ base: process.env.PORTAL_BASE || '/', plugins: [react()], server: { proxy: {
   '/api': { target: 'http://localhost:4000', changeOrigin: true, rewrite: (p) => p.replace(/^\/api/, '') },
   '/uploads': { target: 'http://localhost:4000', changeOrigin: true },
 } } });

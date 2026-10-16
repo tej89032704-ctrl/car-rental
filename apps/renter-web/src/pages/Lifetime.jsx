@@ -44,7 +44,7 @@ export default function Lifetime() {
         setError('');
       } catch (e) {
         if (String(e.message || '').includes('(401)')) {
-          window.location.href = '/login';
+          window.location.href = import.meta.env.BASE_URL + 'login';
           return;
         }
         setError(e.message || 'Failed to load lifetime data');
@@ -137,7 +137,7 @@ export default function Lifetime() {
 
       {/* Back to search link */}
       <div className="back-link">
-        <button className="btn sec" onClick={() => window.location.href = '/'}>
+        <button className="btn sec" onClick={() => window.location.href = import.meta.env.BASE_URL}>
           ← Back to Search
         </button>
       </div>

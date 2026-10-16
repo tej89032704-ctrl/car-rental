@@ -1,0 +1,50 @@
+# Render blueprint for CAR-ENT.
+#
+# One Docker web service hosts the API and all five portals on a single origin,
+# because the free tier is one service per instance:
+#
+#   /            -> redirect to /renter
+#   /renter      -> customer portal
+#   /owner       -> owner portal (OwnerHub)
+#   /admin       -> admin portal
+#   /agent       -> agent portal
+#   /manager     -> CRM / manager portal
+#   /api/...     -> the Nest API
+#   /uploads/... -> owner photos and KYC documents
+#
+# JWT_SECRET is generated on first apply; set ADMIN_PASSWORD (and optionally
+# ADMIN_EMAIL) here if you want something other than the demo super admin
+# (admin@platform.local / Admin@12345), which the API creates on first boot.
+services:
+  - type: web
+    name: car-rental
+    runtime: docker
+    plan: free
+    region: oregon
+    repo: https://github.com/tej89032704-ctrl/car-rental
+    branch: main
+    # The renter portal's index.html: static, needs no database, so it answers
+    # honestly whether the app is up rather than reporting the API's 401s.
+    healthCheckPath: /renter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+        fromDatabase:
+          name: car-rental-db
+          property: connectionString
+      # Optional overrides for the auto-seeded super admin. Remove to use the
+      # demo credentials, which are printed to the deploy log on first boot.
+      # - key: ADMIN_EMAIL
+      #   value: admin@platform.local
+      # - key: ADMIN_PASSWORD
+      #   generateValue: true
+
+databases:
+  - name: car-rental-db
+    plan: free
+    region: oregon
+    databaseName: cr_prod

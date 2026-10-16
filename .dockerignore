@@ -1,0 +1,39 @@
+# Keep the build context small and make sure no local state ever lands in an
+# image: dependency trees and build output are produced inside the container,
+# and everything below is either machine-local or a secret.
+
+# Version control & CI
+.git
+.github
+.gitignore
+
+# Dependencies and build output — the Dockerfile installs and builds its own.
+node_modules
+**/node_modules
+**/dist
+**/dist-ssr
+
+# Local secrets. apps/api/.env is gitignored too, but a local build context can
+# still contain one; production reads DATABASE_URL / JWT_SECRET from Render.
+.env
+.env.*
+!.env.example
+
+# Machine-local runtime state
+apps/api/data
+apps/api/data.*
+**/uploads
+uploads
+.logs
+.freebuff
+*.log
+
+# Scratch scripts that embed the local database password
+*.mts
+!**/*.d.mts
+fix.js
+tmp-*
+
+# Docs and specs are not needed to run the service
+docs
+*.pdf

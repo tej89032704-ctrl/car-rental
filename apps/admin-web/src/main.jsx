@@ -14,7 +14,11 @@ import '../../../packages/shared/styles/base.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter
+      /* In production this portal is served from one origin under a path
+         prefix (/admin); BASE_URL is that prefix, '' in local dev. */
+      basename={import.meta.env.BASE_URL.replace(/\/$/, '')}
+    >
       <App />
       <FloatingKeyboard />
     </BrowserRouter>
