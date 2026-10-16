@@ -40,20 +40,31 @@ function form(fields) {
 }
 
 async function main() {
+  const { Client } = await import('pg');
+  const pgUrl = 'postgresql://postgres:CRdev_PG18_local_2026@127.0.0.1:5432/cr_dev';
+  const client = new Client({ connectionString: pgUrl });
+  await client.connect();
+  
+  const ts = Date.now();
+  const ownerEmail = `owner_${ts}@test.com`;
+  const renterEmail = `renter_${ts}@test.com`;
+  const ownerPhone = `+91980${String(ts).slice(-7)}`;
+  const renterPhone = `+91981${String(ts).slice(-7)}`;
+
   console.log('== 1. Auth portal split ==');
   let r = await req('POST', '/auth/admin/login', { body: { email: 'admin@platform.local', password: 'Admin@12345' } });
   ok('admin login asks 2FA', r.data.requires_2fa === true);
 
-  r = await req('POST', '/auth/signup', { body: { name: 'Owner One', email: 'owner1@test.com', phone: '+919800000001', password: 'Passw0rd!', role: 'car_owner' } });
+  r = await req('POST', '/auth/signup', { body: { name: 'Owner One', email: ownerEmail, phone: ownerPhone, password: 'Passw0rd!', role: 'car_owner' } });
   ok('owner signup returns OTP', !!r.data.dev_otp);
   const ownerOtp = r.data.dev_otp;
 
-  await req('POST', '/auth/login', { body: { email: 'owner1@test.com', password: 'Passw0rd!' } });
-  r = await req('POST', '/auth/login', { body: { email: 'owner1@test.com', password: 'Passw0rd!' } });
+  await req('POST', '/auth/login', { body: { email: ownerEmail, password: 'Passw0rd!' } });
+  r = await req('POST', '/auth/login', { body: { email: ownerEmail, password: 'Passw0rd!' } });
   ok('owner logs into main portal', r.status === 200 && r.data.user.role === 'car_owner');
   const ownerToken = r.data.access_token;
 
-  r = await req('POST', '/auth/agent/login', { body: { email: 'owner1@test.com', password: 'Passw0rd!' } });
+  r = await req('POST', '/auth/agent/login', { body: { email: ownerEmail, password: 'Passw0rd!' } });
   ok('owner REJECTED on agent portal', r.status === 401);
 
   // verify phone
@@ -73,14 +84,9 @@ async function main() {
   // admin approves KYC
   r = await req('POST', '/auth/admin/login', { body: { email: 'admin@platform.local', password: 'Admin@12345' } });
   const twofa = r.data.twofa_token;
-  // read code from sms log via sqlite
-  const { createRequire } = await import('module');
-  const require2 = createRequire(import.meta.url);
-  const { fileURLToPath } = await import('url');
-  const pathOf = (p) => fileURLToPath(new URL(p, import.meta.url));
-  const Database = require2('better-sqlite3');
-  const ndb = new Database(pathOf('../data/notification.db'));
-  const code = ndb.prepare(`SELECT body FROM sms_logs ORDER BY created_at DESC LIMIT 1`).get().body.match(/\d{6}/)[0];
+  // read code from sms log via postgres
+  const codeRes = await client.query(`SELECT body FROM notification.sms_logs ORDER BY created_at DESC LIMIT 1`);
+  const code = codeRes.rows[0].body.match(/\d{6}/)[0];
   r = await req('POST', '/auth/admin/login/verify', { body: { twofa_token: twofa, code } });
   ok('admin 2FA verify', r.status === 200 && !!r.data.access_token);
   const adminToken = r.data.access_token;
@@ -96,7 +102,7 @@ async function main() {
   console.log('== 3. Owner lists car ==');
   r = await req('POST', '/cars', {
     token: ownerToken,
-    body: { make: 'Maruti', model: 'Swift', year: 2022, plate_number: 'KA01AB1234', category: 'hatchback', transmission: 'manual', fuel_type: 'petrol', seats: 5 },
+    body: { make: 'Maruti', model: 'Swift', year: 2022, plate_number: `KA01AB${String(ts).slice(-4)}`, category: 'hatchback', transmission: 'manual', fuel_type: 'petrol', seats: 5 },
   });
   ok('car created (draft)', [201,200].includes(r.status) && r.data.status === 'draft');
   const carId = r.data.id;
@@ -127,9 +133,9 @@ async function main() {
   ok('car approved & active', r.status === 200);
 
   console.log('== 4. Renter books ==');
-  r = await req('POST', '/auth/signup', { body: { name: 'Renter One', email: 'renter1@test.com', phone: '+919800000002', password: 'Passw0rd!', role: 'car_renter' } });
+  r = await req('POST', '/auth/signup', { body: { name: 'Renter One', email: renterEmail, phone: renterPhone, password: 'Passw0rd!', role: 'car_renter' } });
   const renterOtp = r.data.dev_otp;
-  r = await req('POST', '/auth/login', { body: { email: 'renter1@test.com', password: 'Passw0rd!' } });
+  r = await req('POST', '/auth/login', { body: { email: renterEmail, password: 'Passw0rd!' } });
   const renterToken = r.data.access_token;
   await req('POST', '/auth/otp/phone/verify', { token: renterToken, body: { code: renterOtp } });
   await req('POST', '/kyc/documents', { token: renterToken, body: form({ doc_type: 'id_proof', file: fakePng() }) });
@@ -172,22 +178,20 @@ async function main() {
 
   console.log('== 6. Complete trip -> late fee none -> sweep settles ==');
   r = await req('POST', `/bookings/${bookingId}/complete`, { token: ownerToken });
-  ok('trip completed', r.status === 200 && r.data.late_fee_paise === 0);
+  ok('trip completed', r.status === 200 && r.data.late_fee_paise === 0, JSON.stringify(r.data));
 
   r = await req('GET', '/bookings/my', { token: renterToken });
   ok('renter sees booking', r.data.length === 1);
 
   // simulate dispute window passing
-  const adb2 = new Database(pathOf('../data/booking.db'));
-  adb2.prepare(`UPDATE bookings SET completed_at = datetime('now', '-25 hours') WHERE id = ?`).run(bookingId);
+  await client.query(`UPDATE booking.bookings SET completed_at = now() - interval '25 hours' WHERE id = $1`, [bookingId]);
   await req('GET', '/admin/overview', { token: adminToken }); // triggers settlement sweep
   r = await req('GET', '/payments/earnings', { token: ownerToken });
   const avail = r.data.wallet.available_balance_paise;
   ok('owner earnings settled after window', avail >= 60000, `available=${avail}`);
 
-  const pdb2 = new Database(pathOf('../data/payment.db'));
-  const refundRow = pdb2.prepare(`SELECT COUNT(*) AS c FROM transactions WHERE booking_id = ? AND type='deposit_refund'`).get(bookingId);
-  ok('deposit auto-refunded', refundRow.c === 1);
+  const refundRow = await client.query(`SELECT COUNT(*) AS c FROM payment.transactions WHERE booking_id = $1 AND type='deposit_refund'`, [bookingId]);
+  ok('deposit auto-refunded', parseInt(refundRow.rows[0].c, 10) === 1);
 
   console.log('== 7. Reviews + payout ==');
   r = await req('POST', '/reviews', { token: renterToken, body: { booking_id: bookingId, rating: 5, comment: 'Great car' } });
@@ -216,6 +220,7 @@ async function main() {
   ok('CSV report downloads', csvRes.status === 200 && csvText.split('\n').length > 2);
 
   console.log(failures === 0 ? '\nALL TESTS PASSED' : `\n${failures} FAILURES`);
+  await client.end();
   process.exit(failures === 0 ? 0 : 1);
 }
 

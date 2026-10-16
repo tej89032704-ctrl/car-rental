@@ -107,7 +107,7 @@ export class PaymentsService {
     const onlineRental = Math.round((booking.total_amount_paise * percent) / 100);
     const lateFee = booking.late_fee_paise || 0;
     const amount = onlineRental + lateFee;
-    await this.pdb().prepare(`UPDATE wallets SET pending_balance_paise = MAX(pending_balance_paise - ?, 0), available_balance_paise = available_balance_paise + ?, updated_at = ? WHERE id = ?`)
+    await this.pdb().prepare(`UPDATE wallets SET pending_balance_paise = GREATEST(pending_balance_paise - ?, 0), available_balance_paise = available_balance_paise + ?, updated_at = ? WHERE id = ?`)
       .run(amount, amount, nowUtc(), w.id);
     await this.pdb().prepare(`UPDATE transactions SET status = 'settled', updated_at = ? WHERE booking_id = ? AND type IN ('booking_partial','late_fee') AND status = 'held'`)
       .run(nowUtc(), booking.id);

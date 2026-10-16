@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Req, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Req, UploadedFile, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
 import { Roles, Public } from '../../common/auth/guards';
@@ -52,6 +52,7 @@ export class FleetController {
 
   @Roles('car_owner') @Get('cars/mine')
   async mine(@Req() req: any, @Query('status') status?: string) {
+    if (req.user.kyc_status !== 'approved') throw new ForbiddenException('KYC not approved');
     return await this.fleet.myCars(req.user.id, status || undefined);
   }
 
