@@ -15,13 +15,19 @@ uploads/
 .env.*
 !.env.example
 
-# Local CRM review credentials (never commit passwords or sessions)
-.logs/crm-review-credentials.json
+# Logs, local review credentials & dev-server PID files
+.logs/
+
+# Tool local state
+.freebuff/
 
 # Logs & OS junk
 *.log
 .DS_Store
 Thumbs.db
 
-# Scratch / temp
+# Scratch / temp (one-off repro scripts, all carry the local DB password)
 tmp-*
+fix.js
+*.mts
+!**/*.d.mts
