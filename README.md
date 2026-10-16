@@ -1,12 +1,13 @@
 # Car Rental Platform
 
-Multi-role car rental system built from `car-rental-app-spec.pdf`. NestJS API + 4 React portals, 6 isolated SQLite databases.
+Multi-role car rental system built from `car-rental-app-spec.pdf`. NestJS API + 5 React portals, PostgreSQL with 6 module-owned schemas. Customer and renter are the same role. See [CRM design and database contracts](docs/crm-design.md).
 
 ## Run it
 
 ```bash
 npm install
-npm run migrate          # creates all 6 DBs in apps/api/data
+# Configure DATABASE_URL in apps/api/.env (PostgreSQL).
+npm run migrate          # creates/migrates the 6 PostgreSQL schemas
 npm run seed:admin       # super admin: admin@platform.local / Admin@12345
 npm run dev:api          # API on :4000
 
@@ -14,6 +15,7 @@ npm run dev:renter       # renter app   :5173  (/login shared owner+renter)
 npm run dev:owner        # owner panel  :5174
 npm run dev:admin        # admin panel  :5175  (/login = /admin/login, direct URL)
 npm run dev:agent        # agent portal :5176  (/agent/login)
+npm run dev:manager      # manager portal :5177 (/login)
 ```
 
 E2E smoke test (server must be running): `node scripts/e2e.mjs` inside `apps/api`.
@@ -25,10 +27,21 @@ E2E smoke test (server must be running): `node scripts/e2e.mjs` inside `apps/api
 | Main | `/login` (renter-web/owner-web) | car_owner, car_renter | role auto-detected; wrong-role creds rejected with generic error |
 | Admin | `/login` in admin-web (direct URL only) | super_admin | mandatory OTP 2FA after password |
 | Agent | `/agent/login` | agent | separate branding |
+| Manager | `/login` in manager-web | manager | provisioned by super admin; assigned-team access only |
 
 ## Databases (spec §3.1)
 
-`auth.db`, `fleet.db`, `booking.db`, `payment.db`, `agent.db`, `notification.db` — each owned by exactly one module. Cross-module reads go through injected internal services (no cross-DB SQL joins anywhere).
+PostgreSQL schemas: `auth`, `fleet`, `booking`, `payment`, `agent`, `notification`. CRM enquiries, activities and manager memberships belong to `agent`; identities belong to `auth`. New CRM relationships use cross-schema foreign keys. Legacy additive constraints use `NOT VALID` to preserve old rows while enforcing new writes; validate them after an integrity audit.
+
+## CRM workflow
+
+1. Super admin opens **Managers & Teams**, creates manager/agent accounts and assigns agents to managers.
+2. Renter/customer opens **Enquiries & Quotes** and submits dates, city and budget.
+3. Super admin assigns the enquiry in **Rental CRM**; manager sees only their team’s enquiries; agents see only their assigned enquiries.
+4. Staff records follow-ups and internal notes, then sends a quote. Internal notes are not visible to renters.
+5. Customer accepts the quote. This does **not** reserve a car, capture money or bypass owner booking approval.
+
+Local CRM API regression: `node apps/api/scripts/crm-e2e.mjs` (requires API on :4000 and a local DATABASE_URL; creates uniquely named local fixtures). A temporary manager review account is created by the regression and its password is stored only in ignored local review credentials, never in this document.
 
 ## Confirmed business rules (Section 6, user-decided)
 
@@ -48,7 +61,7 @@ All money stored as integer paise; all timestamps UTC ISO strings; soft delete e
 
 - OTPs are logged to `notification.db` (`sms_logs`) and also returned as `dev_otp` in signup/request responses.
 - Password reset links land in `email_logs`.
-- Uploads (KYC docs, car photos, RC/insurance) go to `apps/api/uploads`, served at `/uploads/*` — swap `StorageService` for S3 later.
+- Uploads go to `apps/api/uploads`. `/uploads/*` checks database ownership: active car photos are public; KYC and car documents require authorized bearer authentication. Shared document viewers fetch private blobs without tokens in URLs.
 - Settlement sweep runs every 10 min in the API process (deposit refunds + owner earnings after the dispute window), plus lazily on relevant reads.
 
 ## Live car verification (RC / VAHAN)

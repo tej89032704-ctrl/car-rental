@@ -15,6 +15,9 @@ uploads/
 .env.*
 !.env.example
 
+# Local CRM review credentials (never commit passwords or sessions)
+.logs/crm-review-credentials.json
+
 # Logs & OS junk
 *.log
 .DS_Store
