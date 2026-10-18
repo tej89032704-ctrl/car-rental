@@ -133,11 +133,30 @@ export async function closeAll(): Promise<void> {
 
 /**
  * Error text with any `scheme://user:password@host` credentials stripped, so it
- * is safe to log and to return from the health endpoint.
+ * is safe to log and to return from the health endpoint. A pg failure can carry
+ * an empty message (a socket closed before the handshake), which told nobody
+ * anything — the error code is then the only useful part.
  */
 export function safeDbError(e: unknown): string {
-  const raw = e instanceof Error ? e.message : String(e);
-  return raw.replace(/\/\/[^/\s@]+@/g, '//').slice(0, 300);
+  const err = e as { message?: string; code?: string; name?: string } | undefined;
+  const raw = e instanceof Error ? e.message : String(e ?? '');
+  const cleaned = raw.replace(/\/\/[^/\s@]+@/g, '//').slice(0, 300);
+  if (cleaned) return cleaned;
+  const code = err?.code || err?.name;
+  return code ? `database error (${code})` : 'database error (no message)';
+}
+
+/**
+ * Where DATABASE_URL points, minus the credentials: enough for an operator to see
+ * at a glance whether the service is talking to the database they think it is.
+ */
+export function databaseTarget(): { host: string; database: string } | null {
+  try {
+    const url = new URL(process.env.DATABASE_URL || '');
+    return { host: url.hostname || '(empty)', database: url.pathname.replace(/^\//, '') || '(default)' };
+  } catch {
+    return null;
+  }
 }
 
 /**

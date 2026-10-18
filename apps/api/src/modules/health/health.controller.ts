@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { JWT_SECRET_EPHEMERAL, Public } from '../../common/auth/guards';
 import { KycExempt } from '../../common/auth/kyc-gate.guard';
-import { probeDatabase } from '../../common/db/database';
+import { databaseTarget, probeDatabase } from '../../common/db/database';
 import { dbReadiness } from '../../common/db/readiness';
 
 /**
@@ -28,6 +28,7 @@ export class HealthController {
   @Get()
   async check() {
     const db = await probeDatabase(4000);
+    const target = databaseTarget();
     return {
       status: db.ok ? 'ok' : 'degraded',
       uptime_seconds: Math.round(process.uptime()),
@@ -36,10 +37,13 @@ export class HealthController {
       jwt_secret: JWT_SECRET_EPHEMERAL ? 'generated' : 'configured',
       database: {
         ok: db.ok,
+        // Host and database name only — never the credentials in the URL.
+        host: target?.host ?? 'unconfigured',
+        name: target?.database ?? null,
         phase: dbReadiness.phase,
         migrated: dbReadiness.migrated,
         attempts: dbReadiness.attempts,
-        ...(db.ok ? {} : { error: db.error ?? dbReadiness.message ?? 'unavailable' }),
+        ...(db.ok ? {} : { error: db.error || dbReadiness.message || 'unavailable' }),
       },
     };
   }

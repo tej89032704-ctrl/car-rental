@@ -11,16 +11,15 @@ import { BookingsService } from './modules/bookings/bookings.service';
 import { FleetService } from './modules/fleet/fleet.service';
 
 /**
- * How boot-time database work is retried.
+ * Spacing between boot-time database attempts.
  *
  * A managed Postgres that has been asleep, is still starting, or is briefly
  * unreachable should not cost a deploy: the retry loop keeps trying while the
- * HTTP server is already answering. Twenty attempts fifteen seconds apart is
- * five minutes — longer than a platform start-up window, short enough that a
- * genuinely misconfigured URL stops making noise.
+ * HTTP server is already answering. Fifteen seconds is slow enough not to
+ * hammer a struggling database and fast enough that a recovered one is usable
+ * almost immediately.
  */
 const INIT_RETRY_MS = Number(process.env.DB_INIT_RETRY_MS || 15000);
-const INIT_MAX_ATTEMPTS = Number(process.env.DB_INIT_MAX_ATTEMPTS || 20);
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms).unref());
 
@@ -39,7 +38,11 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
  * "degraded" answer instead of a silent hang.
  */
 async function initializeDatabase(isProd: boolean): Promise<boolean> {
-  while (dbReadiness.attempts < INIT_MAX_ATTEMPTS) {
+  // No attempt ceiling: a paused or not-yet-created database is a wait, not a
+  // verdict, and giving up would leave a healthy container serving 500s until
+  // someone redeployed it. The first few failures are logged in full, then one
+  // line every twentieth attempt so a long outage does not flood the log.
+  for (;;) {
     dbReadiness.attempts += 1;
     setDbPhase('migrating');
     try {
@@ -52,15 +55,17 @@ async function initializeDatabase(isProd: boolean): Promise<boolean> {
     } catch (e) {
       const message = safeDbError(e);
       setDbPhase('failed', message);
-      console.error(
-        `[boot] database init failed (attempt ${dbReadiness.attempts}/${INIT_MAX_ATTEMPTS}): ${message}`,
-      );
-      if (dbReadiness.attempts >= INIT_MAX_ATTEMPTS) break;
+      const loud =
+        dbReadiness.attempts <= 3 || dbReadiness.attempts % 20 === 0;
+      if (loud) {
+        console.error(`[boot] database init failed (attempt ${dbReadiness.attempts}): ${message}`);
+        // The stack names the code path (and the pg error code) that the
+        // one-line summary cannot; it is what made the last outage diagnosable.
+        console.error(e);
+      }
       await sleep(INIT_RETRY_MS);
     }
   }
-  console.error('[boot] giving up on database init; the API will answer 500s and /api/health reports why');
-  return false;
 }
 
 /** Work that needs the database, kept out of the listen path for the same reason. */
