@@ -34,13 +34,40 @@ function loadDotEnv(): void {
 }
 loadDotEnv();
 
+/**
+ * Repairs the one malformation a hosting dashboard actually produces: the
+ * scheme pasted in front of a URL that already has one, giving
+ * `postgresql:postgresql://user:pass@host/db`.
+ *
+ * node-postgres cannot read a host out of that — it dials localhost, and the
+ * deployment reports `ECONNREFUSED` with nothing pointing at the variable. The
+ * repair is unambiguous (the repeated prefix is never meaningful), so it is
+ * made here rather than left as a trap in the dashboard.
+ */
+export function normalizeDatabaseUrl(raw: string): string {
+  return raw.trim().replace(/^postgres(?:ql)?:(?=postgres(?:ql)?:\/\/)/i, '');
+}
+
 function databaseUrl(): string {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
+  const raw = process.env.DATABASE_URL;
+  if (!raw || !raw.trim()) {
     throw new Error(
       'DATABASE_URL is not set.\n' +
         `  Add it to ${path.join(API_ROOT, '.env')}\n` +
         '  e.g. DATABASE_URL=postgresql://user:pass@127.0.0.1:5432/cr_dev',
+    );
+  }
+  const url = normalizeDatabaseUrl(raw);
+  let host = '';
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    /* reported below with the host check */
+  }
+  if (!host) {
+    throw new Error(
+      'DATABASE_URL does not contain a host: ' +
+        url.replace(/\/\/[^/\s@]+@/g, '//***@').slice(0, 80),
     );
   }
   return url;
@@ -152,7 +179,7 @@ export function safeDbError(e: unknown): string {
  */
 export function databaseTarget(): { host: string; database: string } | null {
   try {
-    const url = new URL(process.env.DATABASE_URL || '');
+    const url = new URL(normalizeDatabaseUrl(process.env.DATABASE_URL || ''));
     return { host: url.hostname || '(empty)', database: url.pathname.replace(/^\//, '') || '(default)' };
   } catch {
     return null;
