@@ -179,18 +179,12 @@ async function adminToken(): Promise<string | undefined> {
   return verify.json?.token ?? verify.json?.access_token;
 }
 
-/** Signup → phone verify → SQL KYC approve → re-login (token carries kyc). */
+/** Signup → SQL KYC approve → re-login (token carries kyc). */
 async function makeAccount(name: string, email: string, phone: string, password: string, role: string) {
-  const signup = await call('/auth/signup', {
+  await call('/auth/signup', {
     method: 'POST',
     body: { name, email, phone, password, role },
   });
-  const otp = signup.json?.dev_otp;
-  const login = await call('/auth/login', { method: 'POST', body: { email, password } });
-  const token0 = login.json?.access_token ?? login.json?.token;
-  if (otp && token0) {
-    await call('/auth/otp/phone/verify', { method: 'POST', token: token0, body: { code: String(otp) } });
-  }
   sql(`UPDATE auth.users SET kyc_status='approved' WHERE email='${email}'`);
   const login2 = await call('/auth/login', { method: 'POST', body: { email, password } });
   const token = login2.json?.access_token ?? login2.json?.token;

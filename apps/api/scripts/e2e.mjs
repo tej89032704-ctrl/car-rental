@@ -23,11 +23,6 @@ async function req(method, path, { token, body, raw } = {}) {
   return { status: res.status, data };
 }
 
-async function otpFromDb(email) {
-  // dev helper: read OTP from sms_logs (server-side dev_otp also returned at signup)
-  return null;
-}
-
 const fakePng = () => {
   const buf = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
   return new Blob([buf], { type: 'image/png' });
@@ -56,20 +51,17 @@ async function main() {
   ok('admin login asks 2FA', r.data.requires_2fa === true);
 
   r = await req('POST', '/auth/signup', { body: { name: 'Owner One', email: ownerEmail, phone: ownerPhone, password: 'Passw0rd!', role: 'car_owner' } });
-  ok('owner signup returns OTP', !!r.data.dev_otp);
-  const ownerOtp = r.data.dev_otp;
+  // Registration has no OTP step: the account is active immediately.
+  ok('owner signup creates an active account', r.status === 201 && !r.data.dev_otp, JSON.stringify(r.data));
 
   await req('POST', '/auth/login', { body: { email: ownerEmail, password: 'Passw0rd!' } });
   r = await req('POST', '/auth/login', { body: { email: ownerEmail, password: 'Passw0rd!' } });
   ok('owner logs into main portal', r.status === 200 && r.data.user.role === 'car_owner');
   const ownerToken = r.data.access_token;
+  ok('fresh signup is active without OTP', r.data.user.status === 'active', r.data.user.status);
 
   r = await req('POST', '/auth/agent/login', { body: { email: ownerEmail, password: 'Passw0rd!' } });
   ok('owner REJECTED on agent portal', r.status === 401);
-
-  // verify phone
-  r = await req('POST', '/auth/otp/phone/verify', { token: ownerToken, body: { code: ownerOtp } });
-  ok('phone verified', r.status === 200);
 
   console.log('== 2. KYC gate ==');
   r = await req('GET', '/cars/mine', { token: ownerToken });
@@ -134,10 +126,8 @@ async function main() {
 
   console.log('== 4. Renter books ==');
   r = await req('POST', '/auth/signup', { body: { name: 'Renter One', email: renterEmail, phone: renterPhone, password: 'Passw0rd!', role: 'car_renter' } });
-  const renterOtp = r.data.dev_otp;
   r = await req('POST', '/auth/login', { body: { email: renterEmail, password: 'Passw0rd!' } });
   const renterToken = r.data.access_token;
-  await req('POST', '/auth/otp/phone/verify', { token: renterToken, body: { code: renterOtp } });
   await req('POST', '/kyc/documents', { token: renterToken, body: form({ doc_type: 'id_proof', file: fakePng() }) });
   await req('POST', '/kyc/documents', { token: renterToken, body: form({ doc_type: 'address_proof', file: fakePng() }) });
   r = await req('GET', '/kyc/queue', { token: adminToken });

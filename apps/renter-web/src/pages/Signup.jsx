@@ -5,5 +5,9 @@ import AuthPage from '../../../../packages/shared/src/AuthPage.jsx';
 
 export default function Signup() {
   const nav = useNavigate();
-  return <AuthPage view="up" brand="CAR-ENT" defaultRole="rent" termsHref="/terms" home="/" />;
+  /* Renter portal: this page creates renters only. The "List my car" half of
+     the role toggle belongs to the owner portal's signup, so passing a single
+     role locks the toggle out of the form instead of offering a choice that
+     lands the visitor in the wrong account type. */
+  return <AuthPage view="up" brand="CAR-ENT" roles={['rent']} defaultRole="rent" termsHref="/terms" home="/" />;
 }

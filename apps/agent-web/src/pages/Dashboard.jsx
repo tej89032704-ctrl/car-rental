@@ -30,7 +30,7 @@ export default function Dashboard() {
     e.preventDefault();
     await act(async () => {
       const r = await api('/agent/leads', { method: 'POST', body: form });
-      return r.dev_otp ? `${r.message} (Dev OTP for the lead: ${r.dev_otp})` : r.message;
+      return r.message;
     });
     setForm({ lead_name: '', lead_phone: '', lead_email: '', lead_type: 'owner_onboarding' });
   }
@@ -68,7 +68,7 @@ export default function Dashboard() {
         <h2>Create a lead (field onboarding)</h2>
       </div>
       <div className="booking-card">
-        <p className="muted">Creates a pending account. The person must verify their phone via OTP to become real.</p>
+        <p className="muted">Creates their account straight away. Nothing else is needed from them to exist as a user.</p>
         <form onSubmit={createLead}>
           <div className="row">
             <div className="form-group">

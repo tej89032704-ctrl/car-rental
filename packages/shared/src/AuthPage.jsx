@@ -418,13 +418,17 @@ export default function AuthPage({
       role: API_ROLE[role],
     };
     try {
-      const data = await api('/auth/signup', { method: 'POST', body });
+      await api('/auth/signup', { method: 'POST', body });
       // Signup does not return a session, so sign in to get one: the app
-      // redirects an already-signed-in user away from /verify-otp, so the
-      // session has to exist before we navigate there.
+      // redirects a signed-out user away from /profile-details, so the session
+      // has to exist before we navigate there.
+      //
+      // Registration is complete at this point — the API creates an active
+      // account and there is no phone-OTP screen. /profile-details is the
+      // optional "tell us a bit more" step, and it can be skipped.
       const session = await api('/auth/login', { method: 'POST', body: { email: body.email, password } });
       setSession(session);
-      nav('/verify-otp', { state: { devOtp: data.dev_otp, role: body.role } });
+      nav('/profile-details', { state: { role: body.role } });
     } catch (e2) {
       setBusy('');
       bad(upRef.current, e2.message);

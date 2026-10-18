@@ -80,7 +80,8 @@ All money stored as integer paise; all timestamps UTC ISO strings; soft delete e
 
 ## Dev conveniences
 
-- OTPs are logged to `notification.db` (`sms_logs`) and also returned as `dev_otp` in signup/request responses.
+- Registration has no phone-OTP step: the account is active as soon as signup succeeds and the visitor goes straight to the optional profile step.
+- OTPs that remain (admin 2FA, phone re-verification, password reset) are logged to the `notification` schema (`sms_logs`), and `/auth/otp/phone/request` still returns a `dev_otp` outside production.
 - Password reset links land in `email_logs`.
 - Uploads go to `apps/api/uploads`. `/uploads/*` checks database ownership: active car photos are public; KYC and car documents require authorized bearer authentication. Shared document viewers fetch private blobs without tokens in URLs.
 - Settlement sweep runs every 10 min in the API process (deposit refunds + owner earnings after the dispute window), plus lazily on relevant reads.

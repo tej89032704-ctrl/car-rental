@@ -22,14 +22,15 @@ export class AgentsService {
   }
 
   /**
-   * Task 1.2: Agent creates a lead -> pending user account is created that the
-   * actual person must confirm via OTP before it becomes real.
+   * Task 1.2: Agent creates a lead -> an account is created for that person.
+   * Since registration no longer goes through a phone-OTP step (see
+   * AuthService.signup), the lead is converted the moment the account exists.
    */
   async createLead(agentUserId: string, dto: {
     lead_name: string; lead_phone: string; lead_email: string; lead_type: 'owner_onboarding' | 'renter_onboarding';
   }) {
     const role = dto.lead_type === 'owner_onboarding' ? 'car_owner' : 'car_renter';
-    // creates the pending account (status=pending_otp, OTP SMS sent)
+    // creates the account (status=active) and returns its id
     const result = await this.auth.signup({
       name: dto.lead_name, email: dto.lead_email, phone: dto.lead_phone,
       password: require('crypto').randomBytes(12).toString('base64url'), role,
@@ -39,7 +40,7 @@ export class AgentsService {
     const leadId = uuid();
     await this.adb().prepare(
       `INSERT INTO onboarding_leads (id, agent_user_id, lead_name, lead_phone, lead_email, lead_type, converted_user_id, status, created_at, updated_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'otp_pending', ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'converted', ?, ?, ?)`,
     ).run(leadId, agentUserId, dto.lead_name, dto.lead_phone, dto.lead_email, dto.lead_type, userId, nowUtc(), nowUtc(), agentUserId);
 
     // auto-assign KYC first-pass to this agent
@@ -48,7 +49,7 @@ export class AgentsService {
        VALUES (?, ?, 'kyc_first_pass', ?, 'assigned', 'Lead onboarded by agent', ?, ?, ?)`,
     ).run(uuid(), agentUserId, userId, nowUtc(), nowUtc(), agentUserId);
 
-    return { lead_id: leadId, user_id: userId, message: 'Lead created. The person must verify their phone via OTP to activate.', dev_otp: result.dev_otp };
+    return { lead_id: leadId, user_id: userId, message: 'Lead created. An account is active for this person.' };
   }
 
   async myLeads(agentUserId: string) {

@@ -51,11 +51,7 @@ async function adminToken(): Promise<string | undefined> {
   return v.json?.token ?? v.json?.access_token;
 }
 async function makeAccount(email: string, phone: string, name: string, role: string): Promise<string> {
-  const signup = await call('/auth/signup', { method: 'POST', body: { name, email, phone, password: PASSWORD, role } });
-  const otp = signup.json?.dev_otp;
-  const login = await call('/auth/login', { method: 'POST', body: { email, password: PASSWORD } });
-  const t0 = login.json?.access_token ?? login.json?.token;
-  if (otp && t0) await call('/auth/otp/phone/verify', { method: 'POST', token: t0, body: { code: String(otp) } });
+  await call('/auth/signup', { method: 'POST', body: { name, email, phone, password: PASSWORD, role } });
   sql(`UPDATE auth.users SET kyc_status='approved' WHERE email='${email}'`);
   const login2 = await call('/auth/login', { method: 'POST', body: { email, password: PASSWORD } });
   const token = login2.json?.access_token ?? login2.json?.token;

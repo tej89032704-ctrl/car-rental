@@ -148,8 +148,8 @@ async function main(): Promise<void> {
     body: { name: 'KYC E2E', email: EMAIL, phone: PHONE, password: PASSWORD, role: 'car_renter' },
   });
   ok('POST /auth/signup', [200, 201].includes(signup.status), signup);
-  const otp = signup.json?.dev_otp;
-  ok('dev_otp returned', Boolean(otp), signup.json);
+  // Registration has no OTP step any more, so there is no code to return.
+  ok('no OTP required at signup', !signup.json?.dev_otp, signup.json);
 
   const login = await call('/auth/login', { method: 'POST', body: { email: EMAIL, password: PASSWORD } });
   ok('POST /auth/login', login.status === 200, login.status);
@@ -157,10 +157,6 @@ async function main(): Promise<void> {
   ok('token issued', Boolean(token));
   if (!token) throw new Error('no token — cannot continue');
 
-  if (otp) {
-    const v = await call('/auth/otp/phone/verify', { method: 'POST', token, body: { code: String(otp) } });
-    ok('phone verified', v.status === 200, v);
-  }
 
   // kyc_status is still 'pending' here: the KYC routes are @KycExempt, which is
   // the whole reason a fresh sign-up can file documents at all.

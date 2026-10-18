@@ -99,6 +99,23 @@ export class AuthService {
     return false;
   }
 
+  /**
+   * Registration finishes here: there is no phone-OTP step any more.
+   *
+   * `NotificationsService.sendSms` only writes a row to
+   * notification.sms_logs — no SMS provider is wired up — so a signup that
+   * required a code created the account and then parked the visitor on a
+   * verification screen they could never pass: production deliberately hides
+   * `dev_otp`, and the code never reached their phone. That made every new
+   * account unusable at the first screen after registration.
+   *
+   * The account is therefore active as soon as it exists. Anything that
+   * actually needs a trustworthy identity — booking, listing a car, payouts —
+   * is gated by KYC (KycGateGuard), which a human reviews.
+   *
+   * The OTP helpers stay for admin 2FA and password reset, where the code is
+   * consumed by the same server that generated it.
+   */
   async signup(dto: { name: string; email: string; phone: string; password: string; role: string }) {
     if (!['car_owner', 'car_renter', 'agent'].includes(dto.role)) throw new BadRequestException('Invalid role');
     const db = getDb('auth');
@@ -107,16 +124,10 @@ export class AuthService {
     const id = uuid();
     await db.prepare(
       `INSERT INTO users (id, name, email, phone, password_hash, role, status, created_at, updated_at, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending_otp', ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
     ).run(id, dto.name, dto.email.toLowerCase(), dto.phone, this.hash(dto.password), dto.role, nowUtc(), nowUtc(), id);
 
-    const code = await this.createOtp(id, 'phone_verify');
-    await this.notifier.sendSms(dto.phone, `Your CarRental verification code is ${code}`);
-    return {
-      user_id: id,
-      message: 'Account created. Verify your phone with the OTP sent via SMS.',
-      dev_otp: process.env.NODE_ENV !== 'production' ? code : undefined,
-    };
+    return { user_id: id, message: 'Account created.' };
   }
 
   private async loginWithPortal(email: string, password: string, portal: Portal) {
