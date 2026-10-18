@@ -35,17 +35,21 @@ function loadDotEnv(): void {
 loadDotEnv();
 
 /**
- * Repairs the one malformation a hosting dashboard actually produces: the
- * scheme pasted in front of a URL that already has one, giving
- * `postgresql:postgresql://user:pass@host/db`.
+ * Repairs the malformation a hosting dashboard actually produced here: the
+ * scheme pasted in front of a URL that already has one, once or several times,
+ * giving `postgresql:postgresql://user:pass@host/db` (the variable on the
+ * service had two of them).
  *
- * node-postgres cannot read a host out of that — it dials localhost, and the
+ * node-postgres reads no host out of that — it dials localhost, and the
  * deployment reports `ECONNREFUSED` with nothing pointing at the variable. The
- * repair is unambiguous (the repeated prefix is never meaningful), so it is
- * made here rather than left as a trap in the dashboard.
+ * repair is unambiguous: everything before the last `postgresql://` is junk, so
+ * the URL is taken from there. A well-formed value has it at index 0 and is
+ * returned untouched.
  */
 export function normalizeDatabaseUrl(raw: string): string {
-  return raw.trim().replace(/^postgres(?:ql)?:(?=postgres(?:ql)?:\/\/)/i, '');
+  const value = raw.trim();
+  const start = Math.max(value.lastIndexOf('postgresql://'), value.lastIndexOf('postgres://'));
+  return start > 0 ? value.slice(start) : value;
 }
 
 function databaseUrl(): string {
