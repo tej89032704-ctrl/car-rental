@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { Public } from '../../common/auth/guards';
+import { JWT_SECRET_EPHEMERAL, Public } from '../../common/auth/guards';
 import { KycExempt } from '../../common/auth/kyc-gate.guard';
 import { probeDatabase } from '../../common/db/database';
 import { dbReadiness } from '../../common/db/readiness';
@@ -31,6 +31,9 @@ export class HealthController {
     return {
       status: db.ok ? 'ok' : 'degraded',
       uptime_seconds: Math.round(process.uptime()),
+      // "generated" means the service is running without a configured
+      // JWT_SECRET: sign-in works, but a restart signs everybody out.
+      jwt_secret: JWT_SECRET_EPHEMERAL ? 'generated' : 'configured',
       database: {
         ok: db.ok,
         phase: dbReadiness.phase,

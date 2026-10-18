@@ -31,7 +31,7 @@ One Docker web service (`Dockerfile`, blueprint in `render.yaml`) serves the API
 | `/api/...` | the Nest API |
 | `/uploads/...` | owner photos and KYC documents |
 
-Environment: `DATABASE_URL` (required), `JWT_SECRET` (required in production, unique, 32+ chars), optional `ADMIN_EMAIL` / `ADMIN_PASSWORD` for the seeded super admin, optional `DB_SSL=auto|require|disable` (default `auto`: TLS for public hostnames, plain for dotless private hosts such as Render's internal database).
+Environment: `DATABASE_URL` (required) and `JWT_SECRET` (32+ random characters). Without a `JWT_SECRET` a production process still starts, on a randomly generated secret: sign-in works, but every restart signs everyone out — `/api/health` then reports `"jwt_secret": "generated"`, and setting the variable makes sessions durable. Optional `ADMIN_EMAIL` / `ADMIN_PASSWORD` for the seeded super admin, optional `DB_SSL=auto|require|disable` (default `auto`: TLS for public hostnames, plain for dotless private hosts such as Render's internal database).
 
 `GET /api/health` answers 200 whenever the process is up and reports the database in its body, so a starting or unreachable database never turns into a deploy that hangs:
 
