@@ -7,6 +7,7 @@ import { dbReadiness, setDbPhase } from './common/db/readiness';
 import { ensureSuperAdmin } from './ensure-admin';
 import { AppModule } from './app.module';
 import { servePortals } from './serve-portals';
+import { DbUnavailableFilter } from './common/filters/db-unavailable.filter';
 import { BookingsService } from './modules/bookings/bookings.service';
 import { FleetService } from './modules/fleet/fleet.service';
 
@@ -93,6 +94,8 @@ async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({ origin: true, credentials: true });
+  // A database that is not there yet is a retryable 503, not an anonymous 500.
+  app.useGlobalFilters(new DbUnavailableFilter());
 
   if (isProd) {
     // In production the API and the five portals share one origin (Render's free
