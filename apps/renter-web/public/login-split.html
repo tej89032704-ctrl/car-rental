@@ -536,18 +536,6 @@ canvas.mote{z-index:1}
   }
 
   /* live anime companions: react to typing, passwords, submit */
-  /* spoken voice (browser text-to-speech), follows the sound toggle */
-  function speak(text,k){
-    if(!window.speechSynthesis||!sfx.voice()||(navigator.userActivation&&!navigator.userActivation.hasBeenActive))return;
-    try{
-      var vs=speechSynthesis.getVoices().filter(function(v){return /^en/i.test(v.lang)}),
-          pref=/Samantha|Aria|Jenny|Sonia|Libby|Karen|Moira|Tessa|Serena|Google UK English Female|Google US English|Female/i,
-          good=vs.filter(function(v){return pref.test(v.name)}),pool=good.length?good:vs,
-          u=new SpeechSynthesisUtterance(text.replace(/\u2014/g,',').replace(/\u2026/g,'')),v=pool.length?pool[k===1&&pool.length>1?1:0]:null;
-      if(v)u.voice=v;u.lang=v?v.lang:'en-US';u.pitch=k===1?.9:1.12;u.rate=k===1?.92:.97;u.volume=.85;
-      speechSynthesis.cancel();speechSynthesis.speak(u);
-    }catch(e){}
-  }
   function mascotSVG(P,k){
     var eye=function(arc,wing,cid){return '<g class="eye"><ellipse cx="'+cid[0]+'" cy="66" rx="8.6" ry="10.6" fill="#fff"/><g clip-path="url(#c'+cid[1]+k+')"><g class="look"><ellipse cx="'+cid[0]+'" cy="67" rx="6.8" ry="9.2" fill="url(#i'+k+')"/><ellipse cx="'+cid[0]+'" cy="67.6" rx="3.3" ry="5.3" fill="'+P.pup+'"/><circle cx="'+(cid[0]-2.6)+'" cy="62.8" r="2.5" fill="#fff"/><circle cx="'+(cid[0]+2.8)+'" cy="71.4" r="1.2" fill="#fff" opacity=".9"/></g></g><path d="'+arc+'" fill="none" stroke="'+P.lash+'" stroke-width="2.6" stroke-linecap="round"/><path d="'+wing+'" fill="none" stroke="'+P.lash+'" stroke-width="1.8" stroke-linecap="round"/></g>'};
     var hand=function(c){return '<g class="hand '+c+'"><rect x="-11" y="10" width="22" height="100" rx="9" fill="'+P.o+'"/><rect x="-11" y="10" width="22" height="3.5" fill="'+P.a+'"/><g class="hd"><rect x="-13" y="-12" width="26" height="25" rx="11" fill="'+P.s+'"/><path d="M-5 -9v8M0 -10v9M5 -9v8" stroke="rgba(170,110,90,.35)" stroke-width="1" stroke-linecap="round" fill="none"/><ellipse cx="'+(c==='L'?12:-12)+'" cy="3" rx="3.6" ry="6" fill="'+P.s+'"/></g></g>'};
@@ -575,7 +563,7 @@ canvas.mote{z-index:1}
       cool[key]=now+(cd===undefined?12000:cd);
       clearInterval(sp.t);clearInterval(sp.m);clearTimeout(sp.h);
       sp.pr=pr;sp.until=now+text.length*30+2400+text.length*35;
-      bub.classList.add('on');tx.textContent='';svg.classList.add('talk');speak(text,k==='o'?1:0);
+      bub.classList.add('on');tx.textContent='';svg.classList.add('talk');
       var i=0;sp.m=setInterval(function(){svg.classList.toggle('op')},120);
       sp.t=setInterval(function(){
         tx.textContent=text.slice(0,++i);
@@ -706,29 +694,14 @@ canvas.mote{z-index:1}
       g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.003);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
       o.connect(g);o.start(t);o.stop(t+dur+.02);
     }
-    function thock(t,f,vol,pan){tone(t,f,f*.5,.075,vol,pan);burst(t,Math.min(f*15,4200),1.8,.02,vol*.9,pan);burst(t+.05,1300,1.2,.035,vol*.3,pan)}
     function ok(){return on&&ctx&&ctx.state==='running'}
-    btn.addEventListener('click',function(){on=!on;try{localStorage.setItem('oh-sound',on?'1':'0')}catch(e){}paint();if(on)unlock();else if(window.speechSynthesis)speechSynthesis.cancel()});
+    btn.addEventListener('click',function(){on=!on;try{localStorage.setItem('oh-sound',on?'1':'0')}catch(e){}paint();if(on)unlock()});
     ['pointerdown','keydown','touchstart'].forEach(function(ev){document.addEventListener(ev,unlock,{capture:true,passive:true})});
     paint();
-    document.addEventListener('click',function(e){
-      if(!ok())return;
-      var h=e.target.closest('.half'),side=h?h.id:null,m=side==='owner'?.85:1,t=ctx.currentTime,pan=(e.clientX/innerWidth*2-1)*.6;
-      tone(t,2000*m,900*m,.05,.11,pan,'triangle');burst(t,3200*m,1.4,.03,.16,pan);tone(t+.035,700*m,480*m,.06,.05,pan);
-    });
-    document.addEventListener('keydown',function(e){
-      var inp=e.target.closest&&e.target.closest('input');if(!inp||!ok())return;
-      var k=e.key;if(e.metaKey||e.ctrlKey||e.altKey||['Shift','Control','Alt','Meta','CapsLock','Tab','Escape'].indexOf(k)>-1)return;
-      var h=inp.closest('.half'),own=h&&h.id==='owner',m=own?.8:1.08,pan=own?.3:-.3,t=ctx.currentTime;
-      if(k===' '){thock(t,95*m,.3,pan);burst(t,700*m,1,.09,.12,pan)}
-      else if(k==='Backspace'){tone(t,520*m,260*m,.05,.1,pan,'triangle');burst(t,2000*m,1.6,.025,.12,pan)}
-      else if(k==='Enter'){thock(t,120*m,.32,pan);thock(t+.07,150*m,.22,pan)}
-      else{var c=k.length===1?k.charCodeAt(0):7,f=(150+(c%9)*16+Math.random()*10)*m;thock(t,f,.2,pan)}
-    });
+    /* Only the clock's own tick. The keypress, click and hourly-chime voices
+       were removed on request; the tick is the one sound this page keeps. */
     return{
-      voice:function(){return ok()},
-      tick:function(n){if(!ok())return;var t=ctx.currentTime,a=n%2===0,body=a?760:540;burst(t,a?4600:3300,2,.012,.35,0);burst(t,body,9,.09,.9,0);tone(t,body*2.4,body*1.8,.02,.05,0,'triangle')},
-      chime:function(){if(!ok())return;var t=ctx.currentTime;[523.25,784,1046.5,1568].forEach(function(f,i){tone(t+i*.02,f,0,2.4,[.08,.045,.035,.015][i],0,'sine')})}
+      tick:function(n){if(!ok())return;var t=ctx.currentTime,a=n%2===0,body=a?760:540;burst(t,a?4600:3300,2,.012,.35,0);burst(t,body,9,.09,.9,0);tone(t,body*2.4,body*1.8,.02,.05,0,'triangle')}
     };
   })();
 
@@ -753,7 +726,7 @@ canvas.mote{z-index:1}
       lastS=s;
       var g={};tf.formatToParts(d).forEach(function(p){g[p.type]=p.value});
       ch.textContent=g.hour;cm.textContent=g.minute;cpm.textContent=(g.dayPeriod||'').toUpperCase();
-      cs.textContent=g.second;sfx.tick(s);if(s===0&&d.getMinutes()===0)sfx.chime();
+      cs.textContent=g.second;sfx.tick(s);
       if(!RM)cs.animate([{transform:'translateY(5px)',opacity:0},{transform:'none',opacity:1}],{duration:260});
       if(g.minute!==lastM){lastM=g.minute;var z=zf.formatToParts(d).filter(function(p){return p.type==='timeZoneName'})[0];cdt.textContent=df.format(d)+(z?' · '+z.value:'');adt.textContent=sf.format(d)}
       var sec=s+ms/1000,min=d.getMinutes()+sec/60,hr=d.getHours()%12+min/60;
