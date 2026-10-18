@@ -57,17 +57,30 @@ function isLocalHost(host: string): boolean {
  * chain verification from Windows without extra CA setup; traffic is still
  * encrypted and access is still gated by the keys. Set
  * DB_SSL_REJECT_UNAUTHORIZED=true to verify the chain.
+ *
+ * A hostname without a dot is never a public endpoint: it is a container or
+ * private-network name (Render's `dpg-xxxx-a`, Docker's `postgres`, a bare
+ * hostname on a VPC). Those servers reject a TLS negotiation outright —
+ * "The server does not support SSL connections" — which reads like a wrong
+ * password and kills the boot. So TLS follows the shape of the host unless
+ * the URL asks for it explicitly, and DB_SSL=require|disable overrides both.
  */
 function sslConfig(url: string): { rejectUnauthorized: boolean } | undefined {
+  const mode = (process.env.DB_SSL || 'auto').toLowerCase();
+  const verify = process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true';
+  if (mode === 'disable' || mode === 'false' || mode === 'off') return undefined;
+  if (mode === 'require' || mode === 'true' || mode === 'on') return { rejectUnauthorized: verify };
+
   let host = '';
   try {
     host = new URL(url).hostname;
   } catch {
     /* handled by databaseUrl() callers on first query */
   }
-  const wantsSsl = /sslmode=require/i.test(url) || !isLocalHost(host);
+  const explicit = /sslmode=require/i.test(url);
+  const wantsSsl = explicit || (!isLocalHost(host) && host.includes('.'));
   if (!wantsSsl) return undefined;
-  return { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' };
+  return { rejectUnauthorized: verify };
 }
 
 /**
@@ -94,6 +107,12 @@ export function getDb(name: DbName): PgDb {
   const pool = new Pool({
     connectionString: url,
     max: Number(process.env.DB_POOL_MAX || 5),
+    // Without this, a database that is asleep or unreachable leaves the connect
+    // pending for the kernel's SYN retry window (over two minutes on Linux) and
+    // every caller waits with it. Ten seconds turns that into an error a request
+    // or a health probe can actually report.
+    connectionTimeoutMillis: Number(process.env.DB_CONNECT_TIMEOUT_MS || 10000),
+    idleTimeoutMillis: 30000,
     options: `-c search_path=${name}`,
     ssl: sslConfig(url),
   });
@@ -110,6 +129,35 @@ export async function closeAll(): Promise<void> {
   const open = Object.values(connections);
   for (const key of Object.keys(connections)) delete (connections as any)[key];
   await Promise.all(open.map(async (db) => await db.end()));
+}
+
+/**
+ * Error text with any `scheme://user:password@host` credentials stripped, so it
+ * is safe to log and to return from the health endpoint.
+ */
+export function safeDbError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e);
+  return raw.replace(/\/\/[^/\s@]+@/g, '//').slice(0, 300);
+}
+
+/**
+ * Liveness probe, bounded by `timeoutMs` so a wedged connection cannot hang the
+ * caller. Never throws: boot-time code and /api/health both want an answer, not
+ * an exception.
+ */
+export async function probeDatabase(timeoutMs = 4000): Promise<{ ok: boolean; error?: string }> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    const timedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(`no response in ${timeoutMs}ms`)), timeoutMs);
+    });
+    await Promise.race([getDb('auth').prepare('SELECT 1 AS ok').get(), timedOut]);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: safeDbError(e) };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 /**
@@ -134,13 +182,37 @@ function toPostgresSql(sql: string, label: string): string {
   );
 }
 
+/**
+ * Schemas in dependency order.
+ *
+ * `fs.readdirSync` returns the filesystem's order, and on a brand-new database
+ * that started with `agent` — whose 002_crm.sql carries nine foreign keys into
+ * `auth.users`. Postgres answered `schema "auth" does not exist`, every later
+ * migration was skipped, and the API booted against an empty database. Local
+ * databases never showed it because their schemas already existed.
+ *
+ * auth comes first because identities are what everything else hangs off;
+ * anything not listed is appended alphabetically.
+ */
+const SCHEMA_ORDER: DbName[] = ['auth', 'fleet', 'booking', 'payment', 'agent', 'notification'];
+
 export async function runMigrations(): Promise<void> {
-  const schemas = fs.readdirSync(MIGRATIONS_DIR).filter((d) => !d.startsWith('.'));
+  const dirs = fs.readdirSync(MIGRATIONS_DIR).filter((d) => !d.startsWith('.'));
+  const schemas = [
+    ...SCHEMA_ORDER.filter((s) => dirs.includes(s)),
+    ...dirs.filter((d) => !SCHEMA_ORDER.includes(d as DbName)).sort(),
+  ];
+
+  // Phase 1 — create every namespace before any DDL runs inside one. A
+  // migration in one schema may reference a table in another, so the schema has
+  // to exist first regardless of which directory is processed first.
+  for (const dbName of schemas) {
+    await getDb(dbName as DbName).exec(`CREATE SCHEMA IF NOT EXISTS "${dbName}"`);
+  }
+
+  // Phase 2 — apply the files, schema by schema, file name order.
   for (const dbName of schemas) {
     const db = getDb(dbName as DbName);
-    // A new database only has `public`; search_path=name would otherwise point
-    // at a schema that does not exist and CREATE TABLE would have nowhere to go.
-    await db.exec(`CREATE SCHEMA IF NOT EXISTS "${dbName}"`);
     await db.exec(
       `CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)`,
     );

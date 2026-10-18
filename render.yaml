@@ -23,19 +23,24 @@ services:
     region: oregon
     repo: https://github.com/tej89032704-ctrl/car-rental
     branch: main
-    # The renter portal's index.html: static, needs no database, so it answers
-    # honestly whether the app is up rather than reporting the API's 401s.
-    healthCheckPath: /renter
+    # The liveness endpoint. It answers from the Node process itself and
+    # reports the database in its body without failing on it, so a deploy that
+    # comes up while Postgres is still starting is not rolled back — and a
+    # service that answered nothing at all is caught.
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: JWT_SECRET
         generateValue: true
       - key: DATABASE_URL
-        sync: false
         fromDatabase:
           name: car-rental-db
           property: connectionString
+      # Render's internal database hostname has no dot, so the API connects
+      # without TLS; a public host (Supabase, Neon, Render's external URL) is
+      # detected from the hostname and uses TLS. Override with DB_SSL=require or
+      # DB_SSL=disable only if a provider disagrees.
       # Optional overrides for the auto-seeded super admin. Remove to use the
       # demo credentials, which are printed to the deploy log on first boot.
       # - key: ADMIN_EMAIL

@@ -12,6 +12,7 @@ import { AgentsModule } from './modules/agents/agents.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CrmModule } from './modules/crm/crm.module';
 import { GeoModule } from './modules/geo/geo.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { GeoModule } from './modules/geo/geo.module';
     AdminModule,
     GeoModule,
     CrmModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

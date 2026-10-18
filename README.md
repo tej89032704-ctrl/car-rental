@@ -20,6 +20,27 @@ npm run dev:manager      # manager portal :5177 (/login)
 
 E2E smoke test (server must be running): `node scripts/e2e.mjs` inside `apps/api`.
 
+## Deploy (Render)
+
+One Docker web service (`Dockerfile`, blueprint in `render.yaml`) serves the API and all five portals on one origin:
+
+| Path | Serves |
+|---|---|
+| `/` | redirect to `/renter` |
+| `/renter` `/owner` `/admin` `/agent` `/manager` | that portal's built `dist/` (SPA fallback) |
+| `/api/...` | the Nest API |
+| `/uploads/...` | owner photos and KYC documents |
+
+Environment: `DATABASE_URL` (required), `JWT_SECRET` (required in production, unique, 32+ chars), optional `ADMIN_EMAIL` / `ADMIN_PASSWORD` for the seeded super admin, optional `DB_SSL=auto|require|disable` (default `auto`: TLS for public hostnames, plain for dotless private hosts such as Render's internal database).
+
+`GET /api/health` answers 200 whenever the process is up and reports the database in its body, so a starting or unreachable database never turns into a deploy that hangs:
+
+```json
+{ "status": "ok", "uptime_seconds": 12, "database": { "ok": true, "phase": "ready" } }
+```
+
+The port is bound **before** migrations run; migrations retry in the background (`DB_INIT_RETRY_MS`, `DB_INIT_MAX_ATTEMPTS`) and a failure is reported as `"status": "degraded"` with the reason.
+
 ## Portals & logins (spec 1.4a — hard rule)
 
 | Surface | URL | Roles | Extra |

@@ -2,21 +2,90 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { runMigrations } from './common/db/database';
+import { safeDbError } from './common/db/database';
+import { dbReadiness, setDbPhase } from './common/db/readiness';
 import { ensureSuperAdmin } from './ensure-admin';
 import { AppModule } from './app.module';
 import { servePortals } from './serve-portals';
 import { BookingsService } from './modules/bookings/bookings.service';
 import { FleetService } from './modules/fleet/fleet.service';
 
+/**
+ * How boot-time database work is retried.
+ *
+ * A managed Postgres that has been asleep, is still starting, or is briefly
+ * unreachable should not cost a deploy: the retry loop keeps trying while the
+ * HTTP server is already answering. Twenty attempts fifteen seconds apart is
+ * five minutes — longer than a platform start-up window, short enough that a
+ * genuinely misconfigured URL stops making noise.
+ */
+const INIT_RETRY_MS = Number(process.env.DB_INIT_RETRY_MS || 15000);
+const INIT_MAX_ATTEMPTS = Number(process.env.DB_INIT_MAX_ATTEMPTS || 20);
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms).unref());
+
+/**
+ * Migrations (and, in production, the super-admin seed) run *after* the port is
+ * open.
+ *
+ * This used to be the first thing bootstrap() awaited. On a host that decides a
+ * deploy succeeded by whether the port answers, a database that never answered
+ * therefore produced the worst possible failure mode: the container was up,
+ * connections were accepted, and nothing was ever sent back. No 502, no log
+ * line the platform surfaces, no page — just a request that hangs.
+ *
+ * Now the socket opens first and this loop reports through /api/health, so the
+ * portals are reachable immediately and a database problem is a visible
+ * "degraded" answer instead of a silent hang.
+ */
+async function initializeDatabase(isProd: boolean): Promise<boolean> {
+  while (dbReadiness.attempts < INIT_MAX_ATTEMPTS) {
+    dbReadiness.attempts += 1;
+    setDbPhase('migrating');
+    try {
+      await runMigrations();
+      if (isProd) await ensureSuperAdmin();
+      dbReadiness.migrated = true;
+      setDbPhase('ready');
+      console.log(`[boot] database ready (attempt ${dbReadiness.attempts})`);
+      return true;
+    } catch (e) {
+      const message = safeDbError(e);
+      setDbPhase('failed', message);
+      console.error(
+        `[boot] database init failed (attempt ${dbReadiness.attempts}/${INIT_MAX_ATTEMPTS}): ${message}`,
+      );
+      if (dbReadiness.attempts >= INIT_MAX_ATTEMPTS) break;
+      await sleep(INIT_RETRY_MS);
+    }
+  }
+  console.error('[boot] giving up on database init; the API will answer 500s and /api/health reports why');
+  return false;
+}
+
+/** Work that needs the database, kept out of the listen path for the same reason. */
+async function afterDatabase(app: NestExpressApplication): Promise<void> {
+  try {
+    // keep the booking module's car cache in sync with the fleet at boot
+    const fleet = await app.get(FleetService);
+    await fleet.syncCarCache();
+  } catch (e) {
+    console.warn('[boot] car_cache sync skipped:', safeDbError(e));
+  }
+
+  const bookings = await app.get(BookingsService);
+  // periodic sweep: auto deposit refunds after the dispute window
+  setInterval(async () => {
+    try {
+      await bookings.sweepSettlements();
+    } catch {
+      /* logged by the sqlite layer */
+    }
+  }, 10 * 60 * 1000).unref();
+}
+
 async function bootstrap() {
   const isProd = process.env.NODE_ENV === 'production';
-  await runMigrations();
-
-  // A freshly migrated production database has tables but no accounts, which
-  // would leave the admin portal with no way in at all. Creating the super
-  // admin here is idempotent, so every later boot just confirms it exists.
-  if (isProd) await ensureSuperAdmin();
-
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors({ origin: true, credentials: true });
 
@@ -46,20 +115,17 @@ async function bootstrap() {
 
   const port = Number(process.env.PORT || 4000);
   await app.listen(port);
+  console.log(`API listening on http://localhost:${port}`);
 
-  const bookings = await app.get(BookingsService);
-  // keep the booking module's car cache in sync with the fleet at boot
-  const fleet = await app.get(FleetService);
-  try { await fleet.syncCarCache(); } catch (e) { console.warn('car_cache sync failed:', String(e)); }
-
-  // periodic sweep: auto deposit refunds after the dispute window
-  setInterval(async () => {
-    try { await bookings.sweepSettlements(); } catch { /* logged by sqlite layer */ }
-  }, 10 * 60 * 1000).unref();
-
-  console.log(`API running on http://localhost:${port}`);
+  // Deliberately not awaited: the port is up, so a slow or unreachable database
+  // can no longer hold the service hostage. Progress and failures are reported
+  // by /api/health and the log above.
+  void initializeDatabase(isProd).then((ok) => {
+    if (ok) void afterDatabase(app);
+  });
 }
+
 bootstrap().catch((error) => {
-  console.error('API startup failed:', error);
+  console.error('API startup failed:', safeDbError(error));
   process.exitCode = 1;
 });
