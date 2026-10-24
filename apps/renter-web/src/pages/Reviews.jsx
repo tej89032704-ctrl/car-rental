@@ -1,190 +1,138 @@
 import { useEffect, useState } from 'react';
-import { api, currentUser } from '../api.js';
 import { Link } from 'react-router-dom';
+import { api } from '../api.js';
+import CarArt from '../components/CarArt.jsx';
+import { carTitle, day, paintFor, toast, tripRange, uprightFor } from '../components/ui.js';
+
+function Stars({ value = 0, onPick }) {
+  return (
+    <div className="ce-stars">
+      {[1, 2, 3, 4, 5].map((n) => (
+        onPick ? (
+          <button
+            key={n}
+            type="button"
+            className={n <= value ? 'on' : ''}
+            aria-label={`${n} star${n === 1 ? '' : 's'}`}
+            onClick={() => onPick(n)}
+          >
+            ★
+          </button>
+        ) : (
+          <span key={n} className={n <= value ? 'on' : ''}>★</span>
+        )
+      ))}
+    </div>
+  );
+}
 
 export default function Reviews() {
-  const [reviews, setReviews] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [mine, setMine] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [newReview, setNewReview] = useState({ rating: 0, comment: '' });
-  const [posting, setPosting] = useState(false);
+  const [err, setErr] = useState('');
+  const [picked, setPicked] = useState({});
+  const [busy, setBusy] = useState('');
 
-  useEffect(() => {
-    const loadReviews = async () => {
-      if (!currentUser) return;
-      try {
-        const data = await api('/reviews/my');
-        setReviews(Array.isArray(data) ? data : []);
-        setError('');
-      } catch (e) {
-        if (String(e.message || '').includes('(401)')) {
-          // navigate to login
-          window.location.href = import.meta.env.BASE_URL + 'login';
-          return;
-        }
-        setError(e.message || 'Failed to load reviews');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadReviews();
-  }, [currentUser]);
-
-  const handleRatingChange = (rating) => {
-    setNewReview(prev => ({ ...prev, rating }));
-  };
-
-  const handleCommentChange = (e) => {
-    setNewReview(prev => ({ ...prev, comment: e.target.value }));
-  };
-
-  const handleSubmitReview = async (e) => {
-    e.preventDefault();
-    if (newReview.rating === 0) {
-      alert('Please select a rating');
-      return;
-    }
-    setPosting(true);
+  async function load() {
     try {
-      await api('/reviews', {
-        method: 'POST',
-        body: {
-          rating: newReview.rating,
-          comment: newReview.comment || undefined,
-        }
-      });
-      setNewReview({ rating: 0, comment: '' });
-      // Reload reviews
-      const data = await api('/reviews/my');
-      setReviews(Array.isArray(data) ? data : []);
+      const [b, r] = await Promise.all([api('/bookings/my'), api('/reviews/my')]);
+      setBookings(Array.isArray(b) ? b : []);
+      setMine(Array.isArray(r) ? r : []);
+      setErr('');
     } catch (e) {
-      setError(e.message || 'Failed to post review');
+      setErr(e.message || 'Could not load your reviews');
     } finally {
-      setPosting(false);
+      setLoading(false);
     }
-  };
-
-  if (loading) {
-    return (
-      <div className="loading-page">
-        <div className="spinner"></div>
-        <p>Loading your reviews…</p>
-      </div>
-    );
   }
 
-  if (error && !reviews.length) {
-    return (
-      <div className="auth-box card">
-        <p className="error">{error}</p>
-        <button className="btn" onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  useEffect(() => { load(); }, []);
 
-  // Calculate average rating
-  const avgRating =
-    reviews.length > 0
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : 0;
-  const totalReviews = reviews.length;
+  const waiting = bookings.filter((b) => b.status === 'completed' && !b.has_reviewed);
+
+  /* A review can target the car or its owner, and both rows describe the same
+     trip. Keep one row per booking, preferring the car target when the renter
+     rated both — the trip is what the page is about. */
+  const reviewed = Object.values(mine.reduce((acc, r) => {
+    const key = r.booking_id || r.id;
+    if (!acc[key] || (acc[key].target_type !== 'car' && r.target_type === 'car')) acc[key] = r;
+    return acc;
+  }, {}));
+
+  async function rate(booking, n) {
+    setPicked((p) => ({ ...p, [booking.id]: n }));
+    setBusy(booking.id);
+    try {
+      await api('/reviews', { method: 'POST', body: { booking_id: booking.id, rating: n } });
+      toast('Thanks for your review');
+      await load();
+    } catch (e) {
+      setErr(e.message || 'Could not post that review');
+      setPicked((p) => ({ ...p, [booking.id]: 0 }));
+    } finally {
+      setBusy('');
+    }
+  }
 
   return (
-    <>
-      <div className="renter-page-header">
-        <span className="header-icon">📝</span>
-        <h1>My Reviews</h1>
-        <p className="subtitle">What you shared about your trips.</p>
-      </div>
-
-      <div className="two">
-        {/* Left column: Average rating and rating breakdown */}
-        <div className="card sp">
-          <div className="big" data-n={totalReviews.toFixed(0)} data-f="0">
-            {totalReviews.toFixed(0)}
-          </div>
-          <div className="st">
-            {'★'.repeat(Math.floor(avgRating))}
-            {avgRating % 1 >= 0.5 ? '½' : ''}
-            {'☆'.repeat(5 - Math.ceil(avgRating))}
-          </div>
-          <p className="mut">
-            Average from {totalReviews} reviews
-          </p>
-          <div className="chips">
-            {[5, 4, 3, 2, 1].map((n) => (
-              <span key={n} className="chip">
-                {n}
-                <span className="mut">
-                  {reviews.filter(r => r.rating === n).length} reviews
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Right column: Write a review and list of existing reviews */}
+    <section className="pg">
+      <div className="hd">
         <div>
-          <div className="card rv">
-            <h3>Write a review</h3>
-            <div className="sin" id="sin">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  data-s={n}
-                  aria-label={`${n} stars`}
-                  className={n === newReview.rating ? 'on' : ''}
-                  onClick={() => handleRatingChange(n)}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
-            <textarea
-              id="rt"
-              placeholder="How was your trip?"
-              value={newReview.comment}
-              onChange={handleCommentChange}
-              rows="4"
-            />
-            <button
-              className="btn"
-              id="rs"
-              onClick={handleSubmitReview}
-              disabled={posting}
-            >
-              {posting ? 'Posting…' : 'Post review'}
-            </button>
-          </div>
-          <div id="rl">
-            {reviews.map((r, index) => (
-              <div
-                key={r.id}
-                className="card rv sp"
-                style={{ animationDelay: `${index * 60}ms` }}
-              >
-                <div className="r">
-                  <b>{r.target_name || 'Trip'}</b>
-                  <span className="mut">{new Date(r.created_at).toLocaleDateString()}</span>
-                </div>
-                <div className="st">
-                  {'★'.repeat(r.rating)}
-                </div>
-                <p>{r.comment || 'No comment provided'}</p>
-              </div>
-            ))}
-          </div>
+          <h1>My reviews</h1>
+          <p>Rate your trips. Hosts and other renters rely on it.</p>
         </div>
       </div>
 
-      {/* Back to search link */}
-      <div className="back-link">
-        <button className="btn sec" onClick={() => window.location.href = import.meta.env.BASE_URL}>
-          ← Back to Search
-        </button>
-      </div>
-    </>
+      {err && <div className="ce-err">{err}</div>}
+      {loading && <div className="ce-load"><span className="spinner" /><span>Loading your reviews…</span></div>}
+
+      {!loading && !err && !waiting.length && !reviewed.length && (
+        <div className="ce-empty">
+          <h3>Nothing to rate yet</h3>
+          <p>Finish a trip and it will show up here for a star rating.</p>
+          <Link className="go" style={{ display: 'inline-block', marginTop: 18, padding: '13px 26px' }} to="/">Find a car</Link>
+        </div>
+      )}
+
+      {!loading && (waiting.length > 0 || reviewed.length > 0) && (
+        <div className="panel rows">
+          {waiting.map((b) => (
+            <div key={`w-${b.id}`}>
+              <div className="th">
+                <CarArt accent={paintFor({ id: b.car_id, category: b.car?.category })} upright={uprightFor(b.car)} />
+              </div>
+              <div>
+                <h3>{carTitle(b.car)}</h3>
+                <p>{tripRange(b.start_date, b.end_date)} trip · {busy === b.id ? 'Saving…' : 'Tap a star to rate'}</p>
+              </div>
+              <div className="am" />
+              <Stars value={picked[b.id] || 0} onPick={(n) => rate(b, n)} />
+            </div>
+          ))}
+
+          {reviewed.map((r) => {
+            const trip = bookings.find((b) => b.id === r.booking_id);
+            const car = trip?.car || r.car;
+            return (
+              <div key={r.id}>
+                <div className="th">
+                  <CarArt accent={paintFor({ id: r.car_id, category: car?.category })} upright={uprightFor(car)} />
+                </div>
+                <div>
+                  <h3>{carTitle(car) || r.target_name || 'Trip'}</h3>
+                  <p>
+                    {trip ? `${tripRange(trip.start_date, trip.end_date)} trip` : `${day(r.created_at)} trip`}
+                    {r.comment ? ` · ${r.comment}` : ''}
+                  </p>
+                </div>
+                <div className="am" />
+                <Stars value={r.rating} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }

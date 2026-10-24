@@ -83,6 +83,18 @@ export default function Requests() {
     decision === 'approve' ? 'Booking approved' : 'Request declined',
   );
 
+  const startTrip = (id) => run(
+    `start:${id}`,
+    () => api(`/bookings/${id}/start-trip`, { method: 'POST' }),
+    'Trip started (balance collected)',
+  );
+
+  const completeTrip = (id) => run(
+    `comp:${id}`,
+    () => api(`/bookings/${id}/complete`, { method: 'POST' }),
+    'Trip completed',
+  );
+
   async function submitReview(r) {
     const ok = await run(
       `rev:${r.id}`,
@@ -208,6 +220,16 @@ export default function Requests() {
                 )}
                 {r.tab === 'a' && (
                   <>
+                    {r.status === 'confirmed' && (
+                      <button className="b" disabled={!!busy} onClick={() => startTrip(r.id)}>
+                        {busy === `start:${r.id}` ? 'Starting…' : 'Start trip'}
+                      </button>
+                    )}
+                    {r.status === 'ongoing' && (
+                      <button className="b" disabled={!!busy} onClick={() => completeTrip(r.id)}>
+                        {busy === `comp:${r.id}` ? 'Completing…' : 'Complete trip'}
+                      </button>
+                    )}
                     {canDispute(r) && (
                       <button className="o r"
                         onClick={() => (disputing ? setPanel(null) : openPanel('dispute', r.id))}>

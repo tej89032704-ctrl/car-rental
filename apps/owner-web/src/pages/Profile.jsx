@@ -200,6 +200,12 @@ export default function Profile() {
               <div className="stat-label">KYC status</div>
             </div>
             <div className="stat-card">
+              <div className="stat-value" style={{ fontSize: 26 }}>
+                {me.phone_verified_at ? <span style={{ color: 'var(--ok)' }}>Verified ✓</span> : <a href="/verify-otp" style={{ fontSize: 18, color: 'var(--acc)' }}>Verify now →</a>}
+              </div>
+              <div className="stat-label">Phone verification</div>
+            </div>
+            <div className="stat-card">
               <div className="stat-value" style={{ fontSize: 26 }}>{me.profile_completed ? 'Yes' : 'No'}</div>
               <div className="stat-label">Profile completed</div>
             </div>

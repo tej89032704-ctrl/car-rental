@@ -68,7 +68,11 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
 function Topbar({ mobileOpen, setMobileOpen }) {
   const location = useLocation();
-  const titles = { '/': 'Agent Dashboard', '/notifications': 'Notifications' };
+  const titles = {
+    '/': 'Agent Dashboard',
+    '/crm': 'Enquiries & Quotes',
+    '/notifications': 'Notifications',
+  };
   return (
     <div className="topbar">
       <button className="topbar-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}><MenuIcon /></button>

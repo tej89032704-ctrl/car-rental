@@ -1,213 +1,202 @@
-import { useState, useEffect } from 'react';
-import { api } from '../api.js';
-import { useNavigate } from 'react-router-dom';
-import { CarIcon } from '../../../../packages/shared/src/icons.jsx';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { api, currentUser } from '../api.js';
+import CarArt from '../components/CarArt.jsx';
+import { carTitle, day, inr, paintFor, ripple, toast, tripRange, uprightFor } from '../components/ui.js';
+
+const STATUS_LABEL = {
+  requested: 'Awaiting owner',
+  confirmed: 'Confirmed',
+  ongoing: 'On the road',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+const TONE = { requested: 'w', confirmed: '', ongoing: '', completed: 'n', cancelled: 'e' };
+
+function countdown(startDate, nowMs) {
+  if (!startDate) return '';
+  const start = new Date(`${String(startDate).slice(0, 10)}T10:00:00`);
+  if (Number.isNaN(start.getTime())) return '';
+  let secs = Math.floor((start - nowMs) / 1000);
+  if (secs <= 0) return '';
+  const d = Math.floor(secs / 86400);
+  secs %= 86400;
+  const h = Math.floor(secs / 3600);
+  secs %= 3600;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  const z = (v) => String(v).padStart(2, '0');
+  return `Pickup in ${d}d ${z(h)}h ${z(m)}m ${z(s)}s`;
+}
 
 export default function MyBookings() {
-  const [bookings, setBookings] = useState([]);
+  const nav = useNavigate();
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [tab, setTab] = useState('up'); // up, past, cancel
-  const [countdownIntervals, setCountdownIntervals] = useState({});
+  const [err, setErr] = useState('');
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await api('/bookings/my');
-        setBookings(Array.isArray(data) ? data : []);
-        setError('');
-      } catch (e) {
-        if (String(e.message || '').includes('(401)')) {
-          navigate('/login');
-          return;
-        }
-        setError(e.message || 'Network error — check your connection');
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    let live = true;
+    api('/bookings/my')
+      .then((data) => { if (live) { setRows(Array.isArray(data) ? data : []); setErr(''); } })
+      .catch((e) => { if (live) setErr(e.message || 'Could not load your bookings'); })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
   }, []);
 
-  const navigate = useNavigate();
-
-  const handleCancel = async (bookingId) => {
-    // In a real app, we would show a modal for cancellation reason
-    if (window.confirm('Are you sure you want to cancel this booking?')) {
-      try {
-        await api(`/bookings/${bookingId}/cancel`, { method: 'POST' });
-        load();
-      } catch (e) {
-        setError(e.message || 'Cancel failed');
-      }
-    }
-  };
-
-  // Clean up countdown intervals on unmount
   useEffect(() => {
-    return () => {
-      Object.values(countdownIntervals).forEach(clearInterval);
-    };
-  }, [countdownIntervals]);
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
+  const active = rows
+    .filter((b) => ['ongoing', 'confirmed', 'requested'].includes(b.status))
+    .sort((a, b) => {
+      const rank = { ongoing: 0, confirmed: 1, requested: 2 };
+      return (rank[a.status] - rank[b.status]) || String(a.start_date).localeCompare(String(b.start_date));
+    })[0];
 
-  if (loading) {
-    return (
-      <div className="loading-page">
-        <div className="spinner"></div>
-        <p>Loading your bookings…</p>
-      </div>
-    );
-  }
-
-  if (error && !bookings.length) {
-    return (
-      <div className="auth-box card">
-        <p className="error">{error}</p>
-        <button className="btn" onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const past = rows.filter((b) => ['completed', 'cancelled'].includes(b.status));
+  // Requests that are not the featured trip still deserve a line — otherwise a
+  // later-dated request disappears until it becomes the next one.
+  const waiting = rows.filter((b) => b.status === 'requested' && b.id !== active?.id);
+  const city = currentUser?.city || 'Bengaluru';
+  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(city)}`;
 
   return (
-    <>
-      <div className="renter-page-header">
-        <span className="header-icon">🧾</span>
-        <h1>My Bookings</h1>
-        <p className="subtitle">
-          Your 20% advance is paid online. The rest is paid at pickup.
-        </p>
+    <section className="pg">
+      <div className="hd">
+        <div>
+          <h1>My bookings</h1>
+          <p>Your next trip first, then everything you have driven.</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="pills" id="bt">
-        <button
-          className={tab === 'up' ? 'on' : ''}
-          data-t="up"
-          onClick={() => setTab('up')}
-        >
-          Upcoming
-        </button>
-        <button
-          className={tab === 'past' ? 'on' : ''}
-          data-t="past"
-          onClick={() => setTab('past')}
-        >
-          Completed
-        </button>
-        <button
-          className={tab === 'cancel' ? 'on' : ''}
-          data-t="cancel"
-          onClick={() => setTab('cancel')}
-        >
-          Cancelled
-        </button>
-      </div>
+      {err && <div className="ce-err">{err}</div>}
+      {loading && !err && <div className="ce-load"><span className="spinner" /><span>Loading your bookings…</span></div>}
 
-      {/* Bookings list */}
-      <div id="bl">
-        {bookings.length > 0 ? (
-          bookings.map((booking, index) => {
-            const totalPrice = booking.total_amount_paise / 100;
-            const onlinePaid = booking.online_paid_paise / 100;
-            const atPickup = totalPrice - onlinePaid;
+      {!loading && !err && !rows.length && (
+        <div className="ce-empty">
+          <h3>No trips yet</h3>
+          <p>Pick a car and send a request — the owner approves it, then you pay 20% online.</p>
+          <Link className="go" style={{ display: 'inline-block', marginTop: 18, padding: '13px 26px' }} to="/">Find a car</Link>
+        </div>
+      )}
 
-            // Calculate countdown for confirmed bookings
-            let countdown = '';
-            if (booking.status === 'confirmed' && booking.start_date) {
-              const startDate = new Date(booking.start_date);
-              const now = new Date();
-              const diffTime = startDate - now;
-              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-              countdown = diffDays > 0 ? `${diffDays} days` : 'Today';
-            }
+      {active && (
+        <div className="panel tk">
+          <div className="pic">
+            <CarArt
+              accent={paintFor({ id: active.car_id, category: active.car?.category })}
+              upright={uprightFor(active.car)}
+            />
+          </div>
+          <div className="in">
+            <span className={`stt ${TONE[active.status] || 'n'}`}>{STATUS_LABEL[active.status] || active.status}</span>
+            {active.status !== 'requested' && <span className="cd">{countdown(active.start_date, now)}</span>}
+            <h2 style={{ marginTop: 12 }}>{carTitle(active.car)}</h2>
+            <div className="kv">
+              <div><small>Pick-up</small><b>{day(active.start_date)}</b></div>
+              <div><small>Return</small><b>{day(active.end_date)}</b></div>
+              <div><small>Location</small><b>{city}</b></div>
+              <div><small>Total</small><b>{inr(active.total_amount_paise)}</b></div>
+            </div>
+            <div className="ce-form-actions" style={{ marginTop: 0 }}>
+              {active.status === 'confirmed' && !active.online_paid_paise && (
+                <button type="button" className="go" onClick={() => nav(`/bookings/${active.id}`)}>
+                  Pay 20% online ({inr(Math.round(active.total_amount_paise * 0.2))})
+                </button>
+              )}
+              <button type="button" className="gh" onClick={() => nav(`/bookings/${active.id}`)}>Manage booking</button>
+              <a className="gh" href={maps} target="_blank" rel="noreferrer">Get directions</a>
+            </div>
+          </div>
+        </div>
+      )}
 
-            return (
-              <div
-                key={booking.id}
-                className="card bkc"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
-                <div className="ic">
-                  <CarIcon />
+      {waiting.length > 0 && (
+        <>
+          <h3 style={{ margin: '34px 0 14px' }}>Awaiting approval</h3>
+          <div className="panel rows">
+            {waiting.map((b) => (
+              <div key={b.id}>
+                <div className="th">
+                  <CarArt accent={paintFor({ id: b.car_id, category: b.car?.category })} upright={uprightFor(b.car)} />
                 </div>
                 <div>
-                  <div className="r" style={{ justifyContent: 'flex-start', gap: '12px' }}>
-                    <b style={{ fontSize: '18px' }}>
-                      {booking.car?.brand} {booking.car?.model}
-                    </b>
-                    <span className={`badge ${booking.status}`}>
-                      {{
-                        confirmed: 'Confirmed',
-                        pending: 'Awaiting owner',
-                        completed: 'Completed',
-                        cancelled: 'Cancelled'
-                      }[booking.status] || booking.status}
-                    </span>
-                  </div>
-                  <div className="mut">
-                    {formatDate(booking.start_date)} · Pickup in {booking.pickup_location || '—'}
-                  </div>
-                  {booking.status === 'confirmed' && (
-                    <div style={{ marginTop: '8px' }}>
-                      Pickup in <span className="cd">{countdown}</span>
-                    </div>
-                  )}
-                  <div className="bar">
-                    {/* Progress bar for online paid portion */}
-                    <div
-                      className="bar-fill"
-                      style={{
-                        width: `${(onlinePaid / totalPrice) * 100}%`,
-                        backgroundColor: 'var(--ink)',
-                        height: '100%',
-                        borderRadius: '8px',
-                      }}
-                    />
-                  </div>
-                  <small className="mut">
-                    ₹{onlinePaid.toFixed(0)} paid online · ₹{atPickup.toFixed(0)} at pickup
-                  </small>
+                  <h3><Link to={`/bookings/${b.id}`}>{carTitle(b.car)}</Link></h3>
+                  <p>{tripRange(b.start_date, b.end_date)}{b.owner?.name ? ` · Host ${b.owner.name}` : ''}</p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  {tab === 'up' && (
+                <div className="am">{inr(b.total_amount_paise)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className="stt w">{STATUS_LABEL[b.status]}</span>
+                  <button type="button" className="gh" onClick={() => nav(`/bookings/${b.id}`)}>View</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {past.length > 0 && (
+        <>
+          <h3 style={{ margin: '34px 0 14px' }}>Past trips</h3>
+          <div className="panel rows">
+            {past.map((b) => (
+              <div key={b.id}>
+                <div className="th">
+                  <CarArt accent={paintFor({ id: b.car_id, category: b.car?.category })} upright={uprightFor(b.car)} />
+                </div>
+                <div>
+                  <h3><Link to={`/bookings/${b.id}`}>{carTitle(b.car)}</Link></h3>
+                  <p>
+                    {tripRange(b.start_date, b.end_date)}
+                    {b.owner?.name ? ` · Host ${b.owner.name}` : ''}
+                  </p>
+                </div>
+                <div className="am">{inr(b.total_amount_paise)}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span className={`stt ${TONE[b.status] || 'n'}`}>{STATUS_LABEL[b.status] || b.status}</span>
+                  {b.status === 'completed' && !b.has_reviewed && (
                     <button
-                      className="btn o"
-                      onClick={() => handleCancel(booking.id)}
+                      type="button"
+                      className="go"
+                      style={{ padding: '7px 16px', margin: 0, fontSize: 13 }}
+                      onClick={() => nav(`/bookings/${b.id}`)}
                     >
-                      Cancel
+                      Leave a review
                     </button>
                   )}
-                  {tab !== 'up' && (
-                    <button className="btn o">
-                      View
+                  {b.car?.id && b.status !== 'completed' && (
+                    <button
+                      type="button"
+                      className="gh"
+                      onClick={(e) => { ripple(e); toast(`Opening ${carTitle(b.car)}`); nav(`/cars/${b.car.id}`); }}
+                    >
+                      View car
+                    </button>
+                  )}
+                  {b.status === 'completed' && b.car?.id && (
+                    <button
+                      type="button"
+                      className="gh"
+                      onClick={(e) => { ripple(e); toast(`Opening ${carTitle(b.car)}`); nav(`/cars/${b.car.id}`); }}
+                    >
+                      Book again
                     </button>
                   )}
                 </div>
               </div>
-            );
-          })
-        ) : (
-          <div className="empty-state">
-            <p className="mut">Nothing here yet.</p>
+            ))}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* Back to search link */}
-      <div className="back-link">
-        <button className="btn sec" onClick={() => navigate('/')}>
-          ← Back to Search
-        </button>
-      </div>
-    </>
+      {!loading && !err && rows.length > 0 && !past.length && !active && (
+        <p className="muted" style={{ marginTop: 20 }}>Completed trips will collect here.</p>
+      )}
+    </section>
   );
 }

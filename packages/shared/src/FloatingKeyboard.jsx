@@ -86,7 +86,7 @@ const backspace = (el) =>
   });
 
 /* Auth routes across all four portals. The DOM check below is the precise
-   signal, but owner's VerifyOtp renders `.auth-box card` instead of
+   signal, but the agent portal still renders `.auth-box card` instead of
    `.auth-shell`, so the route is the fallback. `.auth-box card` alone is NOT
    a safe signal — renter's MyBookings/BookingDetail reuse that class logged-in. */
 const AUTH_PATHS = [
@@ -169,7 +169,7 @@ export default function FloatingKeyboard() {
     // requestAnimationFrame never fires while the tab is hidden.
     const kb = boxRef.current;
     const card = target.isConnected
-      ? target.closest('.auth-wrap, .auth-card-center, .admin-login-card, .auth-box')
+      ? target.closest('.auth-wrap, .auth-card-center, .admin-login-card, .auth-box, .vfy-edge')
       : null;
     if (!kb || !card) { clearLifts(); return undefined; }
     clearLifts(card);

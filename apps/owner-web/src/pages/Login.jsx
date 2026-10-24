@@ -11,9 +11,8 @@ import SplitLoginHandoff from '../../../../packages/shared/src/SplitLoginHandoff
  * that visitor over to the document instead of showing the older auth card.
  *
  * AuthPage remains the fallback only, and only after every handoff attempt has
- * failed. It cannot be deleted outright: it is still the signup screen
- * (Signup.jsx, view="up") and the admin, agent and manager logins, none of
- * which have a split-screen equivalent.
+ * failed. It cannot be deleted outright: it is still the admin, agent and
+ * manager logins, none of which have a split-screen equivalent.
  */
 export default function Login() {
   return (

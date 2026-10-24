@@ -11,6 +11,8 @@ import './styles.css';
 import './components.css';
 /* Design layer last: this file wins over the portal's own rules. */
 import '../../../packages/shared/styles/base.css';
+/* Renter portal artwork, scoped under .ce so it cannot reach the auth screens. */
+import './car-ent.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

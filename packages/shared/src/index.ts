@@ -15,6 +15,8 @@ export interface AuthUser {
   role: Role;
   status: 'pending_otp' | 'active' | 'suspended' | 'banned';
   kyc_status: KycStatus;
+  /** True once a code has been confirmed for the current number. */
+  phone_verified?: boolean;
 }
 
 export interface JwtPayload {

@@ -19,11 +19,14 @@ export class FleetService {
   }
 
   async createCar(ownerId: string, dto: any) {
+    const plate = dto.plate_number ? String(dto.plate_number).toUpperCase() : '';
+    const existing = await this.db().prepare(`SELECT id FROM cars WHERE plate_number = ? AND is_deleted = 0`).get(plate);
+    if (existing) throw new BadRequestException(`A car with plate number ${plate} is already listed`);
     const id = uuid();
     await this.db().prepare(
       `INSERT INTO cars (id, owner_id, make, model, year, plate_number, category, transmission, fuel_type, seats, status, created_at, updated_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?)`,
-    ).run(id, ownerId, dto.make, dto.model, dto.year, dto.plate_number.toUpperCase(), dto.category,
+    ).run(id, ownerId, dto.make, dto.model, dto.year, plate, dto.category,
       dto.transmission, dto.fuel_type, dto.seats, nowUtc(), nowUtc(), ownerId);
     await this.syncCarCache();
     return await this.getOwnedCar(id, ownerId);
@@ -186,6 +189,11 @@ export class FleetService {
         sets.push(`${f} = ?`);
         params.push(f === 'plate_number' ? String(dto[f]).toUpperCase() : dto[f]);
       }
+    }
+    if (dto.plate_number !== undefined) {
+      const plate = String(dto.plate_number).toUpperCase();
+      const existing = await this.db().prepare(`SELECT id FROM cars WHERE plate_number = ? AND id <> ? AND is_deleted = 0`).get(plate, carId);
+      if (existing) throw new BadRequestException(`A car with plate number ${plate} is already listed`);
     }
     // A pause carries no detail fields, so this guard has to allow it through.
     if (sets.length === 0 && paused === undefined) throw new BadRequestException('Nothing to update');

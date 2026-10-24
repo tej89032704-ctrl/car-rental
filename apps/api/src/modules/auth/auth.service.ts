@@ -178,18 +178,44 @@ export class AuthService {
     return { ...await this.issueTokens(user), user: this.toPublicUser(user) };
   }
 
+  /**
+   * Phone verification is an optional step that runs *after* the account is
+   * already active, so an active account is exactly the normal case here --
+   * the old check rejected every user who could reach the page.
+   *
+   * Asking for a code on a number that is already verified is a no-op rather
+   * than an error: the verification page requests one when it opens, and a
+   * returning user should land on the finished state, not a red error line.
+   *
+   * `dev_otp` is returned whenever sendSms() has no real transport, which is
+   * always today (see NotificationsService.deliversSms). Without that the page
+   * is a dead end in production: the code is stored, no SMS is sent, and every
+   * attempt answers "Incorrect or expired OTP".
+   */
   async requestPhoneOtp(userId: string) {
     const user = await this.getUserRaw(userId);
-    if (user.status === 'active') throw new BadRequestException('Phone already verified');
+    if (!user) throw new BadRequestException('User not found');
+    if (user.phone_verified_at) {
+      return { message: 'Phone already verified', already_verified: true };
+    }
     const code = await this.createOtp(userId, 'phone_verify');
-    await this.notifier.sendSms(user.phone, `Your CarRental verification code is ${code}`);
-    return { message: 'OTP sent', dev_otp: process.env.NODE_ENV !== 'production' ? code : undefined };
+    await this.notifier.sendSms(user.phone, `Your CarRENT verification code is ${code}`);
+    const delivered = this.notifier.deliversSms;
+    return {
+      message: delivered ? 'OTP sent' : 'No SMS provider is connected, so your code is shown here.',
+      dev_otp: delivered ? undefined : code,
+      already_verified: false,
+    };
   }
 
   async verifyPhoneOtp(userId: string, code: string) {
     if (!await this.consumeOtp(userId, 'phone_verify', code)) throw new UnauthorizedException('Incorrect or expired OTP');
-    await getDb('auth').prepare(`UPDATE users SET status = 'active', updated_at = ? WHERE id = ?`).run(nowUtc(), userId);
-    return { message: 'Phone verified. Account active.' };
+    // Status is left alone: the account was activated at signup, and this step
+    // records a fact about the number rather than gating the account.
+    await getDb('auth')
+      .prepare(`UPDATE users SET phone_verified_at = ?, updated_at = ? WHERE id = ?`)
+      .run(nowUtc(), nowUtc(), userId);
+    return { message: 'Phone verified.' };
   }
 
   async forgotPassword(email: string) {
@@ -241,6 +267,7 @@ export class AuthService {
     return {
       id: u.id, name: u.name, email: u.email, phone: u.phone,
       role: u.role, status: u.status, kyc_status: u.kyc_status,
+      phone_verified: !!u.phone_verified_at,
       date_of_birth: u.date_of_birth ?? null,
       age: this.ageFrom(u.date_of_birth),
       gender: u.gender ?? null,
@@ -286,6 +313,9 @@ export class AuthService {
 
     const name = patch.name ?? user.name;
     const phone = patch.phone ?? user.phone;
+    // A confirmed number that is replaced with a different one has not been
+    // confirmed, so the verification does not travel with the account.
+    const phoneVerifiedAt = phone === user.phone ? (user.phone_verified_at ?? null) : null;
 
     if (phone !== user.phone) {
       const clash = await db
@@ -364,10 +394,10 @@ export class AuthService {
     const profileCompletedAt = user.profile_completed_at ?? (requiredPresent ? nowUtc() : null);
 
     const before = {
-      name: user.name, phone: user.phone,
+      name: user.name, phone: user.phone, phone_verified_at: user.phone_verified_at ?? null,
       ...Object.fromEntries(PROFILE_FIELDS.map((f) => [f, user[f] ?? null])),
     };
-    const after = { name, phone, ...next };
+    const after = { name, phone, phone_verified_at: phoneVerifiedAt, ...next };
     const unchanged =
       PROFILE_FIELDS.every((f) => (user[f] ?? null) === (next[f] ?? null)) &&
       before.name === after.name &&
@@ -381,12 +411,12 @@ export class AuthService {
     }
 
     await db.prepare(
-      `UPDATE users SET name = ?, phone = ?, date_of_birth = ?, gender = ?, address_line = ?,
+      `UPDATE users SET name = ?, phone = ?, phone_verified_at = ?, date_of_birth = ?, gender = ?, address_line = ?,
          city = ?, state = ?, pincode = ?, latitude = ?, longitude = ?, location_source = ?,
          profile_completed_at = ?, updated_at = ?
        WHERE id = ?`,
     ).run(
-      name, phone, next.date_of_birth, next.gender, next.address_line,
+      name, phone, phoneVerifiedAt, next.date_of_birth, next.gender, next.address_line,
       next.city, next.state, next.pincode, latitude, longitude, location_source,
       profileCompletedAt, nowUtc(), userId,
     );

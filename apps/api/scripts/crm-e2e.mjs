@@ -125,9 +125,9 @@ try {
   let fkRejected = false;
   try { await agentDb.prepare(`UPDATE crm_enquiries SET customer_user_id = ? WHERE id = ?`).run(randomUUID(),enquiryId); } catch(e) { fkRejected = e.code === '23503'; }
   check('database rejects missing customer',fkRejected);
-  const key = `${randomUUID()}.png`;
-  privateFile = path.resolve('apps/api/uploads',key);
-  fs.mkdirSync(path.dirname(privateFile),{recursive:true});
+  const uploadsDir = fs.existsSync(path.resolve('uploads')) ? path.resolve('uploads') : path.resolve('apps/api/uploads');
+  privateFile = path.resolve(uploadsDir, key);
+  fs.mkdirSync(path.dirname(privateFile), { recursive: true });
   fs.writeFileSync(privateFile,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==','base64'));
   await auth.prepare(`INSERT INTO kyc_documents (id,user_id,doc_type,file_url,created_at,updated_at,created_by) VALUES (?, ?, 'id_proof', ?, ?, ?, ?)`)
     .run(randomUUID(),customer.id,`/uploads/${key}`,new Date().toISOString(),new Date().toISOString(),customer.id);

@@ -81,7 +81,7 @@ export default function CarEditor() {
           {car.photos.map((p) => <img key={p.id} src={p.file_url} className="photo-thumb" />)}
         </div>
         <div className="form-group mt-10">
-          <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && act(() => api(`/cars/${id}/photos`, { method: 'POST', form: (() => { const fd = new FormData(); for (const f of e.target.files) fd.append('files', f); return fd; })() }))} />
+          <input type="file" accept="image/*" multiple onChange={(e) => e.target.files.length && act(() => api(`/cars/${id}/photos`, { method: 'POST', form: (() => { const fd = new FormData(); for (const f of e.target.files) fd.append('files', f); return fd; })() }))} />
         </div>
       </div>
 
@@ -180,11 +180,23 @@ export default function CarEditor() {
         )}
       </div>
 
-      {['draft', 'rejected'].includes(car.status) && (
-        <button className="btn" onClick={() => act(() => api(`/cars/${id}/submit`, { method: 'POST' }))}>
-          Submit for review
-        </button>
-      )}
+      <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+        {['draft', 'rejected'].includes(car.status) && (
+          <button className="btn" onClick={() => act(() => api(`/cars/${id}/submit`, { method: 'POST' }))}>
+            Submit for review
+          </button>
+        )}
+        {car.status === 'active' && (
+          <button className="btn warn" onClick={() => act(() => api(`/cars/${id}`, { method: 'PATCH', body: { status: 'inactive' } }))}>
+            Pause listing
+          </button>
+        )}
+        {car.status === 'inactive' && (
+          <button className="btn ok" onClick={() => act(() => api(`/cars/${id}`, { method: 'PATCH', body: { status: 'active' } }))}>
+            Resume listing
+          </button>
+        )}
+      </div>
     </div>
   );
 }

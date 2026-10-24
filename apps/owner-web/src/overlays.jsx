@@ -483,9 +483,9 @@ function AddCarModal({ close, toast, go }) {
         body: { daily_rate_paise: Number(form.price) * 100 },
       });
       await reload();
-      toast(`${form.make} ${form.model} added`);
+      toast(`${form.make} ${form.model} created. Now upload photos and RC documents.`);
       close();
-      go('/');
+      go(`/cars/${car.id}`);
     } catch (e) {
       setErr(e.message);
     } finally {

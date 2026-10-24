@@ -3,10 +3,10 @@
    Shared by the renter and owner portals.
 
    Everything is scoped under `.av2`. These pages sit outside the portal
-   chrome (App.jsx renders /login and /signup bare), but eight other pages
-   still import the old `auth.css` — VerifyOtp, ForgotPassword,
-   ResetPassword, ProfileDetails, and the agent/admin Login and Signup — so
-   the global selectors here are written as `.av2 ...` rather than as a
+   chrome (App.jsx renders /login and /signup bare), but several other pages
+   still import the old `auth.css` — ForgotPassword, ResetPassword,
+   ProfileDetails, the agent VerifyOtp, and the agent/admin Login and Signup
+   — so the global selectors here are written as `.av2 ...` rather than as a
    bare `.card` / `.go` / `.f` that would collide with them.
    ═══════════════════════════════════════════════════════════════════════ */
 
@@ -17,10 +17,11 @@
 }
 
 .av2 {
-  /* Semantic stops come from the token layer, so this page cannot drift from
-     the system it opens into. */
-  --red: var(--red);
-  --ok: var(--ok);
+  /* Semantic stops come from the token layer by inheritance, so this page
+     cannot drift from the system it opens into. They must NOT be redeclared
+     as `--red: var(--red)`: a custom property that references itself is
+     invalid at computed-value time, which silently blanked the accent, the
+     red/green stops and every gradient built on them. */
 
   /* One accent, everywhere. This page used to hand each role its own hue —
      teal for owners, blue for ControlRoom, violet for the agent field — which
@@ -28,7 +29,6 @@
      them. The role is told by the copy and the segmented control instead, and
      the platform's signal amber is the only hot colour on the page. --rgb is
      that same stop in channel form, for the many alpha uses below. */
-  --acc: var(--acc);
   --acc2: var(--acc-2);
   --rgb: 255, 180, 0;
 
@@ -56,8 +56,15 @@
 .av2[data-view='in'] { color-scheme: dark; --bg: var(--chrome); --ink: var(--chrome-ink); --mut: var(--chrome-mut); --card: var(--chrome-2); --line: var(--chrome-line); --fld: var(--chrome-3); --sc: rgba(var(--rgb), 0.85); --sp: rgba(var(--rgb), 0.17); }
 /* The sign-up split rides the shared ladder, so those rungs apply here
    automatically — the hand-written dark overrides that used to live below
-   are gone. */
-.av2[data-view='up'] { --bg: var(--bg); --ink: var(--ink); --mut: var(--muted); --card: var(--card); --line: var(--edge); --fld: var(--fld); --sc: rgba(var(--rgb), 0.6); --sp: rgba(var(--rgb), 0.25); }
+   are gone.
+
+   Only the names that differ are remapped. `--bg: var(--bg)` and friends were
+   here before, and a custom property that references itself is invalid at
+   computed-value time, so every one of them landed as "unset": the whole
+   sign-up view lost its surface, card, fields and text colour and rendered as
+   transparent boxes on the page behind. Inheriting the :root tokens is what
+   "rides the ladder" was always meant to mean. */
+.av2[data-view='up'] { --mut: var(--muted); --line: var(--edge); --sc: rgba(var(--rgb), 0.6); --sp: rgba(var(--rgb), 0.25); }
 /* All five roles share the platform accent (the .av2 block above).
    AuthPage.jsx still sets data-role, and the attribute keeps working as a
    hook — it just no longer repaints the page a different colour. */

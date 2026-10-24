@@ -55,7 +55,6 @@ const USER_TABLES: [string, string][] = [
 ];
 
 const CAR_TABLES: [string, string][] = [
-  ['fleet.cars', 'id'],
   ['fleet.car_photos', 'car_id'],
   ['fleet.car_documents', 'car_id'],
   ['fleet.car_pricing', 'car_id'],
@@ -63,6 +62,7 @@ const CAR_TABLES: [string, string][] = [
   ['fleet.car_verifications', 'car_id'],
   ['fleet.audit_logs', 'entity_id'],
   ['booking.car_cache', 'id'],
+  ['fleet.cars', 'id'],
 ];
 
 function cleanup(): void {

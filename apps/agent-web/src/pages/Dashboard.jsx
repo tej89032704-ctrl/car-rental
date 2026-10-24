@@ -7,9 +7,11 @@ export default function Dashboard() {
   const [dash, setDash] = useState(null);
   const [leads, setLeads] = useState([]);
   const [queue, setQueue] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [form, setForm] = useState({ lead_name: '', lead_phone: '', lead_email: '', lead_type: 'owner_onboarding' });
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const [closeNote, setCloseNote] = useState({});
 
   async function load() {
     if (!currentUser) return;
@@ -17,6 +19,7 @@ export default function Dashboard() {
       setDash(await api('/agent/dashboard'));
       setLeads(await api('/agent/leads'));
       setQueue(await api('/kyc/queue'));
+      setAssignments(await api('/agent/assignments'));
     } catch (e) { setErr(e.message); }
   }
   useEffect(() => { load(); }, []);
@@ -158,6 +161,53 @@ export default function Dashboard() {
                     <button className="btn ok sm" onClick={() => act(() => api(`/kyc/review/${d.id}`, { method: 'POST', body: { decision: 'first_pass' } }))}>
                       First-pass OK
                     </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="section-header">
+        <h2>My assignments</h2>
+      </div>
+      {assignments.length === 0 ? (
+        <div className="empty-state"><p>No open assignments.</p></div>
+      ) : (
+        <div className="table-wrap">
+          <table className="t">
+            <thead><tr><th>Lead</th><th>Type</th><th>KYC</th><th>Status</th><th>Close</th></tr></thead>
+            <tbody>
+              {assignments.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.lead_name || '—'}<div className="muted">{a.lead_email}</div></td>
+                  <td>{a.assignment_type.replace('_', ' ')}</td>
+                  <td><span className={`pill ${a.lead_kyc_status}`}>{a.lead_kyc_status || '—'}</span></td>
+                  <td><span className={`pill ${a.status === 'done' ? 'completed' : 'pending'}`}>{a.status}</span></td>
+                  <td>
+                    {a.status !== 'done' && (
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <input
+                          className="f"
+                          style={{ width: 140, padding: '4px 8px', fontSize: 12 }}
+                          placeholder="Optional note"
+                          value={closeNote[a.id] || ''}
+                          onChange={(e) => setCloseNote((n) => ({ ...n, [a.id]: e.target.value }))}
+                        />
+                        <button
+                          className="btn ok sm"
+                          onClick={() => act(async () => {
+                            const r = await api(`/agent/assignments/${a.id}/close`, { method: 'POST', body: { note: closeNote[a.id] || '' } });
+                            setCloseNote((n) => { const c = { ...n }; delete c[a.id]; return c; });
+                            return r;
+                          })}
+                        >
+                          Close
+                        </button>
+                      </div>
+                    )}
+                    {a.status === 'done' && <span className="muted" style={{ fontSize: 12 }}>{a.note || 'Closed'}</span>}
                   </td>
                 </tr>
               ))}

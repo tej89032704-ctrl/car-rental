@@ -1,146 +1,207 @@
-import { useEffect, useState } from 'react';
-import { api, currentUser } from '../api.js';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../api.js';
+import { inr, inrPlain, monthShort, toast } from '../components/ui.js';
+
+const TIERS = [
+  { name: 'Bronze', at: 0 },
+  { name: 'Silver', at: 5 },
+  { name: 'Gold', at: 10 },
+  { name: 'Platinum', at: 17 },
+];
+
+function tierFor(trips) {
+  let current = TIERS[0];
+  for (const t of TIERS) if (trips >= t.at) current = t;
+  const next = TIERS.find((t) => t.at > trips);
+  return { current, next };
+}
+
+/** Six months back from today, oldest first. */
+function monthsBack(n) {
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i -= 1) {
+    out.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+  return out;
+}
+
+/** Smooth path through points, so the chart reads like the artwork's curve. */
+function curve(points) {
+  if (!points.length) return '';
+  let d = `M${points[0][0]} ${points[0][1]}`;
+  for (let i = 1; i < points.length; i += 1) {
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    const mx = (x0 + x1) / 2;
+    d += `C${mx} ${y0} ${mx} ${y1} ${x1} ${y1}`;
+  }
+  return d;
+}
 
 export default function Lifetime() {
-  if (!currentUser) return <div className="alert info">Login first.</div>;
-
-  const [stats, setStats] = useState([
-    { label: 'Total trips', value: 0, suffix: '' },
-    { label: 'Total spent', value: 0, suffix: '₹' },
-    { label: 'Days driven', value: 0, suffix: '' },
-    { label: 'Cars driven', value: 0, suffix: '' },
-  ]);
-  const [chartData, setChartData] = useState([
-    { month: 'Apr', value: 30 },
-    { month: 'May', value: 55 },
-    { month: 'Jun', value: 40 },
-    { month: 'Jul', value: 75 },
-    { month: 'Aug', value: 50 },
-    { month: 'Sep', value: 90 },
-  ]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [err, setErr] = useState('');
+  const [sub, setSub] = useState(null);
+  const [subBusy, setSubBusy] = useState(false);
+  const [subMsg, setSubMsg] = useState('');
 
   useEffect(() => {
-    const loadLifetimeData = async () => {
-      try {
-        // In a real app, we would fetch the lifetime stats from the API
-        // For now, we'll use mock data or derive from the user's bookings
-        // We'll simulate by setting some values
-        setStats([
-          { label: 'Total trips', value: 12, suffix: '' },
-          { label: 'Total spent', value: 38400, suffix: '₹' },
-          { label: 'Days driven', value: 27, suffix: '' },
-          { label: 'Cars driven', value: 7, suffix: '' },
-        ]);
-        setChartData([
-          { month: 'Apr', value: 30 },
-          { month: 'May', value: 55 },
-          { month: 'Jun', value: 40 },
-          { month: 'Jul', value: 75 },
-          { month: 'Aug', value: 50 },
-          { month: 'Sep', value: 90 },
-        ]);
-        setError('');
-      } catch (e) {
-        if (String(e.message || '').includes('(401)')) {
-          window.location.href = import.meta.env.BASE_URL + 'login';
-          return;
-        }
-        setError(e.message || 'Failed to load lifetime data');
-      } finally {
-        setLoading(false);
-      }
+    Promise.all([api('/bookings/my'), api('/subscriptions/mine')])
+      .then(([bk, subs]) => {
+        setBookings(Array.isArray(bk) ? bk : []);
+        const life = (Array.isArray(subs) ? subs : [])
+          .find((s) => s.plan === 'renter_lifetime' && s.status === 'active');
+        setSub(life || null);
+        setErr('');
+      })
+      .catch((e) => setErr(e.message || 'Could not load your history'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const { stats, chart } = useMemo(() => {
+    const done = bookings.filter((b) => b.status === 'completed');
+    const spent = done.reduce((s, b) => s + (b.total_amount_paise || 0), 0);
+    const days = done.reduce((s, b) => {
+      const a = new Date(`${String(b.start_date).slice(0, 10)}T00:00:00Z`);
+      const z = new Date(`${String(b.end_date).slice(0, 10)}T00:00:00Z`);
+      const n = Math.round((z - a) / 86400000);
+      return s + (Number.isFinite(n) && n > 0 ? n : 0);
+    }, 0);
+    const cars = new Set(done.map((b) => b.car_id)).size;
+
+    const months = monthsBack(6);
+    const sums = months.map((m) => done.reduce((s, b) => {
+      const d = new Date(`${String(b.start_date).slice(0, 10)}T00:00:00Z`);
+      return d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth()
+        ? s + (b.total_amount_paise || 0)
+        : s;
+    }, 0));
+    const max = Math.max(...sums, 1);
+    const points = sums.map((v, i) => [20 + (i * 560) / (sums.length - 1), 170 - (v / max) * 120]);
+
+    return {
+      stats: [
+        { value: inr(spent), label: 'Total spent' },
+        { value: String(done.length), label: 'Trips' },
+        { value: String(days), label: 'Days on the road' },
+        { value: String(cars), label: 'Cars driven' },
+      ],
+      chart: { points, sums, months, max },
     };
-    loadLifetimeData();
-  }, [currentUser]);
+  }, [bookings]);
 
-  if (loading) {
-    return (
-      <div className="loading-page">
-        <div className="spinner"></div>
-        <p>Loading lifetime data…</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="auth-box card">
-        <p className="error">{error}</p>
-        <button className="btn" onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const trips = bookings.filter((b) => b.status === 'completed').length;
+  const { current, next } = tierFor(trips);
+  const pct = next ? Math.min(100, Math.round(((trips - current.at) / (next.at - current.at)) * 100)) : 100;
+  const path = curve(chart.points);
+  const area = chart.points.length ? `${path}L580 200L20 200Z` : '';
 
   return (
-    <>
-      <div className="renter-page-header">
-        <span className="header-icon">💎</span>
-        <h1>Lifetime</h1>
-        <p className="mut">
-          Everything you have rented and spent with CAR-ENT. Sample data.
-        </p>
+    <section className="pg">
+      <div className="hd">
+        <div>
+          <h1>Lifetime</h1>
+          <p>Your journey with CAR-ENT so far.</p>
+        </div>
       </div>
 
-      <div className="stats">
-        {stats.map((stat, index) => (
-          <div key={index} className="card sp">
-            <b
-              data-n={stat.value.toString()}
-              data-p={stat.suffix}
-            >
-              {stat.suffix}{stat.value.toLocaleString('en-IN')}
-            </b>
+      {err && <div className="ce-err">{err}</div>}
+      {loading && !err && <div className="ce-load"><span className="spinner" /><span>Adding up your trips…</span></div>}
+
+      <div className="big">
+        {stats.map((s) => (
+          <div key={s.label}>
+            <b data-t={s.value}>{s.value}</b>
+            <small>{s.label}</small>
           </div>
         ))}
       </div>
 
-      <div className="two" style={{ gridTemplateColumns: '1fr 280px' }}>
-        <div className="card">
+      <div className="two">
+        <div className="panel pad">
           <h3>Spend by month</h3>
-          <div className="chart">
-            {chartData.map((data) => (
-              <div
-                key={data.month}
-                title={data.month}
-                style={{
-                  position: 'relative',
-                }}
-              >
-                <i
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    height: `${(data.value / Math.max(...chartData.map(d => d.value))) * 100}%`,
-                    backgroundColor: 'var(--ink)',
-                    borderRadius: '10px 10px 0 0',
-                  }}
-                />
-                <span className="mut" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, textAlign: 'center' }}>
-                  {data.month}
-                </span>
-              </div>
+          <svg viewBox="0 0 600 220" style={{ width: '100%', marginTop: 14 }} role="img" aria-label="Spend by month">
+            <defs>
+              <linearGradient id="ce-ar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#f26a1b" stopOpacity=".45" />
+                <stop offset="1" stopColor="#f26a1b" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {area && <path d={area} fill="url(#ce-ar)" />}
+            {path && <path d={path} fill="none" stroke="#f26a1b" strokeWidth="3" strokeLinecap="round" />}
+            {chart.points.map(([x, y], i) => (
+              <circle key={i} cx={x} cy={y} r="4" fill="#f26a1b" />
             ))}
-          </div>
+            <g fill="var(--mu)" fontSize="12" fontFamily="Manrope">
+              {chart.months.map((m, i) => (
+                <text key={i} x={20 + (i * 560) / (chart.months.length - 1)} y="215" textAnchor={i === 0 ? 'start' : i === chart.months.length - 1 ? 'end' : 'middle'}>
+                  {monthShort(m)}
+                </text>
+              ))}
+            </g>
+          </svg>
+          <p className="muted" style={{ margin: 0 }}>
+            {inrPlain((chart.max || 0) / 100)} in your best month.
+          </p>
         </div>
-        <div className="card" style={{ display: 'grid', placeItems: 'center', gap: '12px' }}>
-          <div className="don" />
-          <div className="mut" style={{ textAlign: 'center' }}>
-            Paid online 20%<br />
-            Paid at pickup 80%
-          </div>
+
+        <div className="panel pad">
+          <h3>{current.name} renter</h3>
+          <p style={{ color: 'var(--mu)' }}>
+            {next
+              ? `${next.at - trips} more trip${next.at - trips === 1 ? '' : 's'} unlock ${next.name} and free doorstep delivery.`
+              : 'Top tier reached — doorstep delivery is on us.'}
+          </p>
+          <div className="prog"><i style={{ width: `${pct}%` }} /></div>
+          <small style={{ color: 'var(--mu)' }}>
+            {trips} trip{trips === 1 ? '' : 's'}
+            {next ? ` of ${next.at}` : ''}
+          </small>
         </div>
       </div>
 
-      {/* Back to search link */}
-      <div className="back-link">
-        <button className="btn sec" onClick={() => window.location.href = import.meta.env.BASE_URL}>
-          ← Back to Search
-        </button>
+      <div className="panel pad" style={{ marginTop: 22 }}>
+        <h3 style={{ fontSize: 20 }}>Lifetime membership</h3>
+        {sub ? (
+          <p style={{ color: 'var(--ok, #10b981)', marginTop: 8, fontWeight: 600 }}>
+            ✓ Active — you are a lifetime member. Enjoy priority support and free doorstep delivery on every trip.
+          </p>
+        ) : (
+          <>
+            <p className="muted" style={{ margin: '8px 0 16px' }}>
+              One-time ₹4,999 fee. Unlocks Platinum tier instantly, free doorstep delivery forever,
+              priority booking, and dedicated customer support.
+            </p>
+            {subMsg && <div className="alert good" style={{ marginBottom: 12 }}>{subMsg}</div>}
+            {err && <div className="ce-err" style={{ marginBottom: 12 }}>{err}</div>}
+            <button
+              type="button"
+              className="go"
+              disabled={subBusy}
+              style={{ margin: 0, padding: '13px 28px' }}
+              onClick={async () => {
+                if (!window.confirm('Purchase CAR-ENT Lifetime Membership for ₹4,999? This is a one-time charge.')) return;
+                setSubBusy(true);
+                setSubMsg('');
+                try {
+                  const res = await api('/subscriptions/renter/lifetime', { method: 'POST' });
+                  toast('Welcome to Lifetime membership!');
+                  setSubMsg(res.message || 'Lifetime membership activated! Enjoy Platinum perks forever.');
+                  setSub({ plan: 'renter_lifetime', status: 'active' });
+                } catch (e2) {
+                  setSubMsg(e2.message || 'Could not process subscription');
+                } finally {
+                  setSubBusy(false);
+                }
+              }}
+            >
+              {subBusy ? 'Processing…' : 'Get Lifetime Access — ₹4,999'}
+            </button>
+          </>
+        )}
       </div>
-    </>
+    </section>
   );
 }

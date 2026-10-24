@@ -174,7 +174,7 @@ export default function Earnings() {
           </p>
           {subErr && <div className="alert err">{subErr}</div>}
           <button className="b" disabled={busy} onClick={subscribe}>
-            {busy ? 'Subscribing…' : 'Subscribe for ₹499'}
+            {busy ? 'Subscribing…' : 'Subscribe for ₹100/month'}
           </button>
         </div>
       )}
