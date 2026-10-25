@@ -645,3 +645,75 @@
 @media (prefers-reduced-motion:reduce){
   .ce *,.ce *::before,.ce *::after{animation:none!important;transition:none!important}
 }
+
+/* ── Date picker ─────────────────────────────────────────────────────
+   Replaces the OS calendar. The popover is portalled to `.ce` (see
+   DatePicker.jsx) so `.panel`'s overflow clip cannot cut it off. */
+.ce .dp-btn{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
+  border:0;background:none;padding:2px 0;font:inherit;font-weight:600;color:var(--ink);
+  cursor:pointer;text-align:left;border-radius:6px;
+}
+.ce .dp-btn .ph{color:var(--mu);font-weight:500}
+.ce .dp-btn svg{flex:none;opacity:.5;transition:opacity .2s color .2s}
+.ce .dp-btn:hover svg{opacity:.9}
+.ce .dp-btn[aria-expanded="true"] svg{opacity:1;color:var(--ac)}
+.ce .dp-btn:focus-visible{outline:2px solid var(--ac);outline-offset:6px}
+
+.ce .dp-pop{
+  position:fixed;z-index:90;width:316px;max-width:calc(100vw - 20px);
+  padding:14px 14px 8px;border-radius:20px;border:1px solid var(--ln);
+  background:var(--sf);color:var(--ink);
+  box-shadow:0 26px 60px rgba(18,15,12,.22),0 2px 6px rgba(18,15,12,.08);
+  animation:dpin .16s ease-out;
+}
+@keyframes dpin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+.ce .dp-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.ce .dp-nav{
+  width:28px;height:28px;flex:none;border-radius:9px;border:1px solid var(--ln);
+  background:none;color:var(--ink);cursor:pointer;display:grid;place-items:center;
+  font-size:15px;line-height:1;padding:0 0 2px;transition:background .18s,border-color .18s,color .18s;
+}
+.ce .dp-nav:hover{background:var(--sp);border-color:var(--ac);color:var(--ac)}
+.ce .dp-nav:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+.ce .dp-sel{flex:1;display:flex;align-items:center;gap:2px;min-width:0}
+.ce .dp-sel select{
+  border:0;background:none;font:inherit;font-size:13px;font-weight:700;
+  color:var(--ink);cursor:pointer;padding:3px 2px;max-width:100%;border-radius:6px;
+}
+.ce .dp-sel select:last-child{margin-left:auto}
+.ce .dp-sel select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+.ce .dp-week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:2px 0 4px}
+.ce .dp-week span{
+  text-align:center;font-size:10px;font-weight:700;letter-spacing:.06em;
+  color:var(--mu);text-transform:uppercase;
+}
+
+.ce .dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.ce .dp-d{
+  aspect-ratio:1;border:0;border-radius:10px;background:none;color:var(--ink);
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  display:grid;place-items:center;transition:background .16s,color .16s,box-shadow .16s;
+}
+.ce .dp-d:hover{background:var(--sp)}
+.ce .dp-d.today{box-shadow:inset 0 0 0 1px var(--gd)}
+.ce .dp-d.on{background:var(--ac);color:#fff;box-shadow:0 6px 14px rgba(242,106,27,.35)}
+.ce .dp-d.on:hover{background:var(--ac)}
+.ce .dp-d:disabled{color:var(--mu);opacity:.35;cursor:not-allowed;background:none;box-shadow:none}
+.ce .dp-d:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+
+.ce .dp-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:10px;padding-top:8px;border-top:1px solid var(--ln);
+}
+.ce .dp-foot button{
+  border:0;background:none;font:inherit;font-size:12px;font-weight:700;
+  color:var(--mu);cursor:pointer;padding:5px 4px;border-radius:6px;
+  transition:color .18s;
+}
+.ce .dp-foot button:hover{color:var(--ink)}
+.ce .dp-foot button:disabled{opacity:.4;cursor:not-allowed}
+.ce .dp-foot button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}

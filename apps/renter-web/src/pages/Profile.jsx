@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, clearSession, setSession } from '../api.js';
 import { applyTheme, isDark, toast } from '../components/ui.js';
+import DatePicker from '../components/DatePicker.jsx';
 
 const GENDERS = [
   { value: 'female', label: 'Female' },
@@ -187,7 +188,14 @@ export default function Profile() {
             {/* Identity details the licence check needs, beside the address columns. */}
             <div className="f">
               <label htmlFor="pd">Date of birth</label>
-              <input id="pd" type="date" value={form.date_of_birth} onChange={set('date_of_birth')} max={new Date().toISOString().slice(0, 10)} autoComplete="bday" />
+              <DatePicker
+                id="pd"
+                value={form.date_of_birth}
+                onChange={(v) => setForm((f) => ({ ...f, date_of_birth: v }))}
+                max={new Date().toISOString().slice(0, 10)}
+                placeholder="Select date"
+                ariaLabel="Date of birth"
+              />
             </div>
             <div className="f">
               <label htmlFor="pg">Gender</label>
