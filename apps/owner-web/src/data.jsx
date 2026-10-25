@@ -25,6 +25,7 @@ const INITIAL = {
   written: [],     // reviews this owner left
   notifications: [],
   earnings: null,  // { wallet, payouts, transactions }
+  purchases: null, // { plan, subscription, active, purchases[] } -- owner billing
   subs: [],
   profile: null,   // /auth/me
   kyc: null,       // { required_docs, complete, documents[] }
@@ -72,6 +73,7 @@ export function DataProvider({ children }) {
       pull('notifications', '/notifications/mine', []),
       pull('earnings', '/payments/earnings', { wallet: { available_balance_paise: 0, pending_balance_paise: 0 }, payouts: [], transactions: [] }),
       pull('subs', '/subscriptions/mine', []),
+      pull('purchases', '/payments/purchases', null),
       pull('profile', '/auth/me', null),
       pull('kyc', '/kyc/me', { required_docs: [], complete: false, documents: [] }),
     ]);

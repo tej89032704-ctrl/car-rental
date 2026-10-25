@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
-import { inr, inrPlain, monthShort, toast } from '../components/ui.js';
+import { inr, inrPlain, monthShort } from '../components/ui.js';
 
 const TIERS = [
   { name: 'Bronze', at: 0 },
@@ -43,17 +43,11 @@ export default function Lifetime() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
-  const [sub, setSub] = useState(null);
-  const [subBusy, setSubBusy] = useState(false);
-  const [subMsg, setSubMsg] = useState('');
 
   useEffect(() => {
-    Promise.all([api('/bookings/my'), api('/subscriptions/mine')])
-      .then(([bk, subs]) => {
+    api('/bookings/my')
+      .then((bk) => {
         setBookings(Array.isArray(bk) ? bk : []);
-        const life = (Array.isArray(subs) ? subs : [])
-          .find((s) => s.plan === 'renter_lifetime' && s.status === 'active');
-        setSub(life || null);
         setErr('');
       })
       .catch((e) => setErr(e.message || 'Could not load your history'))
@@ -162,45 +156,14 @@ export default function Lifetime() {
         </div>
       </div>
 
+      {/* Renting carries no membership: the old one-time lifetime plan is
+          retired, and owners are the only ones who pay for a plan. */}
       <div className="panel pad" style={{ marginTop: 22 }}>
-        <h3 style={{ fontSize: 20 }}>Lifetime membership</h3>
-        {sub ? (
-          <p style={{ color: 'var(--ok, #10b981)', marginTop: 8, fontWeight: 600 }}>
-            ✓ Active — you are a lifetime member. Enjoy priority support and free doorstep delivery on every trip.
-          </p>
-        ) : (
-          <>
-            <p className="muted" style={{ margin: '8px 0 16px' }}>
-              One-time ₹4,999 fee. Unlocks Platinum tier instantly, free doorstep delivery forever,
-              priority booking, and dedicated customer support.
-            </p>
-            {subMsg && <div className="alert good" style={{ marginBottom: 12 }}>{subMsg}</div>}
-            {err && <div className="ce-err" style={{ marginBottom: 12 }}>{err}</div>}
-            <button
-              type="button"
-              className="go"
-              disabled={subBusy}
-              style={{ margin: 0, padding: '13px 28px' }}
-              onClick={async () => {
-                if (!window.confirm('Purchase CAR-ENT Lifetime Membership for ₹4,999? This is a one-time charge.')) return;
-                setSubBusy(true);
-                setSubMsg('');
-                try {
-                  const res = await api('/subscriptions/renter/lifetime', { method: 'POST' });
-                  toast('Welcome to Lifetime membership!');
-                  setSubMsg(res.message || 'Lifetime membership activated! Enjoy Platinum perks forever.');
-                  setSub({ plan: 'renter_lifetime', status: 'active' });
-                } catch (e2) {
-                  setSubMsg(e2.message || 'Could not process subscription');
-                } finally {
-                  setSubBusy(false);
-                }
-              }}
-            >
-              {subBusy ? 'Processing…' : 'Get Lifetime Access — ₹4,999'}
-            </button>
-          </>
-        )}
+        <h3 style={{ fontSize: 20 }}>Renting is free</h3>
+        <p className="muted" style={{ margin: '8px 0 0', maxWidth: '62ch' }}>
+          There is no joining fee, no monthly plan and no commission on your trips. You pay the
+          car&apos;s rental (and any deposit the owner asks for) and nothing else.
+        </p>
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, sessionUser } from '../api.js';
+import { sessionUser } from '../api.js';
 import { useData } from '../data.jsx';
 import { inr, inrP, pad2, relTime } from '../lib.js';
 import { useOverlay } from '../ui.jsx';
@@ -33,11 +33,11 @@ function CountUp({ to, format }) {
 }
 
 export default function Earnings() {
-  const { earnings, subs, errors, reload } = useData();
+  // Membership billing lives on its own section (plan, cover and purchases), so
+  // this page only deals with money coming in.
+  const { earnings, errors, reload } = useData();
   const open = useOverlay().open;
   const [grew, setGrew] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [subErr, setSubErr] = useState('');
 
   const me = sessionUser();
   const wallet = earnings?.wallet;
@@ -77,20 +77,6 @@ export default function Earnings() {
   }, [tx]);
 
   const peak = Math.max(...months.map((m) => m.v), 1);
-  const hasActiveSub = subs.some((s) => s.plan === 'car_owner_monthly' && s.status === 'active');
-
-  async function subscribe() {
-    setBusy(true);
-    setSubErr('');
-    try {
-      await api('/subscriptions/owner/monthly', { method: 'POST' });
-      await reload();
-    } catch (e) {
-      setSubErr(e.message);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   if (errors.earnings) {
     return (
@@ -165,19 +151,6 @@ export default function Earnings() {
           ))}
         </div>
       </div>
-
-      {!hasActiveSub && (
-        <div className="c pn" style={{ marginTop: 20 }}>
-          <div className="ph"><b>Owner subscription</b></div>
-          <p className="mt" style={{ marginBottom: 14 }}>
-            The monthly owner plan keeps unlimited listings unlocked.
-          </p>
-          {subErr && <div className="alert err">{subErr}</div>}
-          <button className="b" disabled={busy} onClick={subscribe}>
-            {busy ? 'Subscribing…' : 'Subscribe for ₹100/month'}
-          </button>
-        </div>
-      )}
 
       <div className="c pn" style={{ marginTop: 20 }}>
         <div className="ph">

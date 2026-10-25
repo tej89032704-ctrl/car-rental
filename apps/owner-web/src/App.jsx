@@ -15,6 +15,7 @@ import Requests from './pages/Requests.jsx';
 import CalendarPage from './pages/Calendar.jsx';
 import Reviews from './pages/Reviews.jsx';
 import Earnings from './pages/Earnings.jsx';
+import Membership from './pages/Membership.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Profile from './pages/Profile.jsx';
 import Terms from '../../../packages/shared/src/Terms.jsx';
@@ -208,6 +209,7 @@ function Shell() {
       case '/calendar': return <CalendarPage />;
       case '/reviews': return <Reviews />;
       case '/earnings': return <Earnings />;
+      case '/membership': return <Membership />;
       case '/kyc': return <Kyc />;
       case '/notifications': return <Notifications />;
       case '/profile': return <Profile />;

@@ -31,6 +31,12 @@ export class PaymentsController {
     return await this.payments.mySubscriptions(req.user.id);
   }
 
+  /** Membership plan, cover dates and the owner's payment history. */
+  @Roles('car_owner') @Get('payments/purchases')
+  async purchases(@Req() req: any) {
+    return await this.payments.ownerPurchases(req.user.id);
+  }
+
   @Roles('car_owner') @Get('payments/earnings')
   async earnings(@Req() req: any) {
     return await this.payments.earningsFor(req.user.id);

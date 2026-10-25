@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api, currentUser } from '../api.js';
 
+// Renters are free on CAR-ENT, so the retired renter fee has no control here.
+const HIDDEN = new Set(['renter_lifetime_fee_paise']);
+
 const LABELS = {
   owner_subscription_monthly_paise: 'Owner subscription (₹/month)',
-  renter_lifetime_fee_paise: 'Renter lifetime fee (₹, one-time)',
   partial_payment_percent: 'Partial payment at booking (% of total)',
   deposit_refund_hours: 'Deposit refund window (hours after trip)',
 };
@@ -33,7 +35,7 @@ export default function Settings() {
       <div className="alert info">This is the only place these numbers can change. Every change is written to an immutable audit log.</div>
       {msg && <div className="alert good">{msg}</div>}
       {err && <div className="alert err">{err}</div>}
-      {rows.map((s) => (
+      {rows.filter((s) => !HIDDEN.has(s.key)).map((s) => (
         <div className="card" key={s.key}>
           <label className="f">{LABELS[s.key] || s.key}</label>
           <p className="muted">{s.description} · last updated by {s.updated_by}</p>

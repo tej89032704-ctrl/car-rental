@@ -16,7 +16,8 @@ export class PaymentsService {
   }
 
   async setSetting(actorId: string, key: string, valueInt: number) {
-    const allowed = ['owner_subscription_monthly_paise', 'renter_lifetime_fee_paise', 'partial_payment_percent', 'deposit_refund_hours'];
+    // Renter fees are gone by design: renters use CAR-ENT for free.
+    const allowed = ['owner_subscription_monthly_paise', 'partial_payment_percent', 'deposit_refund_hours'];
     if (!allowed.includes(key)) throw new BadRequestException(`Unknown setting: ${key}`);
     const before = await this.pdb().prepare(`SELECT * FROM platform_settings WHERE key = ?`).get(key);
     await this.pdb().prepare(`UPDATE platform_settings SET value_int = ?, updated_by = ?, updated_at = ? WHERE key = ?`)
@@ -150,34 +151,102 @@ export class PaymentsService {
   }
 
   // ---------- Subscriptions ----------
+  /** Billing period of the owner membership, in days. */
+  private static readonly OWNER_PERIOD_DAYS = 30;
+
+  /**
+   * One month of owner membership, paid up front.
+   *
+   * A paying member keeps a single subscription row whose `period_end` is the
+   * truth about how long they are covered; every payment extends that date
+   * instead of stacking rows, so "active until" never has to be reconciled
+   * across duplicates. Each payment is still its own transaction, which is what
+   * the purchases list reads.
+   */
   async subscribeOwnerMonthly(actorId: string, ownerId: string) {
     const price = await this.getSettingInt('owner_subscription_monthly_paise');
-    const periodStart = new Date();
-    const periodEnd = new Date(periodStart.getTime() + 30 * 24 * 3600 * 1000);
-    const id = uuid();
-    await this.pdb().prepare(
-      `INSERT INTO subscriptions (id, user_id, plan, price_paid_paise, period_start, period_end, status, created_at, updated_at, created_by)
-       VALUES (?, ?, 'car_owner_monthly', ?, ?, ?, 'active', ?, ?, ?)`,
-    ).run(id, ownerId, price, periodStart.toISOString(), periodEnd.toISOString(), nowUtc(), nowUtc(), actorId);
-    await this.addTransaction({ payer_id: ownerId, amount_paise: price, type: 'subscription_owner', status: 'captured', note: 'Owner monthly subscription', actor: actorId });
-    await this.createInvoice('subscription', null, price, actorId);
-    return { subscription_id: id, price_paid_paise: price, valid_until: periodEnd.toISOString() };
+    if (price <= 0) throw new BadRequestException('Owner membership price is not configured');
+
+    const db = this.pdb();
+    const current = await db.prepare(
+      `SELECT * FROM subscriptions WHERE user_id = ? AND plan = 'car_owner_monthly' AND status = 'active'
+       ORDER BY created_at DESC LIMIT 1`,
+    ).get(ownerId) as any;
+
+    const now = new Date();
+    // Renewing early extends the cover already paid for; renewing after a lapse
+    // starts today rather than back-dating the period.
+    const covered = current?.period_end ? new Date(current.period_end) : null;
+    const from = covered && covered > now ? covered : now;
+    const until = new Date(from.getTime() + PaymentsService.OWNER_PERIOD_DAYS * 24 * 3600 * 1000);
+
+    let id = current?.id as string | undefined;
+    if (id) {
+      await db.prepare(
+        `UPDATE subscriptions SET price_paid_paise = ?, period_end = ?, updated_at = ? WHERE id = ?`,
+      ).run(price, until.toISOString(), nowUtc(), id);
+    } else {
+      id = uuid();
+      await db.prepare(
+        `INSERT INTO subscriptions (id, user_id, plan, price_paid_paise, period_start, period_end, status, created_at, updated_at, created_by)
+         VALUES (?, ?, 'car_owner_monthly', ?, ?, ?, 'active', ?, ?, ?)`,
+      ).run(id, ownerId, price, now.toISOString(), until.toISOString(), nowUtc(), nowUtc(), actorId);
+    }
+
+    await this.addTransaction({
+      payer_id: ownerId, amount_paise: price, type: 'subscription_owner', status: 'captured',
+      note: `Owner membership — ${PaymentsService.OWNER_PERIOD_DAYS} days`, actor: actorId,
+    });
+    const invoice = await this.createInvoice('subscription', null, price, actorId);
+    return {
+      subscription_id: id,
+      price_paid_paise: price,
+      period_end: until.toISOString(),
+      renewed: !!current,
+      invoice_number: invoice.number,
+    };
   }
 
-  async subscribeRenterLifetime(actorId: string, renterId: string) {
-    const price = await this.getSettingInt('renter_lifetime_fee_paise');
-    const existing = await this.pdb().prepare(`SELECT id FROM subscriptions WHERE user_id = ? AND plan = 'renter_lifetime' AND status = 'active'`).get(renterId);
-    if (existing) return { message: 'Lifetime membership already active' };
-    const id = uuid();
-    await this.pdb().prepare(
-      `INSERT INTO subscriptions (id, user_id, plan, price_paid_paise, period_start, period_end, status, created_at, updated_at, created_by)
-       VALUES (?, ?, 'renter_lifetime', ?, ?, NULL, 'active', ?, ?, ?)`,
-    ).run(id, renterId, price, nowUtc(), nowUtc(), nowUtc(), actorId);
-    if (price > 0) {
-      await this.addTransaction({ payer_id: renterId, amount_paise: price, type: 'renter_lifetime', status: 'captured', note: 'Lifetime membership', actor: actorId });
-      await this.createInvoice('subscription', null, price, actorId);
-    }
-    return { subscription_id: id, price_paid_paise: price };
+  /**
+   * Renters do not pay for anything on CAR-ENT, so the old one-time "lifetime"
+   * plan is retired rather than left purchasable. Kept as an explicit refusal
+   * so an old client or bookmark gets a clear reason instead of a 404.
+   */
+  async subscribeRenterLifetime(_actorId: string, _renterId: string): Promise<never> {
+    throw new BadRequestException('Renting on CAR-ENT is free — there is no renter membership to buy.');
+  }
+
+  /** Plan, cover and payment history for the owner's purchases screen. */
+  async ownerPurchases(userId: string) {
+    const db = this.pdb();
+    const price = await this.getSettingInt('owner_subscription_monthly_paise');
+    const sub = await db.prepare(
+      `SELECT * FROM subscriptions WHERE user_id = ? AND plan = 'car_owner_monthly' ORDER BY created_at DESC LIMIT 1`,
+    ).get(userId) as any;
+
+    const active = !!(sub && sub.status === 'active' && (!sub.period_end || new Date(sub.period_end) > new Date()));
+    const purchases = await db.prepare(
+      `SELECT id, amount_paise, type, method, status, note, created_at FROM transactions
+       WHERE payer_id = ? AND type = 'subscription_owner' ORDER BY created_at DESC LIMIT 100`,
+    ).all(userId);
+    const totals = await db.prepare(
+      `SELECT COALESCE(SUM(amount_paise), 0) AS total, COUNT(*) AS count FROM transactions
+       WHERE payer_id = ? AND type = 'subscription_owner' AND status = 'captured'`,
+    ).get(userId) as any;
+
+    return {
+      plan: {
+        key: 'car_owner_monthly',
+        label: 'CAR-ENT owner membership',
+        amount_paise: price,
+        period_days: PaymentsService.OWNER_PERIOD_DAYS,
+      },
+      subscription: sub || null,
+      active,
+      purchases,
+      total_paid_paise: totals?.total || 0,
+      purchase_count: totals?.count || 0,
+    };
   }
 
   async mySubscriptions(userId: string) {

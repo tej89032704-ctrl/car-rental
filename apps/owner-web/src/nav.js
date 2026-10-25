@@ -12,6 +12,7 @@ export const NAV = [
   { k: 'cal', to: '/calendar', icon: 'cal', label: 'Calendar', sub: 'Bookings and blocked dates' },
   { k: 'revs', to: '/reviews', icon: 'revs', label: 'My Reviews', sub: 'What renters say about you' },
   { k: 'earn', to: '/earnings', icon: 'earn', label: 'Earnings', sub: 'Income and payouts' },
+  { k: 'mem', to: '/membership', icon: 'mem', label: 'Membership', sub: 'Plan and purchase history' },
   { k: 'ver', to: '/kyc', icon: 'ver', label: 'Verification', sub: 'Keep your listings trusted' },
   { k: 'not', to: '/notifications', icon: 'not', label: 'Notifications', sub: 'Everything that needs you' },
   { k: 'prof', to: '/profile', icon: 'prof', label: 'Profile', sub: 'Your details and payout account' },
