@@ -3,10 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { api, clearSession, setSession } from '../api.js';
 import { applyTheme, isDark, toast } from '../components/ui.js';
 
+const GENDERS = [
+  { value: 'female', label: 'Female' },
+  { value: 'male', label: 'Male' },
+  { value: 'non_binary', label: 'Non-binary' },
+  { value: 'other', label: 'Other' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+];
+
+const EMPTY = {
+  name: '', email: '', phone: '',
+  address_line: '', city: '', state: '', pincode: '',
+  date_of_birth: '', gender: '',
+};
+
+function prettyDate(iso) {
+  if (!iso) return '';
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
 export default function Profile() {
   const nav = useNavigate();
   const [user, setUser] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', city: '', address_line: '' });
+  const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -20,8 +41,12 @@ export default function Profile() {
           name: u.name || '',
           email: u.email || '',
           phone: u.phone || '',
-          city: u.city || '',
           address_line: u.address_line || '',
+          city: u.city || '',
+          state: u.state || '',
+          pincode: u.pincode || '',
+          date_of_birth: u.date_of_birth || '',
+          gender: u.gender || '',
         });
         setErr('');
       })
@@ -29,19 +54,36 @@ export default function Profile() {
       .finally(() => setLoading(false));
   }, []);
 
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
   async function save(e) {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
     if (form.name.trim().length < 2) { setErr('Name is required'); return; }
     if (!/^\+?[0-9]{10,14}$/.test(form.phone.replace(/[\s().-]/g, ''))) {
       setErr('Enter a phone number we can reach you on');
       return;
     }
+    if (form.pincode.trim() && !/^\d{4,10}$/.test(form.pincode.trim())) {
+      setErr('PIN code should be 4 to 10 digits');
+      return;
+    }
+    if (form.date_of_birth && new Date(`${form.date_of_birth}T00:00:00Z`).getTime() >= Date.now()) {
+      setErr('Date of birth must be in the past');
+      return;
+    }
+
     setBusy(true);
     setErr('');
     try {
       const body = { name: form.name.trim(), phone: form.phone.replace(/[\s().-]/g, '') };
-      if (form.city.trim()) body.city = form.city.trim();
-      if (form.address_line.trim()) body.address_line = form.address_line.trim();
+      // The API validates these with min-length rules, so only send the ones
+      // the user actually filled in. An empty string is a rejected payload,
+      // not a "clear this field" instruction.
+      const optional = ['date_of_birth', 'gender', 'address_line', 'city', 'state', 'pincode'];
+      for (const key of optional) {
+        const value = (form[key] || '').trim();
+        if (value) body[key] = value;
+      }
       const data = await api('/auth/me', { method: 'PATCH', body });
       const u = data?.user || data;
       if (u) {
@@ -67,6 +109,53 @@ export default function Profile() {
     nav('/login');
   }
 
+  function focusField(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.focus({ preventScroll: true });
+  }
+
+  // The API reports phone_verified (not raw timestamps), so trust that flag.
+  const phoneVerified = !!user?.phone_verified;
+  const addressComplete = !!(user?.address_line && user?.city && user?.state && user?.pincode);
+
+  const kycDetails = [
+    {
+      key: 'dob',
+      label: 'Date of birth',
+      text: user?.date_of_birth ? prettyDate(user.date_of_birth) : 'Needed for the licence age check',
+      done: !!user?.date_of_birth,
+      field: 'pd',
+    },
+    {
+      key: 'gender',
+      label: 'Gender',
+      text: user?.gender
+        ? (GENDERS.find((g) => g.value === user.gender)?.label || user.gender)
+        : 'As printed on your ID',
+      done: !!user?.gender,
+      field: 'pg',
+    },
+    {
+      key: 'address',
+      label: 'Address',
+      text: addressComplete
+        ? [user.address_line, user.city, user.state, user.pincode].filter(Boolean).join(', ')
+        : 'Street, city, state and PIN code',
+      done: addressComplete,
+      field: 'pa',
+    },
+    {
+      key: 'phone',
+      label: 'Phone number',
+      text: phoneVerified ? 'Verified with OTP' : 'Verify with a one-time code',
+      done: phoneVerified,
+      go: '/verify-otp',
+    },
+  ];
+  const kycDone = kycDetails.filter((d) => d.done).length;
+
   return (
     <section className="pg">
       <div className="hd">
@@ -81,10 +170,10 @@ export default function Profile() {
 
       {!loading && (
         <>
-          <form className="panel fm" onSubmit={save}>
+          <form className="panel fm" id="profile-form" onSubmit={save}>
             <div className="f">
               <label htmlFor="pn">Full name</label>
-              <input id="pn" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} autoComplete="name" />
+              <input id="pn" value={form.name} onChange={set('name')} autoComplete="name" />
             </div>
             <div className="f">
               <label htmlFor="pe">Email</label>
@@ -92,15 +181,38 @@ export default function Profile() {
             </div>
             <div className="f">
               <label htmlFor="pp">Phone</label>
-              <input id="pp" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} inputMode="tel" autoComplete="tel" />
+              <input id="pp" value={form.phone} onChange={set('phone')} inputMode="tel" autoComplete="tel" />
+            </div>
+
+            {/* Identity details the licence check needs, beside the address columns. */}
+            <div className="f">
+              <label htmlFor="pd">Date of birth</label>
+              <input id="pd" type="date" value={form.date_of_birth} onChange={set('date_of_birth')} max={new Date().toISOString().slice(0, 10)} autoComplete="bday" />
             </div>
             <div className="f">
-              <label htmlFor="pc">City</label>
-              <input id="pc" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} autoComplete="address-level2" />
+              <label htmlFor="pg">Gender</label>
+              <select id="pg" value={form.gender} onChange={set('gender')}>
+                <option value="">Select…</option>
+                {GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+              </select>
             </div>
-            <div className="f w">
-              <label htmlFor="pa">Address</label>
-              <textarea id="pa" value={form.address_line} onChange={(e) => setForm({ ...form, address_line: e.target.value })} autoComplete="street-address" />
+
+            {/* Address as its own columns rather than one free-text box. */}
+            <div className="f">
+              <label htmlFor="pst">State</label>
+              <input id="pst" value={form.state} onChange={set('state')} autoComplete="address-level1" placeholder="Karnataka" />
+            </div>
+            <div className="f">
+              <label htmlFor="ppin">PIN code</label>
+              <input id="ppin" value={form.pincode} onChange={set('pincode')} inputMode="numeric" autoComplete="postal-code" placeholder="560001" />
+            </div>
+            <div className="f">
+              <label htmlFor="pcy">City</label>
+              <input id="pcy" value={form.city} onChange={set('city')} autoComplete="address-level2" placeholder="Bengaluru" />
+            </div>
+            <div className="f">
+              <label htmlFor="pa">Address line</label>
+              <input id="pa" value={form.address_line} onChange={set('address_line')} autoComplete="address-line1" placeholder="Flat, building, street" />
             </div>
           </form>
 
@@ -112,12 +224,37 @@ export default function Profile() {
             <button className="gh" type="button" onClick={logout} style={{ color: 'var(--er)' }}>Log out</button>
           </div>
 
+          <h2 style={{ fontSize: 26, margin: '34px 0 6px' }}>KYC details</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            {kycDone} of {kycDetails.length} details ready — verification checks the same ones.
+          </p>
+          <div className="panel vs">
+            {kycDetails.map((d, i) => (
+              <div key={d.key}>
+                <i className={d.done ? 'd' : ''}>{d.done ? '✓' : i + 1}</i>
+                <div>
+                  <h3>{d.label}</h3>
+                  <p>{d.text}</p>
+                </div>
+                {d.done
+                  ? <span className="stt">Ready</span>
+                  : <button
+                    type="button"
+                    className="go"
+                    onClick={() => (d.go ? nav(d.go) : focusField(d.field))}
+                  >
+                    {d.go ? 'Verify now' : 'Add'}
+                  </button>}
+              </div>
+            ))}
+          </div>
+
           <div className="panel" style={{ marginTop: 24, padding: 22 }}>
             <h3 style={{ fontSize: 20 }}>Account verification &amp; role</h3>
             <div className="ce-tiles">
               <div className="ce-tile">
                 <small>Phone number</small>
-                {user?.phone_verified_at
+                {phoneVerified
                   ? <span className="stt">Verified</span>
                   : <button type="button" className="gh" onClick={() => nav('/verify-otp')}>Verify phone →</button>}
               </div>
