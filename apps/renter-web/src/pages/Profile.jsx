@@ -210,7 +210,7 @@ export default function Profile() {
               <label htmlFor="pcy">City</label>
               <input id="pcy" value={form.city} onChange={set('city')} autoComplete="address-level2" placeholder="Bengaluru" />
             </div>
-            <div className="f">
+            <div className="f w">
               <label htmlFor="pa">Address line</label>
               <input id="pa" value={form.address_line} onChange={set('address_line')} autoComplete="address-line1" placeholder="Flat, building, street" />
             </div>
