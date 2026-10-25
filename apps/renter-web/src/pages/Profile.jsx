@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { api, clearSession, setSession } from '../api.js';
 import { applyTheme, isDark, toast } from '../components/ui.js';
 import DatePicker from '../components/DatePicker.jsx';
+import OptionPicker from '../components/OptionPicker.jsx';
 
+// Symbols ride alongside the names so the field reads at a glance; the `value`
+// stays the API's enum, which is all that is ever sent.
 const GENDERS = [
-  { value: 'female', label: 'Female' },
-  { value: 'male', label: 'Male' },
-  { value: 'non_binary', label: 'Non-binary' },
-  { value: 'other', label: 'Other' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to say' },
+  { value: 'female', label: 'Female', symbol: '♀' },
+  { value: 'male', label: 'Male', symbol: '♂' },
+  { value: 'non_binary', label: 'Non-binary', symbol: '⚧' },
+  { value: 'other', label: 'Other', symbol: '◈' },
+  { value: 'prefer_not_to_say', label: 'Prefer not to say', symbol: '◌' },
 ];
 
 const EMPTY = {
@@ -199,10 +202,14 @@ export default function Profile() {
             </div>
             <div className="f">
               <label htmlFor="pg">Gender</label>
-              <select id="pg" value={form.gender} onChange={set('gender')}>
-                <option value="">Select…</option>
-                {GENDERS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-              </select>
+              <OptionPicker
+                id="pg"
+                value={form.gender}
+                onChange={(v) => setForm((f) => ({ ...f, gender: v }))}
+                options={GENDERS}
+                placeholder="Select…"
+                ariaLabel="Gender"
+              />
             </div>
 
             {/* Address as its own columns rather than one free-text box. */}

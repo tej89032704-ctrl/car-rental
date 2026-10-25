@@ -717,3 +717,47 @@
 .ce .dp-foot button:hover{color:var(--ink)}
 .ce .dp-foot button:disabled{opacity:.4;cursor:not-allowed}
 .ce .dp-foot button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+
+/* ── Option picker (single choice) ───────────────────────────────────
+   Symbol + name per option, replacing the OS-drawn <select> menu. */
+.ce .op-btn{
+  display:flex;align-items:center;gap:9px;width:100%;
+  border:0;background:none;padding:2px 0;font:inherit;font-weight:600;color:var(--ink);
+  cursor:pointer;text-align:left;border-radius:6px;
+}
+.ce .op-btn .ph{color:var(--mu);font-weight:500}
+.ce .op-btn .op-lbl{flex:1;min-width:0}
+.ce .op-btn .op-sym{
+  font-style:normal;font-size:15px;line-height:1;width:20px;text-align:center;
+  color:var(--ac);
+}
+.ce .op-btn .op-chev{flex:none;opacity:.5;transition:opacity .2s,transform .2s}
+.ce .op-btn:hover .op-chev{opacity:.9}
+.ce .op-btn[aria-expanded="true"] .op-chev{opacity:1;transform:rotate(180deg)}
+.ce .op-btn:focus-visible{outline:2px solid var(--ac);outline-offset:6px}
+
+.ce .op-pop{
+  position:fixed;z-index:90;padding:6px;max-height:320px;overflow:auto;
+  border-radius:16px;border:1px solid var(--ln);background:var(--sf);color:var(--ink);
+  box-shadow:0 26px 60px rgba(18,15,12,.22),0 2px 6px rgba(18,15,12,.08);
+  animation:opop .14s ease-out;
+}
+@keyframes opop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+.ce .op-item{
+  display:flex;align-items:center;gap:10px;width:100%;
+  border:0;background:none;border-radius:11px;padding:9px 10px;
+  font:inherit;font-size:14px;font-weight:600;color:var(--ink);
+  cursor:pointer;text-align:left;transition:background .16s,color .16s;
+}
+.ce .op-item .op-lbl{flex:1;min-width:0}
+.ce .op-item .op-sym{
+  font-style:normal;font-size:15px;line-height:1;width:20px;text-align:center;
+  color:var(--mu);transition:color .16s;
+}
+.ce .op-item:hover{background:var(--sp)}
+.ce .op-item:hover .op-sym{color:var(--ink)}
+.ce .op-item.on{color:var(--ac)}
+.ce .op-item.on .op-sym{color:var(--ac)}
+.ce .op-item .op-tick{flex:none;color:var(--ac)}
+.ce .op-item:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
