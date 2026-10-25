@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, clearSession, setSession } from '../api.js';
+import {
+  STATE_NAMES, citiesForState, canonicalState, canonicalCity, stateOfCity,
+} from '../../../../packages/shared/src/india.js';
 import { applyTheme, isDark, toast } from '../components/ui.js';
 import DatePicker from '../components/DatePicker.jsx';
 import OptionPicker from '../components/OptionPicker.jsx';
@@ -14,6 +17,17 @@ const GENDERS = [
   { value: 'other', label: 'Other', symbol: '◈' },
   { value: 'prefer_not_to_say', label: 'Prefer not to say', symbol: '◌' },
 ];
+
+// Which side of the account this profile is. The portal says "renter" in its
+// navigation, but one account can hold either role, so the page states the
+// role the server reports rather than assuming the portal's.
+const ROLES = {
+  car_renter: { label: 'Renter', tone: 'renter' },
+  car_owner: { label: 'Owner', tone: 'owner' },
+  agent: { label: 'Agent', tone: 'agent' },
+  manager: { label: 'Manager', tone: 'owner' },
+  super_admin: { label: 'Administrator', tone: 'owner' },
+};
 
 const EMPTY = {
   name: '', email: '', phone: '',
@@ -59,6 +73,24 @@ export default function Profile() {
   }, []);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  // State and city are suggestions, not a whitelist: the API stores whatever
+  // is typed, so anywhere that is missing from the list can still be entered.
+  const cityOptions = useMemo(() => citiesForState(form.state), [form.state]);
+
+  function tidyState() {
+    setForm((f) => ({ ...f, state: canonicalState(f.state) }));
+  }
+
+  // Picking a city first (common when typing an address from the top) fills in
+  // the state when exactly one state claims that name.
+  function tidyCity() {
+    setForm((f) => {
+      const city = canonicalCity(f.city, f.state);
+      const state = f.state.trim() ? f.state : stateOfCity(city);
+      return { ...f, city, state };
+    });
+  }
 
   async function save(e) {
     if (e?.preventDefault) e.preventDefault();
@@ -120,6 +152,10 @@ export default function Profile() {
     el.focus({ preventScroll: true });
   }
 
+  // Null until the account is known, so the page never claims a role it has
+  // not been told yet. Unknown roles fall back to the portal's own side.
+  const role = user ? (ROLES[user.role] || ROLES.car_renter) : null;
+
   // The API reports phone_verified (not raw timestamps), so trust that flag.
   const phoneVerified = !!user?.phone_verified;
   const addressComplete = !!(user?.address_line && user?.city && user?.state && user?.pincode);
@@ -164,6 +200,7 @@ export default function Profile() {
     <section className="pg">
       <div className="hd">
         <div>
+          {role && <span className={`ey role-tag ${role.tone}`}>{role.label} account</span>}
           <h1>Profile</h1>
           <p>Up-to-date details mean faster bookings.</p>
         </div>
@@ -213,9 +250,12 @@ export default function Profile() {
             </div>
 
             {/* Address as its own columns rather than one free-text box. */}
+            {/* Suggestions come from the bundled India list; autofill is off so
+                the browser's own address guesses do not cover it. */}
             <div className="f">
               <label htmlFor="pst">State</label>
-              <input id="pst" value={form.state} onChange={set('state')} autoComplete="address-level1" placeholder="Karnataka" />
+              <input id="pst" list="india-states" value={form.state} onChange={set('state')}
+                onBlur={tidyState} autoComplete="off" placeholder="Karnataka" />
             </div>
             <div className="f">
               <label htmlFor="ppin">PIN code</label>
@@ -223,12 +263,20 @@ export default function Profile() {
             </div>
             <div className="f">
               <label htmlFor="pcy">City</label>
-              <input id="pcy" value={form.city} onChange={set('city')} autoComplete="address-level2" placeholder="Bengaluru" />
+              <input id="pcy" list="india-cities" value={form.city} onChange={set('city')}
+                onBlur={tidyCity} autoComplete="off" placeholder="Bengaluru" />
             </div>
             <div className="f w">
               <label htmlFor="pa">Address line</label>
               <input id="pa" value={form.address_line} onChange={set('address_line')} autoComplete="address-line1" placeholder="Flat, building, street" />
             </div>
+
+            <datalist id="india-states">
+              {STATE_NAMES.map((name) => <option key={name} value={name} />)}
+            </datalist>
+            <datalist id="india-cities">
+              {cityOptions.map((name) => <option key={name} value={name} />)}
+            </datalist>
           </form>
 
           <div className="ce-form-actions">

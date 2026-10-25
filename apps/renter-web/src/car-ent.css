@@ -107,6 +107,21 @@
   font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--gd);margin-bottom:8px;
 }
+/* Which side of the account this page belongs to (renter or owner). */
+.ce .hd .ey.role-tag{
+  display:inline-flex;align-items:center;gap:8px;padding:5px 13px 5px 11px;
+  border-radius:99px;border:1px solid var(--gbr);background:var(--glass);
+  letter-spacing:.1em;margin-bottom:10px;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+.ce .hd .ey.role-tag::before{
+  content:"";width:7px;height:7px;border-radius:50%;background:var(--ac);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 18%,transparent);
+}
+.ce .hd .ey.role-tag.owner{color:var(--ink)}
+.ce .hd .ey.role-tag.owner::before{
+  background:var(--gd);box-shadow:0 0 0 3px color-mix(in srgb,var(--gd) 20%,transparent);
+}
 
 /* ── Hero ──────────────────────────────────────────────────────────── */
 /* The shared base paints .hero as an amber-edged panel; this artwork is an

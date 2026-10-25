@@ -1,0 +1,254 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Profile details (signup funnel) — renter portal skin.
+
+   The shared ProfileDetails component is mounted by three portals and brings
+   auth.css with it. These rules only re-point that markup at the CAR-ENT
+   artwork, scoped under `.ce`, so the owner and agent portals are untouched.
+   Controls themselves (.btn, input.f, .alert.err) already exist under `.ce`
+   in car-ent.css; this file mostly resets the auth shell and sets type.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.ce.pd {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+
+  /* The shared token layer sets --sf/--sp to the dark palette on this route
+     even when the page is light, so fields read as dark boxes on a white
+     card. Page-local tokens sidestep that without fighting specificity. */
+  --pd-field-bg: #fff;
+  --pd-field-line: rgba(23, 19, 14, .14);
+}
+html[data-theme="dark"] .ce.pd,
+.ce.pd[data-theme="dark"] {
+  --pd-field-bg: #151210;
+  --pd-field-line: rgba(244, 238, 228, .16);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .ce.pd {
+    --pd-field-bg: #151210;
+    --pd-field-line: rgba(244, 238, 228, .16);
+  }
+}
+
+.pd .pd-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 52px 22px 90px;
+}
+
+.pd .pd-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Fraunces, serif;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--ink);
+  margin-bottom: 20px;
+}
+.pd .pd-brand i { font-style: normal; color: var(--ac); }
+
+/* ── Neutralise the auth shell: the portal paints its own background ── */
+.pd .auth-shell {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  overflow: visible;
+}
+.pd .auth-shell::before,
+.pd .auth-shell::after { display: none; }
+
+/* ── The card, in the portal's glass language ───────────────────────── */
+.pd .auth-card-center {
+  position: relative;
+  max-width: none;
+  margin: 0;
+  padding: 38px 40px 32px;
+  border: 1px solid var(--gbr);
+  border-radius: 26px;
+  background: var(--glass);
+  color: var(--ink);
+  backdrop-filter: blur(24px) saturate(165%);
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
+  box-shadow: var(--gsh), inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+.pd .auth-card-center::before {
+  content: '';
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  top: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--ac), transparent);
+  opacity: .75;
+}
+
+.pd .auth-card-center .portal-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ac);
+  background: color-mix(in srgb, var(--ac) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ac) 28%, transparent);
+}
+
+.pd .auth-card-center h1 {
+  font-family: Fraunces, serif;
+  font-size: clamp(26px, 4vw, 34px);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  margin: 14px 0 8px;
+}
+
+.pd .auth-card-center .sub {
+  color: var(--mu);
+  font-size: 14.5px;
+  line-height: 1.65;
+  margin: 0 0 24px;
+}
+
+/* ── Fields ─────────────────────────────────────────────────────────── */
+.pd .auth-card-center .field { margin-bottom: 16px; }
+
+/* car-ent.css styles every `.ce .f` as a booking-form column, so it carries
+   cell padding and a 1px right rule. The shared profile form reuses `.f` for
+   its labels, which made each one draw a stray vertical rule beside the
+   fields; the labels here are plain text, not columns. */
+.pd .auth-card-center label.f {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.pd .auth-card-center .form-hint {
+  display: block;
+  margin-top: 7px;
+  color: var(--mu);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.pd .auth-card-center input.f,
+.pd .auth-card-center select.f {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--pd-field-bg);
+  border: 1px solid var(--pd-field-line);
+  color: var(--ink);
+}
+.pd .auth-card-center input.f::placeholder { color: var(--mu); font-weight: 500; }
+.pd .auth-card-center input.f:focus,
+.pd .auth-card-center select.f:focus {
+  outline: none;
+  border-color: var(--ac);
+  box-shadow: 0 0 0 4px rgba(242, 106, 27, .14);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+.pd .auth-card-center .btn {
+  width: auto;
+  border-radius: 99px;
+  padding: 14px 26px;
+}
+.pd .auth-card-center .btn-full { width: 100%; margin-top: 10px; }
+
+.pd .auth-card-center .btn-secondary {
+  flex: none;
+  padding: 12px 20px;
+  border: 1px solid var(--gbr);
+  border-radius: 99px;
+  background: var(--glass);
+  color: var(--ink);
+  box-shadow: none;
+}
+.pd .auth-card-center .btn-secondary:hover {
+  border-color: var(--ac);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+/* "Skip for now" carries inline styles from the shared component, so this
+   needs !important to match the ghost pill used elsewhere in the portal. */
+.pd .auth-card-center > p > button[type="button"] {
+  background: var(--glass) !important;
+  border: 1px solid var(--gbr) !important;
+  color: var(--ink) !important;
+  border-radius: 99px !important;
+  padding: 11px 26px !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4) !important;
+  transition: border-color .2s, transform .2s !important;
+}
+.pd .auth-card-center > p > button[type="button"]:hover {
+  border-color: var(--ac) !important;
+  transform: translateY(-1px);
+}
+
+/* ── Map block from LocationPicker ──────────────────────────────────── */
+.pd .location-search { display: flex; align-items: center; gap: 10px; }
+.pd .location-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--pd-field-line);
+  border-radius: 14px;
+  background: var(--pd-field-bg);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+}
+.pd .location-search input::placeholder { color: var(--mu); font-weight: 500; }
+.pd .location-search input:focus {
+  outline: none;
+  border-color: var(--ac);
+  box-shadow: 0 0 0 4px rgba(242, 106, 27, .14);
+}
+
+.pd .location-picker-map {
+  margin-top: 12px;
+  border: 1px solid var(--ln);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.pd .location-results {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.pd .location-results button {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  background: var(--sp);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.pd .location-results button:hover { border-color: var(--ac); }
+
+.pd .location-picker-note,
+.pd .location-picker-hint {
+  margin: 8px 0 0;
+  color: var(--mu);
+  font-size: 12px;
+}
+
+.pd .auth-card-center .alert { margin: 0 0 18px; }

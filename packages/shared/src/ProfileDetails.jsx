@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setSession } from './api.js';
 import LocationPicker from './LocationPicker.jsx';
+import {
+  STATE_NAMES, citiesForState, canonicalState, canonicalCity, stateOfCity,
+} from './india.js';
 
 /**
  * Post-signup profile details, shared by all three portals.
@@ -77,6 +80,23 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
 
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
+  // State and city suggest the bundled India list but accept anything typed:
+  // the API stores free text, and plenty of towns are not on any list.
+  const cityOptions = useMemo(() => citiesForState(f.state), [f.state]);
+
+  function tidyState() {
+    setF((v) => ({ ...v, state: canonicalState(v.state) }));
+  }
+
+  // Choosing a city fills the state when only one state claims that name.
+  function tidyCity() {
+    setF((v) => {
+      const city = canonicalCity(v.city, v.state);
+      const state = v.state.trim() ? v.state : stateOfCity(city);
+      return { ...v, city, state };
+    });
+  }
+
   // Only send keys the user actually filled in. Sending '' for every untouched
   // field would write empty strings over anything already stored.
   async function submit(e) {
@@ -151,17 +171,26 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
               placeholder="Flat / street" autoComplete="street-address" />
           </div>
 
+          {/* State before city so the city list can narrow to it. Both are
+              type-ahead suggestions with a hand-typed fallback. */}
           <div className="field">
-            <label className="f" htmlFor="pd-city">City</label>
-            <input id="pd-city" className="f" value={f.city} onChange={set('city')}
-              placeholder="Bengaluru" autoComplete="address-level2" />
+            <label className="f" htmlFor="pd-state">State</label>
+            <input id="pd-state" className="f" list="pd-states" value={f.state} onChange={set('state')}
+              onBlur={tidyState} placeholder="Karnataka" autoComplete="off" />
           </div>
 
           <div className="field">
-            <label className="f" htmlFor="pd-state">State</label>
-            <input id="pd-state" className="f" value={f.state} onChange={set('state')}
-              placeholder="Karnataka" autoComplete="address-level1" />
+            <label className="f" htmlFor="pd-city">City</label>
+            <input id="pd-city" className="f" list="pd-cities" value={f.city} onChange={set('city')}
+              onBlur={tidyCity} placeholder="Bengaluru" autoComplete="off" />
           </div>
+
+          <datalist id="pd-states">
+            {STATE_NAMES.map((name) => <option key={name} value={name} />)}
+          </datalist>
+          <datalist id="pd-cities">
+            {cityOptions.map((name) => <option key={name} value={name} />)}
+          </datalist>
 
           <div className="field">
             <label className="f" htmlFor="pd-pincode">PIN code</label>

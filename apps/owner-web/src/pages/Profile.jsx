@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, setSession } from '../api.js';
 import { useData } from '../data.jsx';
 import { avatarBg } from '../lib.js';
+import {
+  STATE_NAMES, citiesForState, canonicalState, canonicalCity, stateOfCity,
+} from '../../../../packages/shared/src/india.js';
 
 const ROLE_LABEL = { car_renter: 'Renter', car_owner: 'Owner', agent: 'Agent', super_admin: 'Administrator' };
 const KYC_LABEL = { approved: 'KYC verified', pending: 'KYC pending', rejected: 'KYC rejected' };
@@ -26,6 +29,9 @@ export default function Profile() {
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // City suggestions follow the state field, falling back to the whole country.
+  const cityOptions = useMemo(() => citiesForState(details.state), [details.state]);
 
   // Seed the form once per account id: reload() re-reads /auth/me after a
   // save, and re-seeding on every context refresh would clobber edits the
@@ -169,14 +175,37 @@ export default function Profile() {
             </label>
 
             <label>
-              City
-              <input value={details.city} onChange={(e) => setDetails({ ...details, city: e.target.value })} />
+              State
+              <input
+                list="owner-states"
+                value={details.state}
+                autoComplete="off"
+                onChange={(e) => setDetails({ ...details, state: e.target.value })}
+                onBlur={() => setDetails((d) => ({ ...d, state: canonicalState(d.state) }))}
+              />
             </label>
 
             <label>
-              State
-              <input value={details.state} onChange={(e) => setDetails({ ...details, state: e.target.value })} />
+              City
+              <input
+                list="owner-cities"
+                value={details.city}
+                autoComplete="off"
+                onChange={(e) => setDetails({ ...details, city: e.target.value })}
+                onBlur={() => setDetails((d) => {
+                  const city = canonicalCity(d.city, d.state);
+                  return { ...d, city, state: d.state.trim() ? d.state : stateOfCity(city) };
+                })}
+              />
             </label>
+
+            {/* Suggestions only — anything typed is kept as-is. */}
+            <datalist id="owner-states">
+              {STATE_NAMES.map((name) => <option key={name} value={name} />)}
+            </datalist>
+            <datalist id="owner-cities">
+              {cityOptions.map((name) => <option key={name} value={name} />)}
+            </datalist>
 
             <label>
               Pincode
