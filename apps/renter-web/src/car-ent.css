@@ -14,6 +14,10 @@
   --ac:#f26a1b; --gd:#b98a3e; --sp:rgba(23,19,14,.07); --gl:rgba(255,255,255,.78);
   --ok:#1f9d63; --wn:#c98600; --er:#d2453c; --arch:#e8e1d4;
   --glass:rgba(255,255,255,.5); --gbr:rgba(255,255,255,.8); --gsh:0 10px 36px rgba(70,45,10,.14);
+  /* Shared suggestion field (SuggestInput) reads these, so its popup follows
+     this portal's palette instead of the generic token fallbacks. */
+  --sug-bg:var(--sf); --sug-ink:var(--ink); --sug-mut:var(--mu);
+  --sug-line:var(--ln); --sug-acc:var(--ac);
   --top-h:65px;
 
   position:relative;

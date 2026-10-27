@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, clearSession, setSession } from '../api.js';
 import {
   STATE_NAMES, citiesForState, canonicalState, canonicalCity, stateOfCity,
 } from '../../../../packages/shared/src/india.js';
+import SuggestInput from '../../../../packages/shared/src/SuggestInput.jsx';
+import PinPlaces, { reverseAddress, usePinPlaces } from '../../../../packages/shared/src/PinPlaces.jsx';
+import LocationPicker from '../../../../packages/shared/src/LocationPicker.jsx';
 import { applyTheme, isDark, toast } from '../components/ui.js';
 import DatePicker from '../components/DatePicker.jsx';
 import OptionPicker from '../components/OptionPicker.jsx';
@@ -49,6 +52,11 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  // The chosen point lives apart from `form` because it is a pair of numbers
+  // with a provenance tag, not a form string, and it is not what the address
+  // boxes show: the address beneath the pin is, and that fills them in.
+  const [pin, setPin] = useState(null);
+  const [looking, setLooking] = useState(false);
 
   useEffect(() => {
     api('/auth/me')
@@ -66,6 +74,13 @@ export default function Profile() {
           date_of_birth: u.date_of_birth || '',
           gender: u.gender || '',
         });
+        if (typeof u.latitude === 'number' && typeof u.longitude === 'number') {
+          setPin({
+            latitude: u.latitude,
+            longitude: u.longitude,
+            source: u.location_source || 'manual',
+          });
+        }
         setErr('');
       })
       .catch((e) => setErr(e.message || 'Could not load your profile'))
@@ -76,7 +91,23 @@ export default function Profile() {
 
   // State and city are suggestions, not a whitelist: the API stores whatever
   // is typed, so anywhere that is missing from the list can still be entered.
-  const cityOptions = useMemo(() => citiesForState(form.state), [form.state]);
+  const stateOptions = useMemo(() => STATE_NAMES.map((value) => ({ value })), []);
+  const cityOptions = useMemo(
+    () => citiesForState(form.state).map((value) => ({ value })),
+    [form.state],
+  );
+
+  // Six digits are enough to name the post office and its district, so the PIN
+  // offers the places it covers instead of asking for the same thing twice.
+  const pinLookup = usePinPlaces(form.pincode);
+
+  function pickPlace(place) {
+    setForm((f) => ({
+      ...f,
+      city: place.city ? canonicalCity(place.city, place.state) : f.city,
+      state: place.state ? canonicalState(place.state) : f.state,
+    }));
+  }
 
   function tidyState() {
     setForm((f) => ({ ...f, state: canonicalState(f.state) }));
@@ -91,6 +122,29 @@ export default function Profile() {
       return { ...f, city, state };
     });
   }
+
+  // Dropping the pin reads what is underneath it, so the address boxes end up
+  // describing the point the pin actually sits on rather than whatever city was
+  // typed before the user moved it. A lookup that fails leaves the typed
+  // address alone: a slow geocoder must never blank a filled-in form.
+  const onPinChange = useCallback(async (next) => {
+    setPin(next);
+    if (!next) return;
+    setLooking(true);
+    try {
+      const address = await reverseAddress(next.latitude, next.longitude);
+      if (!address) return;
+      setForm((f) => ({
+        ...f,
+        address_line: address.address_line || f.address_line,
+        city: address.city ? canonicalCity(address.city, address.state) : f.city,
+        state: address.state ? canonicalState(address.state) : f.state,
+        pincode: address.pincode || f.pincode,
+      }));
+    } finally {
+      setLooking(false);
+    }
+  }, []);
 
   async function save(e) {
     if (e?.preventDefault) e.preventDefault();
@@ -119,6 +173,12 @@ export default function Profile() {
       for (const key of optional) {
         const value = (form[key] || '').trim();
         if (value) body[key] = value;
+      }
+      // Only a pin the user actually placed is sent; the API reads an absent
+      // pair as "leave the stored point alone".
+      if (pin) {
+        body.latitude = pin.latitude;
+        body.longitude = pin.longitude;
       }
       const data = await api('/auth/me', { method: 'PATCH', body });
       const u = data?.user || data;
@@ -254,29 +314,36 @@ export default function Profile() {
                 the browser's own address guesses do not cover it. */}
             <div className="f">
               <label htmlFor="pst">State</label>
-              <input id="pst" list="india-states" value={form.state} onChange={set('state')}
-                onBlur={tidyState} autoComplete="off" placeholder="Karnataka" />
+              <SuggestInput id="pst" value={form.state} onChange={set('state')}
+                onBlurValue={tidyState} options={stateOptions}
+                placeholder="Karnataka" ariaLabel="State" />
             </div>
             <div className="f">
               <label htmlFor="ppin">PIN code</label>
               <input id="ppin" value={form.pincode} onChange={set('pincode')} inputMode="numeric" autoComplete="postal-code" placeholder="560001" />
+              <PinPlaces {...pinLookup} pin={form.pincode.replace(/[^0-9]/g, '')} onPick={pickPlace} />
             </div>
             <div className="f">
               <label htmlFor="pcy">City</label>
-              <input id="pcy" list="india-cities" value={form.city} onChange={set('city')}
-                onBlur={tidyCity} autoComplete="off" placeholder="Bengaluru" />
+              <SuggestInput id="pcy" value={form.city} onChange={set('city')}
+                onBlurValue={tidyCity} options={cityOptions}
+                placeholder="Bengaluru" ariaLabel="City" />
             </div>
             <div className="f w">
               <label htmlFor="pa">Address line</label>
               <input id="pa" value={form.address_line} onChange={set('address_line')} autoComplete="address-line1" placeholder="Flat, building, street" />
             </div>
 
-            <datalist id="india-states">
-              {STATE_NAMES.map((name) => <option key={name} value={name} />)}
-            </datalist>
-            <datalist id="india-cities">
-              {cityOptions.map((name) => <option key={name} value={name} />)}
-            </datalist>
+            {/* The map writes the address boxes: drop the pin and the line
+                above, plus city, state and PIN, describe that point. */}
+            <div className="f w">
+              <label>Map location</label>
+              <LocationPicker value={pin} onChange={onPinChange} city={form.city} />
+              {looking && <small className="form-hint">Filling the address from the map…</small>}
+              <small className="form-hint">
+                Optional. Drop the pin where you are and the address above fills itself in.
+              </small>
+            </div>
           </form>
 
           <div className="ce-form-actions">

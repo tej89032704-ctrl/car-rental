@@ -115,24 +115,31 @@ export default function LocationPicker({ value, onChange, city, className = '' }
 
   return (
     <div className={`location-picker ${className}`}>
-      {/* The button is type="button" and calls search directly rather than
-          relying on the form's submit event. As a submit button it would fall
-          back to a native GET navigation if the handler were ever bypassed,
+      {/* A div, not a form. The picker sits inside the profile form on the
+          account pages, and a form inside a form is invalid HTML -- React warns
+          about it and browsers respond unpredictably. The button is still
+          type="button" calling search directly, because as a submit button it
+          fell back to a native GET navigation when the handler was not in play,
           which reloads the page and throws the typed query away -- observed as
-          the URL silently becoming "profile-details?". The form and the Enter
-          key still work, so the input keeps form semantics for autofill. */}
-      <form className="location-search" onSubmit={search}>
+          the URL silently becoming "profile-details?". Enter is handled on the
+          input itself, which is the part of form semantics anyone used. */}
+      <div className="location-search" role="search">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            search(e);
+          }}
           placeholder="Search your city"
           aria-label="Search your city"
         />
         <button type="button" className="btn btn-secondary" onClick={search} disabled={busy}>
           {busy ? 'Searching…' : 'Search'}
         </button>
-      </form>
+      </div>
 
       {note && <p className="location-picker-note">{note}</p>}
 

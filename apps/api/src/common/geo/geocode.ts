@@ -19,6 +19,9 @@
 /** Nominatim search endpoint. */
 const ENDPOINT = 'https://nominatim.openstreetmap.org/search';
 
+/** Nominatim reverse endpoint: a point back to an address. */
+const REVERSE_ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
+
 /** A city centroid is plenty for "roughly where is this car"; 5 is a good balance. */
 const LIMIT = 5;
 
@@ -85,11 +88,8 @@ function toNumber(raw: unknown): number | null {
   return n;
 }
 
-async function requestNow(query: string): Promise<GeocodeHit[] | null> {
-  const url =
-    `${ENDPOINT}?q=${encodeURIComponent(query)}` +
-    `&format=jsonv2&limit=${LIMIT}&addressdetails=0`;
-
+/** One outbound call to Nominatim. Returns null on any failure. */
+async function send(url: string): Promise<any> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -102,29 +102,57 @@ async function requestNow(query: string): Promise<GeocodeHit[] | null> {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) return null;
-
-    const body: any = await res.json();
-    if (!Array.isArray(body)) return null;
-
-    const hits: GeocodeHit[] = [];
-    for (const row of body) {
-      const lat = toNumber(row?.lat);
-      const lon = toNumber(row?.lon);
-      // `lon` is not latitude-bounded, so range-check it separately.
-      if (lat === null || lon === null || lon < -180 || lon > 180) continue;
-      hits.push({
-        latitude: lat,
-        longitude: lon,
-        label: typeof row.display_name === 'string' ? row.display_name : query,
-        kind: typeof row.addresstype === 'string' ? row.addresstype : 'place',
-      });
-    }
-    return hits;
+    return await res.json();
   } catch {
     // Network error, DNS failure, timeout, malformed JSON: all treated as
     // "could not resolve". Never surfaced to the caller as an exception.
     return null;
   }
+}
+
+/**
+ * Run one call through the shared queue, keeping Nominatim's one-per-second
+ * gap. Every lookup in this file goes through here, so parallel users cannot
+ * burst past the limit and get the whole server blocked.
+ */
+async function queued<T>(run: () => Promise<T>): Promise<T> {
+  const job = queue.then(async () => {
+    const wait = MIN_GAP_MS - (Date.now() - lastSentAt);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastSentAt = Date.now();
+    return await run();
+  });
+  // Keep the chain alive even if this link rejects, so one failure cannot
+  // wedge every later lookup behind a permanently rejected promise.
+  queue = job.then(
+    () => undefined,
+    () => undefined,
+  );
+  return await job;
+}
+
+async function requestNow(query: string): Promise<GeocodeHit[] | null> {
+  const url =
+    `${ENDPOINT}?q=${encodeURIComponent(query)}` +
+    `&format=jsonv2&limit=${LIMIT}&addressdetails=0`;
+
+  const body: any = await send(url);
+  if (!Array.isArray(body)) return null;
+
+  const hits: GeocodeHit[] = [];
+  for (const row of body) {
+    const lat = toNumber(row?.lat);
+    const lon = toNumber(row?.lon);
+    // `lon` is not latitude-bounded, so range-check it separately.
+    if (lat === null || lon === null || lon < -180 || lon > 180) continue;
+    hits.push({
+      latitude: lat,
+      longitude: lon,
+      label: typeof row.display_name === 'string' ? row.display_name : query,
+      kind: typeof row.addresstype === 'string' ? row.addresstype : 'place',
+    });
+  }
+  return hits;
 }
 
 /**
@@ -140,21 +168,7 @@ export async function geocode(query: string): Promise<GeocodeHit[] | null> {
   const cached = cacheGet(key);
   if (cached) return cached;
 
-  const run = queue.then(async () => {
-    const wait = MIN_GAP_MS - (Date.now() - lastSentAt);
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-    lastSentAt = Date.now();
-    return await requestNow(trimmed);
-  });
-
-  // Keep the chain alive even if this link rejects, so one failure cannot
-  // wedge every later lookup behind a permanently rejected promise.
-  queue = run.then(
-    () => undefined,
-    () => undefined,
-  );
-
-  const hits = await run;
+  const hits = await queued(() => requestNow(trimmed));
   if (hits === null) return null;
   cacheSet(key, hits);
   return hits;
@@ -168,4 +182,182 @@ export async function geocode(query: string): Promise<GeocodeHit[] | null> {
 export async function geocodeFirst(query: string): Promise<GeocodeHit | null> {
   const hits = await geocode(query);
   return hits && hits.length ? hits[0] : null;
+}
+
+/* --------------------------- address details ----------------------------- *
+ * The two lookups below exist so the address form can fill itself: one point
+ * back to an address (after the user drags the pin), and one PIN code forward
+ * to the areas it covers. Both are cached by their input, which is what keeps a
+ * half-dozen keystrokes inside Nominatim's rate limit.
+ */
+
+export interface AddressParts {
+  address_line: string;
+  city: string;
+  state: string;
+  pincode: string;
+  label: string;
+}
+
+/** A place a PIN code covers, as offered to the user to pick from. */
+export interface PostalPlace {
+  area: string;
+  city: string;
+  state: string;
+  pincode: string;
+  latitude: number;
+  longitude: number;
+}
+
+type LookupEntry = { at: number; value: unknown };
+const LOOKUP_CACHE = new Map<string, LookupEntry>();
+const LOOKUP_MAX = 400;
+
+function lookupGet<T>(key: string): T | null {
+  const hit = LOOKUP_CACHE.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > CACHE_TTL_MS) {
+    LOOKUP_CACHE.delete(key);
+    return null;
+  }
+  return hit.value as T;
+}
+
+function lookupSet(key: string, value: unknown): void {
+  if (LOOKUP_CACHE.size >= LOOKUP_MAX) {
+    const oldest = LOOKUP_CACHE.keys().next().value;
+    if (oldest !== undefined) LOOKUP_CACHE.delete(oldest);
+  }
+  LOOKUP_CACHE.set(key, { at: Date.now(), value });
+}
+
+/** First non-empty string among the candidates, trimmed. */
+function firstString(...values: unknown[]): string {
+  for (const v of values) {
+    if (typeof v === 'string' && v.trim()) return v.trim();
+  }
+  return '';
+}
+
+/** Nominatim's address object -> the four fields the profile form actually has. */
+function toAddressParts(address: any, fallbackLabel = ''): AddressParts {
+  const a = address && typeof address === 'object' ? address : {};
+  const street = firstString(a.house_number, a.building);
+  const road = firstString(a.road, a.pedestrian, a.footway, a.street, a.residential);
+  const area = firstString(a.neighbourhood, a.suburb, a.quarter, a.hamlet, a.village);
+  const city = firstString(a.city, a.town, a.municipality, a.village, a.county, a.state_district);
+  const addressLine = [street, road, area && !road ? area : ''].filter(Boolean).join(', ');
+
+  return {
+    // Falling back to the area keeps a useful line in the box even for a point
+    // that has no street recorded, instead of leaving it blank.
+    address_line: addressLine || area || city || fallbackLabel,
+    city,
+    state: firstString(a.state, a.state_district),
+    pincode: firstString(a.postcode).replace(/[^0-9]/g, '').slice(0, 6),
+    label: fallbackLabel,
+  };
+}
+
+/**
+ * A point -> the address at that point. `null` means the lookup failed, which is
+ * different from an address with nothing filled in: the caller keeps whatever
+ * the user typed rather than clearing the form because a server was slow.
+ */
+export async function reverseGeocode(latitude: number, longitude: number): Promise<AddressParts | null> {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+
+  const key = `rev:${latitude.toFixed(5)},${longitude.toFixed(5)}`;
+  const cached = lookupGet<AddressParts>(key);
+  if (cached) return cached;
+
+  const url =
+    `${REVERSE_ENDPOINT}?lat=${latitude}&lon=${longitude}` +
+    `&format=jsonv2&addressdetails=1&zoom=18`;
+
+  const body: any = await queued(() => send(url));
+  if (!body || typeof body !== 'object' || body.error) return null;
+
+  const parts = toAddressParts(body.address, firstString(body.display_name));
+  lookupSet(key, parts);
+  return parts;
+}
+
+/**
+ * The name to put on a PIN chip: the neighbourhood the PIN sits in.
+ *
+ * Nominatim's postal rows are administrative boundary relations, so their
+ * `suburb` is not always a neighbourhood -- it can be a municipal ward code
+ * ("F/S Ward") or, for a city with no finer division, the PIN itself. A chip
+ * reading "110001 · New Delhi, Delhi" tells the user nothing they did not just
+ * type, and "F/S Ward" tells them nothing at all, so both are rejected in
+ * favour of the city.
+ */
+function pickArea(address: any, city: string, pin: string): string {
+  const a = address && typeof address === 'object' ? address : {};
+  const candidates = [
+    a.suburb, a.neighbourhood, a.quarter, a.hamlet, a.village,
+  ];
+  for (const raw of candidates) {
+    if (typeof raw !== 'string') continue;
+    const value = raw.trim();
+    if (!value) continue;
+    // The PIN itself, any digits-only code, and ward/zone labels are all
+    // identifiers rather than places.
+    if (/^[0-9\s-]+$/.test(value)) continue;
+    if (/^(ward|zone|block|sector)\b/i.test(value)) continue;
+    if (/^[A-Za-z]\/[A-Za-z]\b/.test(value)) continue;
+    if (pin && value.includes(pin)) continue;
+    // Equal to the city reads as a duplicate: the chip already prints the
+    // city and state beside the area name.
+    if (city && value.toLowerCase() === city.toLowerCase()) continue;
+    return value;
+  }
+  return '';
+}
+
+/**
+ * A PIN code -> the places it covers, best first.
+ *
+ * Nominatim has no postal-code index of its own, so the PIN is searched as
+ * free text restricted to India and the rows are filtered down to the ones
+ * that actually carry that postcode. That keeps the list honest: a PIN the
+ * geocoder knows nothing about returns `[]` rather than a wrong address.
+ */
+export async function lookupPostalCode(pincode: string): Promise<PostalPlace[] | null> {
+  const pin = String(pincode || '').replace(/[^0-9]/g, '');
+  if (pin.length !== 6) return [];
+
+  const key = `pin:${pin}`;
+  const cached = lookupGet<PostalPlace[]>(key);
+  if (cached) return cached;
+
+  const url =
+    `${ENDPOINT}?q=${encodeURIComponent(`${pin}, India`)}` +
+    `&format=jsonv2&limit=12&addressdetails=1&countrycodes=in`;
+
+  const body: any = await queued(() => send(url));
+  if (!Array.isArray(body)) return null;
+
+  const out: PostalPlace[] = [];
+  const seen = new Set<string>();
+  for (const row of body) {
+    const parts = toAddressParts(row?.address, firstString(row?.display_name));
+    if (parts.pincode !== pin) continue;
+    const lat = toNumber(row?.lat);
+    const lon = toNumber(row?.lon);
+    if (lat === null || lon === null) continue;
+
+    const area = pickArea(row?.address, parts.city, pin);
+    const dedupe = `${area}|${parts.city}|${parts.state}`.toLowerCase();
+    if (seen.has(dedupe)) continue;
+    seen.add(dedupe);
+
+    out.push({ area, city: parts.city, state: parts.state, pincode: pin, latitude: lat, longitude: lon });
+    if (out.length >= 6) break;
+  }
+
+  lookupSet(key, out);
+  return out;
 }

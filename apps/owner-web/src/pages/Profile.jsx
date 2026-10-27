@@ -5,6 +5,8 @@ import { avatarBg } from '../lib.js';
 import {
   STATE_NAMES, citiesForState, canonicalState, canonicalCity, stateOfCity,
 } from '../../../../packages/shared/src/india.js';
+import SuggestInput from '../../../../packages/shared/src/SuggestInput.jsx';
+import PinPlaces, { usePinPlaces } from '../../../../packages/shared/src/PinPlaces.jsx';
 
 const ROLE_LABEL = { car_renter: 'Renter', car_owner: 'Owner', agent: 'Agent', super_admin: 'Administrator' };
 const KYC_LABEL = { approved: 'KYC verified', pending: 'KYC pending', rejected: 'KYC rejected' };
@@ -31,7 +33,40 @@ export default function Profile() {
   const [busy, setBusy] = useState(false);
 
   // City suggestions follow the state field, falling back to the whole country.
-  const cityOptions = useMemo(() => citiesForState(details.state), [details.state]);
+  // Both lists are suggestions, never a whitelist: the API stores free text, so
+  // an address the bundled list has never heard of is still saveable.
+  const stateOptions = useMemo(() => STATE_NAMES.map((value) => ({ value })), []);
+  const cityOptions = useMemo(
+    () => citiesForState(details.state).map((value) => ({ value })),
+    [details.state],
+  );
+
+  // Six digits are enough to name the post office and its district, so the PIN
+  // offers the places it covers instead of asking for city and state twice.
+  const pinLookup = usePinPlaces(details.pincode);
+
+  function pickPlace(place) {
+    setDetails((d) => ({
+      ...d,
+      city: place.city ? canonicalCity(place.city, place.state) : d.city,
+      state: place.state ? canonicalState(place.state) : d.state,
+    }));
+  }
+
+  // The state field is free text, so on the way out it is reconciled with the
+  // bundled spelling ("karnataka" -> "Karnataka") and left alone if it matches
+  // nothing, which is the case for a place only the user knows.
+  function tidyState() {
+    setDetails((d) => ({ ...d, state: canonicalState(d.state) }));
+  }
+
+  // Picking a city first fills the state when exactly one state claims it.
+  function tidyCity() {
+    setDetails((d) => {
+      const city = canonicalCity(d.city, d.state);
+      return { ...d, city, state: d.state.trim() ? d.state : stateOfCity(city) };
+    });
+  }
 
   // Seed the form once per account id: reload() re-reads /auth/me after a
   // save, and re-seeding on every context refresh would clobber edits the
@@ -176,44 +211,30 @@ export default function Profile() {
 
             <label>
               State
-              <input
-                list="owner-states"
-                value={details.state}
-                autoComplete="off"
-                onChange={(e) => setDetails({ ...details, state: e.target.value })}
-                onBlur={() => setDetails((d) => ({ ...d, state: canonicalState(d.state) }))}
-              />
+              {/* A real dropdown with a chevron: the native datalist this
+                  replaced accepted free text but advertised nothing, so the
+                  list was only ever found by accident. */}
+              <SuggestInput value={details.state} onChange={(e) => setDetails({ ...details, state: e.target.value })}
+                onBlurValue={tidyState} options={stateOptions}
+                placeholder="Karnataka" ariaLabel="State" />
             </label>
 
             <label>
               City
-              <input
-                list="owner-cities"
-                value={details.city}
-                autoComplete="off"
-                onChange={(e) => setDetails({ ...details, city: e.target.value })}
-                onBlur={() => setDetails((d) => {
-                  const city = canonicalCity(d.city, d.state);
-                  return { ...d, city, state: d.state.trim() ? d.state : stateOfCity(city) };
-                })}
-              />
+              <SuggestInput value={details.city} onChange={(e) => setDetails({ ...details, city: e.target.value })}
+                onBlurValue={tidyCity} options={cityOptions}
+                placeholder="Bengaluru" ariaLabel="City" />
             </label>
-
-            {/* Suggestions only — anything typed is kept as-is. */}
-            <datalist id="owner-states">
-              {STATE_NAMES.map((name) => <option key={name} value={name} />)}
-            </datalist>
-            <datalist id="owner-cities">
-              {cityOptions.map((name) => <option key={name} value={name} />)}
-            </datalist>
 
             <label>
               Pincode
               <input
                 value={details.pincode}
                 inputMode="numeric"
+                placeholder="560001"
                 onChange={(e) => setDetails({ ...details, pincode: e.target.value })}
               />
+              <PinPlaces {...pinLookup} pin={String(details.pincode || '').replace(/[^0-9]/g, '')} onPick={pickPlace} />
             </label>
 
             <div style={{ gridColumn: '1 / -1' }}>

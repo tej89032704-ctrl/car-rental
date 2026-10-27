@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setSession } from './api.js';
 import LocationPicker from './LocationPicker.jsx';
+import SuggestInput from './SuggestInput.jsx';
+import PinPlaces, { reverseAddress, usePinPlaces } from './PinPlaces.jsx';
 import {
   STATE_NAMES, citiesForState, canonicalState, canonicalCity, stateOfCity,
 } from './india.js';
@@ -49,6 +51,7 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
   // Held apart from `f` because it is a pair of numbers plus a provenance tag,
   // not a form string, and it is submitted differently.
   const [pin, setPin] = useState(null);
+  const [looking, setLooking] = useState(false);
   const bounds = dobBounds();
 
   // Prefill from the server rather than localStorage: another device may have
@@ -82,7 +85,39 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
 
   // State and city suggest the bundled India list but accept anything typed:
   // the API stores free text, and plenty of towns are not on any list.
-  const cityOptions = useMemo(() => citiesForState(f.state), [f.state]);
+  const stateOptions = useMemo(() => STATE_NAMES.map((value) => ({ value })), []);
+  const cityOptions = useMemo(() => citiesForState(f.state).map((value) => ({ value })), [f.state]);
+
+  // A six-digit PIN names the post office, so the places it covers are offered
+  // instead of asking for city and state a second time.
+  const pinLookup = usePinPlaces(f.pincode);
+
+  function pickPlace(place) {
+    setF((v) => ({
+      ...v,
+      city: place.city ? canonicalCity(place.city, place.state) : v.city,
+      state: place.state ? canonicalState(place.state) : v.state,
+    }));
+  }
+
+  // Dropping the pin resolves what is underneath it, so the address fields
+  // describe the place the pin actually sits on rather than the city that was
+  // typed before the user moved it.
+  const onPinChange = useCallback(async (next) => {
+    setPin(next);
+    if (!next) return;
+    setLooking(true);
+    const address = await reverseAddress(next.latitude, next.longitude);
+    setLooking(false);
+    if (!address) return;
+    setF((v) => ({
+      ...v,
+      address_line: address.address_line || v.address_line,
+      city: address.city ? canonicalCity(address.city, address.state) : v.city,
+      state: address.state ? canonicalState(address.state) : v.state,
+      pincode: address.pincode || v.pincode,
+    }));
+  }, []);
 
   function tidyState() {
     setF((v) => ({ ...v, state: canonicalState(v.state) }));
@@ -175,33 +210,30 @@ export default function ProfileDetails({ next = '/kyc', heading = 'A few more de
               type-ahead suggestions with a hand-typed fallback. */}
           <div className="field">
             <label className="f" htmlFor="pd-state">State</label>
-            <input id="pd-state" className="f" list="pd-states" value={f.state} onChange={set('state')}
-              onBlur={tidyState} placeholder="Karnataka" autoComplete="off" />
+            <SuggestInput id="pd-state" inputClassName="f" value={f.state} onChange={set('state')}
+              onBlurValue={tidyState} options={stateOptions}
+              placeholder="Karnataka" ariaLabel="State" />
           </div>
 
           <div className="field">
             <label className="f" htmlFor="pd-city">City</label>
-            <input id="pd-city" className="f" list="pd-cities" value={f.city} onChange={set('city')}
-              onBlur={tidyCity} placeholder="Bengaluru" autoComplete="off" />
+            <SuggestInput id="pd-city" inputClassName="f" value={f.city} onChange={set('city')}
+              onBlurValue={tidyCity} options={cityOptions}
+              placeholder="Bengaluru" ariaLabel="City" />
           </div>
-
-          <datalist id="pd-states">
-            {STATE_NAMES.map((name) => <option key={name} value={name} />)}
-          </datalist>
-          <datalist id="pd-cities">
-            {cityOptions.map((name) => <option key={name} value={name} />)}
-          </datalist>
 
           <div className="field">
             <label className="f" htmlFor="pd-pincode">PIN code</label>
             <input id="pd-pincode" className="f" value={f.pincode} onChange={set('pincode')}
               placeholder="560001" inputMode="numeric" pattern="\d{4,10}"
               autoComplete="postal-code" />
+            <PinPlaces {...pinLookup} pin={f.pincode.replace(/[^0-9]/g, '')} onPick={pickPlace} />
           </div>
 
           <div className="field">
             <label className="f">Map location</label>
-            <LocationPicker value={pin} onChange={setPin} city={f.city} />
+            <LocationPicker value={pin} onChange={onPinChange} city={f.city} />
+            {looking && <small className="form-hint">Filling the address from the map…</small>}
             <small className="form-hint">
               Optional. Lets owners see which cars are near you, and renters see roughly where a
               car is kept. Only shared with people viewing your cars.

@@ -1,0 +1,122 @@
+/* ═══════════════════════════════════════════════════════
+   Type-ahead field (SuggestInput) — shared by every portal
+   The popup is portalled out of the form, so it cannot be
+   clipped by a `overflow:hidden` panel or a card's backdrop.
+   Colours come from the token layer each portal already
+   imports, with the renter portal overriding --sug-* below.
+   ═══════════════════════════════════════════════════════ */
+
+.sug {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.sug input {
+  width: 100%;
+  padding-right: 34px;
+}
+
+.sug-tog {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--sug-mut, var(--mut, var(--line)));
+  opacity: .7;
+  cursor: pointer;
+  transition: opacity .18s, background .18s, color .18s;
+}
+
+.sug-tog:hover { opacity: 1; background: color-mix(in srgb, currentColor 12%, transparent); }
+.sug-tog:focus-visible { outline: 2px solid var(--sug-acc, var(--acc)); outline-offset: 1px; }
+.sug input:disabled + .sug-tog { opacity: .35; cursor: default; }
+
+.sug-pop {
+  position: fixed;
+  z-index: 95;
+  max-height: 288px;
+  overflow: auto;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid var(--sug-line, var(--line));
+  background: var(--sug-bg, var(--card, #fff));
+  color: var(--sug-ink, var(--ink));
+  box-shadow: 0 22px 48px rgba(10, 12, 16, .28), 0 2px 6px rgba(10, 12, 16, .12);
+  animation: sugin .14s ease-out;
+}
+
+@keyframes sugin {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.sug-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sug-item small {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--sug-mut, var(--mut));
+  white-space: nowrap;
+}
+
+.sug-item.on { background: color-mix(in srgb, currentColor 9%, transparent); }
+.sug-item.sel { color: var(--sug-acc, var(--acc)); }
+.sug-item:focus-visible { outline: 2px solid var(--sug-acc, var(--acc)); outline-offset: -2px; }
+
+.sug-empty {
+  padding: 10px 11px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--sug-mut, var(--mut));
+}
+
+/* The places a PIN code covers, listed under the field rather than in a popup
+   because the digits themselves are what the user is typing. */
+.pin-places {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pin-places button {
+  padding: 6px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--sug-line, var(--line));
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .18s, color .18s;
+}
+
+.pin-places button:hover { border-color: var(--sug-acc, var(--acc)); color: var(--sug-acc, var(--acc)); }
+.pin-places small { color: var(--sug-mut, var(--mut)); font-weight: 500; }
+.pin-places-note { margin: 8px 0 0; font-size: 12.5px; color: var(--sug-mut, var(--mut)); }
