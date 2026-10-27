@@ -593,7 +593,7 @@ function goHome(role,session){
   var url=portalBase('car_renter')+'/forgot-password',fg=$('.day .forgot'),fp=$('.night .forgot');
   if(fg)fg.href=url;if(fp)fp.href=url;
 })();
-function signIn(form,em,pw,fail){
+function signIn(form,em,pw,want,fail){
   var btn=form.querySelector('.btn');
   if(btn.classList.contains('loading'))return;
   btn.classList.remove('done');btn.classList.add('loading');
@@ -603,6 +603,14 @@ function signIn(form,em,pw,fail){
   .then(function(x){
     if(!x.ok||!x.d||!x.d.access_token){btn.classList.remove('loading');fail((x.d&&x.d.message)||'Sign-in failed.');return}
     var role=x.d.user&&x.d.user.role;
+    /* One door, one role: the day side is the renter sign-in and the night
+       side is the owner sign-in, so credentials that belong to the other half
+       are refused here instead of quietly opening the other portal. */
+    if(role!==want){
+      btn.classList.remove('loading');
+      fail(want==='car_owner'?'These are renter details. Use the renter sign-in.':'These are owner details. Use the owner sign-in.');
+      return;
+    }
     /* A portal that is not this one keeps its localStorage clean: the session
        reaches it in window.name and it writes the keys itself. */
     if(targetFor(role)===hereFor()){
@@ -629,7 +637,7 @@ document.querySelectorAll('.card form').forEach(function(f){var em=f.querySelect
   f.addEventListener('submit',function(e){e.preventDefault();var ev=em.value.trim(),pv=pw.value,a=!ev?'Enter your email':(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(ev)?'That email doesn\u2019t look right':''),b=!pv?'Enter your password':(pv.length<6?'Password must be at least 6 characters':'');
     set(ef,m1,a);set(pf,m2,b);
     if(a||b){try{card.animate([{translate:'0'},{translate:'-9px'},{translate:'9px'},{translate:'-6px'},{translate:'6px'},{translate:'0'}],{duration:400})}catch(x){}(a?em:pw).focus();return}
-    signIn(f,em,pw,function(msg){set(pf,m2,msg);try{card.animate([{translate:'0'},{translate:'-9px'},{translate:'9px'},{translate:'-6px'},{translate:'6px'},{translate:'0'}],{duration:400})}catch(x){}})})});
+    signIn(f,em,pw,f.closest('.day')?'car_renter':'car_owner',function(msg){set(pf,m2,msg);try{card.animate([{translate:'0'},{translate:'-9px'},{translate:'9px'},{translate:'-6px'},{translate:'6px'},{translate:'0'}],{duration:400})}catch(x){}})})});
 requestAnimationFrame(frame);
 })();
 </script>
