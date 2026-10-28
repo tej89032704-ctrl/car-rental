@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, currentUser } from '../api.js';
-import CarArt from '../components/CarArt.jsx';
 import {
   CATEGORY_LABEL, carTitle, inr, paintFor, ripple, savedCars, toast, toggleSaved, uprightFor,
 } from '../components/ui.js';
@@ -129,8 +128,18 @@ export default function Search() {
           }}
           onPointerLeave={(e) => { e.currentTarget.style.transform = ''; }}
         >
-          <CarArt accent="#d98a2a" upright />
-          <i className="rd" aria-hidden="true" />
+          {/* A photograph of the real cars rather than the drawn body: the
+              showroom line-up is what a renter is actually choosing between.
+              BASE_URL carries the portal's path prefix in production. */}
+          <figure className="shot">
+            <img
+              src={`${import.meta.env.BASE_URL}hero-cars.jpg`}
+              alt="Cars lined up on the forecourt outside a Car-Ent showroom at golden hour"
+              width="800"
+              height="320"
+              fetchPriority="high"
+            />
+          </figure>
         </div>
       </div>
 
