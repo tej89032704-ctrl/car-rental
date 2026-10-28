@@ -145,23 +145,42 @@
   background:var(--ac);margin-right:9px;vertical-align:middle;
   animation:pulse 2.2s infinite;
 }
-.ce .stage{position:relative;aspect-ratio:2.5;display:grid;place-items:center;isolation:isolate;transition:transform .25s ease-out}
+.ce .stage{position:relative;aspect-ratio:1.6;display:grid;place-items:center;isolation:isolate;transition:transform .25s ease-out}
 .ce .stage::before{content:"";position:absolute;inset:-6% -4%;background:radial-gradient(closest-side,var(--sp),transparent 72%)}
 .ce .stage::after{
   content:"";position:absolute;inset:6% 5%;border-radius:44px;background:var(--glass);
   backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
   border:1px solid var(--gbr);box-shadow:var(--gsh);transform:rotate(-3deg);z-index:-1;
 }
-/* The hero carries a photograph of the real cars rather than the drawn body,
-   so the frame is a wide print rather than the silhouette's 1.6 ratio. The
-   tilted glass panel behind it stays, so the shot sits in the same spot the
-   illustration did. */
-.ce .stage .shot{
-  position:relative;z-index:1;margin:0;width:90%;border-radius:22px;overflow:hidden;
-  box-shadow:0 26px 44px -20px rgba(0,0,0,.6);
-  animation:drive 1.1s cubic-bezier(.2,.8,.2,1) backwards;
+.ce .stage svg{
+  position:relative;z-index:1;width:112%;max-width:none;
+  filter:drop-shadow(0 30px 30px rgba(0,0,0,.28));
+  animation:drive 1.3s cubic-bezier(.2,.8,.2,1) backwards,float 6s ease-in-out 1.3s infinite;
 }
-.ce .stage .shot img{display:block;width:100%;height:auto}
+.ce .stage .wh{animation:spin 1.4s linear infinite}
+.ce .stage .rd{
+  position:absolute;left:2%;right:2%;bottom:14%;height:3px;z-index:0;
+  background:repeating-linear-gradient(90deg,var(--gd) 0 28px,transparent 28px 60px);
+  opacity:.5;animation:road .45s linear infinite;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);
+}
+/* The car's identity, in the same tag the sign-in road puts over its car: the
+   body it is and what it burns, rather than a bare shape. */
+.ce .stage .tag{
+  position:absolute;left:50%;top:6%;z-index:2;transform:translateX(-50%);
+  white-space:nowrap;padding:6px 12px;border-radius:11px;text-align:center;
+  background:rgba(22,15,8,.86);color:#fff;font-size:12px;line-height:1.3;
+  box-shadow:0 6px 16px -6px rgba(0,0,0,.5);animation:up .6s .6s backwards;
+}
+.ce .stage .tag b{display:block;font-weight:600}
+.ce .stage .tag small{display:block;opacity:.65;font-size:10.5px}
+.ce .stage .fuel{display:flex;gap:4px;justify-content:center;margin-top:4px}
+.ce .stage .fuel i{
+  font-style:normal;font-size:9.5px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;padding:1px 6px;border-radius:99px;line-height:1.5;
+}
+.ce .stage .fuel .d{background:rgba(120,190,255,.16);color:#8cc8ff;box-shadow:inset 0 0 0 1px rgba(120,190,255,.5)}
 .ce .live{
   display:inline-flex;gap:10px;align-items:center;margin-top:22px;padding:8px 16px;
   border-radius:99px;background:var(--glass);border:1px solid var(--gbr);
@@ -614,9 +633,11 @@
 @keyframes pgin{from{opacity:0;transform:translateY(16px)}}
 @keyframes up{from{opacity:0;transform:translateY(28px) scale(.97)}}
 @keyframes drive{from{opacity:0;transform:translateX(-90px)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,106,27,.6)}100%{box-shadow:0 0 0 11px rgba(242,106,27,0)}}
 @keyframes pop{40%{transform:scale(1.35)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes road{to{background-position:-60px 0}}
 @keyframes rip{to{transform:scale(1);opacity:0}}
 @keyframes lv{0%{box-shadow:0 0 0 0 rgba(47,211,127,.7)}100%{box-shadow:0 0 0 10px rgba(47,211,127,0)}}
 @keyframes cf{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
@@ -636,6 +657,9 @@
   .ce .ce-book{grid-template-columns:1fr 1fr}
 }
 @media (max-width:700px){
+  /* The stage is shorter than it is wide here, so the tag's fixed height eats
+     the gap above the roof: lift it and trim it. */
+  .ce .stage .tag{top:0;font-size:11px;padding:4px 9px}
   .ce .top{flex-wrap:wrap;padding:12px 18px;gap:10px}
   .ce .tabs{order:3;flex-basis:100%;gap:20px}
   .ce .tabs.guest-tabs{display:none}
