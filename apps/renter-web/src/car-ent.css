@@ -698,11 +698,15 @@
 .ce .dp-btn[aria-expanded="true"] svg{opacity:1;color:var(--ac)}
 .ce .dp-btn:focus-visible{outline:2px solid var(--ac);outline-offset:6px}
 
+/* The calendar is glass, like the panel it opens over: a solid surface here
+   read as a flat grey OS menu stuck onto the card. The tint is the surface
+   colour at 72% so the numbers keep their contrast over whatever is behind. */
 .ce .dp-pop{
   position:fixed;z-index:90;width:316px;max-width:calc(100vw - 20px);
-  padding:14px 14px 8px;border-radius:20px;border:1px solid var(--ln);
-  background:var(--sf);color:var(--ink);
-  box-shadow:0 26px 60px rgba(18,15,12,.22),0 2px 6px rgba(18,15,12,.08);
+  padding:14px 14px 8px;border-radius:20px;border:1px solid var(--gbr);
+  background:color-mix(in srgb,var(--sf) 72%,transparent);color:var(--ink);
+  backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);
+  box-shadow:var(--gsh),inset 0 1px 0 rgba(255,255,255,.28);
   animation:dpin .16s ease-out;
 }
 @keyframes dpin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
@@ -774,10 +778,14 @@
 .ce .op-btn[aria-expanded="true"] .op-chev{opacity:1;transform:rotate(180deg)}
 .ce .op-btn:focus-visible{outline:2px solid var(--ac);outline-offset:6px}
 
+/* Same glass as the card and the calendar, so the three popovers read as one
+   material rather than three different menus. */
 .ce .op-pop{
   position:fixed;z-index:90;padding:6px;max-height:320px;overflow:auto;
-  border-radius:16px;border:1px solid var(--ln);background:var(--sf);color:var(--ink);
-  box-shadow:0 26px 60px rgba(18,15,12,.22),0 2px 6px rgba(18,15,12,.08);
+  border-radius:16px;border:1px solid var(--gbr);color:var(--ink);
+  background:color-mix(in srgb,var(--sf) 72%,transparent);
+  backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);
+  box-shadow:var(--gsh),inset 0 1px 0 rgba(255,255,255,.28);
   animation:opop .14s ease-out;
 }
 @keyframes opop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
