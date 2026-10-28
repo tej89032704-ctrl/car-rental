@@ -3,7 +3,7 @@ import * as path from 'path';
 import { Injectable } from '@nestjs/common';
 import { uuid } from './database';
 
-const UPLOAD_DIR = path.resolve(__dirname, '../../../uploads');
+export const UPLOAD_DIR = path.resolve(__dirname, '../../../uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 @Injectable()
