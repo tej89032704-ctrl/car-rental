@@ -188,8 +188,11 @@
    these rules in one portal's stylesheet gives the other two a Leaflet map with
    no height, which initialises as an invisible zero-height strip. */
 .location-picker { display: flex; flex-direction: column; gap: 8px; }
-.location-search { display: flex; gap: 8px; }
-.location-search input { flex: 1; }
+.location-search { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.location-search input { flex: 1 1 200px; min-width: 0; }
+/* The device button sits beside Search without growing to fill the row, and
+   wraps under it on a narrow card rather than squeezing the input. */
+.location-search .locate { flex: 0 0 auto; white-space: nowrap; }
 .location-picker-note { margin: 0; font-size: 12px; color: var(--muted); }
 .location-results {
   list-style: none;

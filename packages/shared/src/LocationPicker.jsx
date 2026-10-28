@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
+import { useEffect, useRef, useState } from 'react';
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { api } from './api.js';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -65,12 +65,88 @@ function ClickToPlace({ onPick }) {
   return null;
 }
 
+/**
+ * Moves the view when the pin's coordinates change.
+ *
+ * MapContainer reads `center` once, at creation, so a pin that arrives later --
+ * the saved one loading in after /auth/me answers, or a city chosen from the
+ * search -- is rendered on a map still looking at India, with the marker
+ * somewhere off screen. That is the "pin point not showing" symptom: the
+ * marker exists, the view never travelled to it.
+ *
+ * A click is the exception. The point is already under the cursor, so the
+ * zoom is left alone instead of yanking a street-level view back to city level.
+ */
+function Recenter({ target, zoom }) {
+  const map = useMap();
+  const lat = target ? target[0] : null;
+  const lng = target ? target[1] : null;
+  // `zoom` is deliberately read at fire time rather than depended on: it only
+  // ever changes alongside the coordinates.
+  useEffect(() => {
+    if (lat == null || lng == null) return;
+    const here = map.getCenter();
+    if (Math.abs(here.lat - lat) < 1e-6 && Math.abs(here.lng - lng) < 1e-6) return;
+    const movedFar = Math.abs(here.lat - lat) > 0.05 || Math.abs(here.lng - lng) > 0.05;
+    map.setView([lat, lng], movedFar ? zoom : Math.max(map.getZoom(), 13), { animate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, lat, lng]);
+  return null;
+}
+
+/**
+ * One device fix, mounted only while one is in flight, so the browser's
+ * permission prompt opens on the click rather than on page load. Found, denied
+ * and unsupported all arrive here as a Leaflet event and leave through one
+ * callback -- the caller turns a null into a plain-language note instead of a
+ * button that silently does nothing.
+ */
+function Locate({ onFix }) {
+  const map = useMap();
+  // Held in a ref so a re-render of the picker does not restart the request.
+  const fix = useRef(onFix);
+  useEffect(() => { fix.current = onFix; });
+
+  useEffect(() => {
+    try {
+      map.locate({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+        watch: false,
+        setView: false,
+      });
+    } catch {
+      fix.current(null);
+    }
+    return () => map.stopLocate();
+  }, [map]);
+
+  useMapEvents({
+    locationfound(e) {
+      map.stopLocate();
+      fix.current({ latitude: e.latlng.lat, longitude: e.latlng.lng });
+    },
+    locationerror() {
+      map.stopLocate();
+      fix.current(null);
+    },
+  });
+
+  return null;
+}
+
 export default function LocationPicker({ value, onChange, city, className = '' }) {
   // value: { latitude, longitude } | null
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  // Device fix state. `locating` mounts <Locate/>, which is what actually asks
+  // the browser -- the prompt belongs to the button press, not to the page.
+  const [locating, setLocating] = useState(false);
+  const [locNote, setLocNote] = useState('');
+  const [pinZoom, setPinZoom] = useState(13);
 
   async function search(e) {
     e.preventDefault();
@@ -106,9 +182,33 @@ export default function LocationPicker({ value, onChange, city, className = '' }
   }
 
   function pick(hit) {
+    setPinZoom(13);
     onChange({ latitude: hit.latitude, longitude: hit.longitude, source: 'geocoded' });
     setResults([]);
     setQuery('');
+  }
+
+  function useMyLocation() {
+    setLocNote('');
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setLocNote('This browser cannot share a location. Drop a pin on the map instead.');
+      return;
+    }
+    setResults([]);
+    setLocating(true);
+  }
+
+  // The device answers into the same slot as a dropped pin, so the address
+  // boxes fill from it exactly as they would from a click -- and it is stored
+  // as a deliberate point, the same as one the user placed by hand.
+  function applyFix(next) {
+    setLocating(false);
+    if (!next) {
+      setLocNote('Location unavailable. Allow access for this site, or drop a pin on the map.');
+      return;
+    }
+    setPinZoom(16);
+    onChange({ ...next, source: 'manual' });
   }
 
   const marker = value ? [value.latitude, value.longitude] : null;
@@ -139,9 +239,25 @@ export default function LocationPicker({ value, onChange, city, className = '' }
         <button type="button" className="btn btn-secondary" onClick={search} disabled={busy}>
           {busy ? 'Searching…' : 'Search'}
         </button>
+        <button
+          type="button"
+          className="btn btn-secondary sec locate"
+          onClick={useMyLocation}
+          disabled={locating}
+          aria-label="Use my current location"
+          title="Use my current location"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.4" strokeLinecap="round" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="7" />
+            <path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" />
+          </svg>
+          {locating ? 'Locating…' : 'Use my location'}
+        </button>
       </div>
 
       {note && <p className="location-picker-note">{note}</p>}
+      {locNote && <p className="location-picker-note" role="status">{locNote}</p>}
 
       {results.length > 0 && (
         <ul className="location-results">
@@ -161,7 +277,14 @@ export default function LocationPicker({ value, onChange, city, className = '' }
           style={{ height: '100%', width: '100%' }}
         >
           <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={MAX_PICK_ZOOM} />
-          <ClickToPlace onPick={(latlng) => onChange({ ...latlng, source: 'manual' })} />
+          <ClickToPlace
+            onPick={(latlng) => {
+              setPinZoom(13);
+              onChange({ ...latlng, source: 'manual' });
+            }}
+          />
+          <Recenter target={marker} zoom={pinZoom} />
+          {locating && <Locate onFix={applyFix} />}
           {marker && <Marker position={marker} icon={pinIcon} />}
         </MapContainer>
       </div>
