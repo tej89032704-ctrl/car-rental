@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, currentUser } from '../api.js';
 import CarArt from '../components/CarArt.jsx';
+import CityPicker from '../components/CityPicker.jsx';
 import {
   CATEGORY_LABEL, carTitle, inr, paintFor, ripple, savedCars, toast, toggleSaved, uprightFor,
 } from '../components/ui.js';
@@ -30,6 +31,7 @@ export default function Search() {
   const [sort, setSort] = useState('rec');
   const [query, setQuery] = useState('');
   const [place, setPlace] = useState(currentUser?.city || 'Bengaluru');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [dates, setDates] = useState(defaults);
   const [saved, setSaved] = useState(savedCars);
   const carsRef = useRef(null);
@@ -144,8 +146,24 @@ export default function Search() {
       <div className="sw">
         <form className="sb" onSubmit={submit}>
           <div className="f">
-            <label htmlFor="ce-loc">Pick-up</label>
-            <input id="ce-loc" value={place} onChange={(e) => setPlace(e.target.value)} />
+            <label>Pick-up</label>
+            {/* A display field, not a text box: the city comes from the
+                picker's search / detect / shortcuts, and a half-typed city
+                here would silently match nothing. */}
+            <button
+              type="button"
+              className="cp-trigger"
+              onClick={() => setPickerOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={pickerOpen}
+            >
+              <span>{place || 'Choose a city'}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden="true" focusable="false">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
           </div>
           <div className="f">
             <label htmlFor="ce-from">From</label>
@@ -161,6 +179,17 @@ export default function Search() {
           </div>
           <button className="go" type="submit">Search</button>
         </form>
+
+        <CityPicker
+          open={pickerOpen}
+          value={place}
+          onClose={() => setPickerOpen(false)}
+          onPick={(city) => {
+            setPlace(city);
+            setPickerOpen(false);
+            toast(`Pick-up city set to ${city}`);
+          }}
+        />
       </div>
 
       <div className="fb">

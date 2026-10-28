@@ -807,3 +807,113 @@
 .ce .op-item.on .op-sym{color:var(--ac)}
 .ce .op-item .op-tick{flex:none;color:var(--ac)}
 .ce .op-item:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+
+/* ── Pick-up city picker (CityPicker.jsx) ─────────────────────────── */
+.ce .cp-trigger{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+  border:0;background:none;padding:2px 0;font:inherit;font-weight:600;color:var(--ink);
+  cursor:pointer;text-align:left;border-radius:6px;
+}
+.ce .cp-trigger span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ce .cp-trigger svg{flex:none;opacity:.5;transition:opacity .2s,transform .2s}
+.ce .cp-trigger:hover svg{opacity:.9}
+.ce .cp-trigger[aria-expanded=true] svg{opacity:1;color:var(--ac);transform:rotate(180deg)}
+.ce .cp-trigger:focus-visible{outline:2px solid var(--ac);outline-offset:6px}
+
+.ce .cp-scrim{
+  position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;
+  background:rgba(8,6,4,.55);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  animation:cpin .16s ease-out;
+}
+.ce .cp{
+  width:min(720px,100%);max-height:min(86vh,780px);display:flex;flex-direction:column;
+  gap:14px;padding:24px;border-radius:26px;overflow:hidden;
+  background:color-mix(in srgb,var(--sf) 84%,transparent);
+  border:1px solid var(--gbr);
+  backdrop-filter:blur(28px) saturate(170%);-webkit-backdrop-filter:blur(28px) saturate(170%);
+  box-shadow:var(--gsh),inset 0 1px rgba(255,255,255,.35);
+  animation:cpin .18s ease-out;
+}
+@keyframes cpin{from{opacity:0;transform:translateY(10px) scale(.985)}}
+.ce .cp-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.ce .cp-hd h2{font-family:Fraunces,serif;font-weight:500;font-size:26px;margin:0}
+.ce .cp-hd p{margin:4px 0 0;color:var(--mu);font-size:13px}
+.ce .cp-x{
+  width:34px;height:34px;flex:none;border-radius:50%;border:1px solid var(--ln);
+  background:var(--sp);color:var(--mu);cursor:pointer;font-size:15px;line-height:1;
+  display:grid;place-items:center;transition:border-color .18s,color .18s;
+}
+.ce .cp-x:hover{border-color:var(--ac);color:var(--ink)}
+.ce .cp-x:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.ce .cp-search{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--ln);
+  border-radius:16px;background:var(--sp);transition:border-color .18s,box-shadow .18s;
+}
+.ce .cp-search:focus-within{border-color:var(--ac);box-shadow:0 0 0 4px rgba(242,106,27,.16)}
+.ce .cp-search svg{flex:none;color:var(--mu)}
+.ce .cp-search input{
+  flex:1;min-width:0;border:0;background:none;outline:none;
+  font:inherit;font-weight:600;color:var(--ink);
+}
+.ce .cp-search input::placeholder{color:var(--mu);font-weight:500}
+.ce .cp-detect{
+  display:inline-flex;align-items:center;gap:9px;align-self:flex-start;
+  padding:10px 16px;border-radius:99px;border:1px solid var(--gbr);background:var(--glass);
+  color:var(--ink);font:inherit;font-weight:700;font-size:13px;cursor:pointer;
+  transition:border-color .18s,transform .18s,background .18s;
+}
+.ce .cp-detect:hover{border-color:var(--ac);transform:translateY(-1px)}
+.ce .cp-detect:disabled{opacity:.6;cursor:progress;transform:none}
+.ce .cp-detect:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.ce .cp-note{margin:0;font-size:12.5px;color:var(--gd);line-height:1.5}
+.ce .cp-sec{flex:1;min-height:0;overflow-y:auto;padding-right:6px}
+/* One scroller for the whole panel, the way the reference picker behaves: the
+   shortcuts scroll away with the list instead of pinning above a second,
+   nested scroll area. */
+.ce .cp-sec::-webkit-scrollbar{width:8px}
+.ce .cp-sec::-webkit-scrollbar-thumb{background:var(--ln);border-radius:99px}
+.ce .cp-sec::-webkit-scrollbar-thumb:hover{background:var(--mu)}
+.ce .cp-sec{scrollbar-width:thin;scrollbar-color:var(--ln) transparent}
+.ce .cp-sec h3{
+  margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mu);
+}
+/* 124px keeps the longest shortcut (Ahmedabad) on one line beside its glyph. */
+.ce .cp-pop{display:grid;grid-template-columns:repeat(auto-fill,minmax(124px,1fr));gap:10px}
+.ce .cp-city{
+  display:flex;align-items:center;gap:8px;padding:11px 10px;border:1px solid var(--ln);
+  border-radius:16px;background:var(--sp);color:var(--ink);font:inherit;font-weight:600;
+  font-size:13.5px;text-align:left;cursor:pointer;min-width:0;
+  transition:border-color .18s,background .18s,transform .18s;
+}
+.ce .cp-city span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ce .cp-city svg{flex:none;opacity:.75}
+.ce .cp-city:hover{border-color:var(--ac);transform:translateY(-2px)}
+.ce .cp-city.on{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent);color:var(--ac)}
+.ce .cp-city:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.ce .cp-typed{
+  margin-top:14px;padding:11px 14px;width:100%;border:1px dashed var(--ln);border-radius:14px;
+  background:none;color:var(--ac);font:inherit;font-weight:700;font-size:13.5px;
+  text-align:left;cursor:pointer;transition:border-color .18s,background .18s;
+}
+.ce .cp-typed:hover{border-color:var(--ac);background:color-mix(in srgb,var(--ac) 8%,transparent)}
+.ce .cp-all{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:4px;
+}
+.ce .cp-all button{
+  padding:8px 10px;border:0;border-radius:10px;background:none;color:var(--ink);
+  font:inherit;font-size:13.5px;font-weight:600;text-align:left;cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  transition:background .15s,color .15s;
+}
+.ce .cp-all button:hover{background:var(--sp);color:var(--ac)}
+.ce .cp-all button.on{color:var(--ac);background:color-mix(in srgb,var(--ac) 12%,transparent)}
+.ce .cp-all button:focus-visible{outline:2px solid var(--ac);outline-offset:-2px}
+.ce .cp-empty{margin:14px 0 0;color:var(--mu);font-size:13.5px;line-height:1.5}
+@media (max-width:700px){
+  .ce .cp-scrim{padding:0;align-items:end}
+  .ce .cp{width:100%;max-height:88vh;border-radius:26px 26px 0 0;padding:20px 18px 24px}
+  .ce .cp-pop{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+  .ce .cp-all{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
