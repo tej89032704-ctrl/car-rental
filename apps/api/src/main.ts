@@ -6,6 +6,7 @@ import { safeDbError } from './common/db/database';
 import { dbReadiness, setDbPhase } from './common/db/readiness';
 import { ensureSuperAdmin } from './ensure-admin';
 import { ensureDemoFleet } from './seed-fleet';
+import { ensureDemoHistory } from './seed-history';
 import { AppModule } from './app.module';
 import { servePortals } from './serve-portals';
 import { DbUnavailableFilter } from './common/filters/db-unavailable.filter';
@@ -58,6 +59,13 @@ async function initializeDatabase(isProd: boolean): Promise<boolean> {
           await ensureDemoFleet();
         } catch (e) {
           console.warn('[boot] demo fleet seed skipped:', safeDbError(e));
+        }
+        // Trips and reviews give that fleet a history; same rules, same safety:
+        // idempotent, and a failure here must not block the boot either.
+        try {
+          await ensureDemoHistory();
+        } catch (e) {
+          console.warn('[boot] demo history seed skipped:', safeDbError(e));
         }
       }
       dbReadiness.migrated = true;
