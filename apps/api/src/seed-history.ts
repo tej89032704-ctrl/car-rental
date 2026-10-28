@@ -15,19 +15,24 @@ import { getDb, nowUtc, uuid } from './common/db/database';
  *
  *  - The demo renters are separate accounts (`*.renter@carent.local`), so the
  *    history belongs to them and not to whoever signs up later.
- *  - The one exception is the *first* time this ever runs on a database whose
- *    bookings table is empty: the oldest existing renter account also gets two
- *    past trips, because otherwise the person checking the portal signs in and
- *    sees an empty history. Once any booking exists this never fires again, so
- *    a new signup can never be handed trips it did not take.
+ *  - The exception is an account that predates this seed: any renter created
+ *    before the demo renters existed, and with no bookings of its own, also gets
+ *    two past trips — otherwise the person checking the portal signs in and sees
+ *    an empty history. The cutoff is the demo renters' own creation time, which
+ *    is fixed once they exist, so a signup that happens later is never handed
+ *    trips it did not take and re-running adds nothing new.
+ *  - A renter who already has a booking is skipped entirely: real history is
+ *    never mixed with this.
  *  - No money is invented. The bookings carry their own totals and the 20%
  *    online share, but there is no payment ledger behind them: no transactions,
  *    no wallet credit, no deposit hold. Security deposit is therefore 0, which
  *    also keeps `sweepSettlements` from "refunding" a deposit that was never
  *    collected on the next sweep.
  *
- * Idempotent by (renter, car, start date): a row that already exists is left
- * alone, so re-running tops up rather than duplicating.
+ * Idempotent by (renter, car): a trip that already exists is left alone, so
+ * re-running tops up rather than duplicating. The start date deliberately is
+ * not part of the key — the dates are relative to today, so keying on them
+ * would add another copy of every trip on each new day the seed runs.
  */
 
 const DEMO_PASSWORD = process.env.DEMO_OWNER_PASSWORD || 'Demo@12345';
@@ -189,8 +194,8 @@ async function insertTrip(
   const end = day(-trip.daysAgo + trip.nights);
 
   const existing = await bdb
-    .prepare(`SELECT id FROM bookings WHERE renter_id = ? AND car_id = ? AND start_date = ?`)
-    .get(renterId, car.id, start) as any;
+    .prepare(`SELECT id FROM bookings WHERE renter_id = ? AND car_id = ? AND is_deleted = 0`)
+    .get(renterId, car.id) as any;
   if (existing) return false;
 
   const id = uuid();
@@ -275,11 +280,6 @@ export async function ensureDemoHistory(): Promise<number> {
     cars.set(r.plate_number, { id: r.id, owner_id: r.owner_id, daily_rate_paise: Number(r.daily_rate_paise) || 0 });
   }
 
-  const existing = await bdb
-    .prepare(`SELECT COUNT(*) AS c FROM bookings WHERE is_deleted = 0`)
-    .get() as any;
-  const firstRun = Number(existing?.c || 0) === 0;
-
   const renterIds = await ensureRenters(auth);
   let created = 0;
 
@@ -290,23 +290,36 @@ export async function ensureDemoHistory(): Promise<number> {
     if (await insertTrip(bdb, trip, car, renterId)) created += 1;
   }
 
-  // See the file header: only on a database that had no bookings at all, so a
-  // future signup is never handed trips it did not take.
-  if (firstRun) {
-    const oldest = await auth
+  // Any renter who was here before the demo renters, and who has no bookings of
+  // their own, gets the two extra trips. The cutoff makes this stable: demo
+  // renters were created first, so a later signup can never qualify.
+  const since = await auth
+    .prepare(
+      `SELECT MIN(created_at) AS at FROM users WHERE email IN (${RENTERS.map(() => '?').join(',')})`,
+    )
+    .get(...RENTERS.map((r) => r.email.toLowerCase())) as any;
+  if (since?.at) {
+    const candidates = await auth
       .prepare(
-        `SELECT id FROM users
+        `SELECT id, name FROM users
           WHERE role = 'car_renter' AND status = 'active' AND is_deleted = 0
-          ORDER BY created_at ASC LIMIT 1`,
+            AND created_at < ? AND email NOT IN (${RENTERS.map(() => '?').join(',')})
+          ORDER BY created_at ASC LIMIT 5`,
       )
-      .get() as any;
-    if (oldest && !renterIds.includes(oldest.id)) {
+      .all(since.at, ...RENTERS.map((r) => r.email.toLowerCase())) as any[];
+
+    for (const candidate of candidates) {
+      const own = await bdb
+        .prepare(`SELECT COUNT(*) AS c FROM bookings WHERE renter_id = ? AND is_deleted = 0`)
+        .get(candidate.id) as any;
+      if (Number(own?.c || 0) > 0) continue;
+
       for (const trip of FIRST_RUN_TRIPS) {
         const car = cars.get(trip.plate);
         if (!car) continue;
-        if (await insertTrip(bdb, trip, car, oldest.id)) created += 1;
+        if (await insertTrip(bdb, trip, car, candidate.id)) created += 1;
       }
-      console.log(`[seed] first-run history added to an existing renter account (${FIRST_RUN_TRIPS.length} trips)`);
+      console.log(`[seed] history added to an existing renter account: ${candidate.name}`);
     }
   }
 
