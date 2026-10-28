@@ -5,6 +5,7 @@ import { runMigrations } from './common/db/database';
 import { safeDbError } from './common/db/database';
 import { dbReadiness, setDbPhase } from './common/db/readiness';
 import { ensureSuperAdmin } from './ensure-admin';
+import { ensureDemoFleet } from './seed-fleet';
 import { AppModule } from './app.module';
 import { servePortals } from './serve-portals';
 import { DbUnavailableFilter } from './common/filters/db-unavailable.filter';
@@ -48,7 +49,17 @@ async function initializeDatabase(isProd: boolean): Promise<boolean> {
     setDbPhase('migrating');
     try {
       await runMigrations();
-      if (isProd) await ensureSuperAdmin();
+      if (isProd) {
+        await ensureSuperAdmin();
+        // A freshly migrated database has a catalogue nobody can browse yet.
+        // This only ever fills an empty fleet, and a failure here must not
+        // hold the boot loop hostage, so it is reported and moved past.
+        try {
+          await ensureDemoFleet();
+        } catch (e) {
+          console.warn('[boot] demo fleet seed skipped:', safeDbError(e));
+        }
+      }
       dbReadiness.migrated = true;
       setDbPhase('ready');
       console.log(`[boot] database ready (attempt ${dbReadiness.attempts})`);

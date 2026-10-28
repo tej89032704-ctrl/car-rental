@@ -85,6 +85,7 @@ All money stored as integer paise; all timestamps UTC ISO strings; soft delete e
 - Password reset links land in `email_logs`.
 - Uploads go to `apps/api/uploads`. `/uploads/*` checks database ownership: active car photos are public; KYC and car documents require authorized bearer authentication. Shared document viewers fetch private blobs without tokens in URLs.
 - Settlement sweep runs every 10 min in the API process (deposit refunds + owner earnings after the dispute window), plus lazily on relevant reads.
+- An empty fleet is filled with ten Bengaluru demo cars across three hosts on the first production boot, and by `npm run seed:fleet` anywhere else — otherwise a fresh database is a working site with nothing to browse. It only ever writes into an empty `cars` table; one existing row and it writes nothing. `SEED_DEMO_FLEET=0` switches it off. The hosts are `ravi.host@carent.local`, `ananya.host@carent.local` and `zeeshan.host@carent.local`, password `Demo@12345` (or `DEMO_OWNER_PASSWORD`).
 
 ## Live car verification (RC / VAHAN)
 
