@@ -24,6 +24,13 @@ import { renderDemoCarPhotos } from './demo-car-photos';
  * Set SEED_DEMO_FLEET=0 to switch it off entirely, or run it by hand with
  * `npm run seed:fleet`.
  *
+ * The demo cars also step aside once the site has real listings: when any car
+ * that is not one of ours is live, the demo ones are set to `inactive`, which
+ * hides them from browse and from the car page without deleting the rows, their
+ * photos or their reviews. HIDE_DEMO_FLEET=1 hides them immediately regardless,
+ * and HIDE_DEMO_FLEET=0 turns the automatic hiding off, leaving demo and real
+ * listings side by side.
+ *
  * Photos are generated as SVG (see demo-car-photos.ts) and written through the
  * same StorageService a real owner's upload goes through, because `uploads/` is
  * gitignored and the runtime image carries only `dist` — a bundled JPEG would
@@ -83,6 +90,75 @@ const CARS: DemoCar[] = [
 
 /** How many photos each demo car should end up with. */
 const PHOTOS_PER_CAR = 4;
+
+/** The plates this file owns — the only rows visibility management may touch. */
+const DEMO_PLATES = CARS.map((c) => c.plate);
+
+/**
+ * What to do about visible demo cars:
+ *
+ *  - `auto` (default) hides them only once a real listing is live;
+ *  - `always` (HIDE_DEMO_FLEET=1) hides them now;
+ *  - `never` (HIDE_DEMO_FLEET=0) leaves them alone even when real cars exist.
+ *
+ * Unrecognised values fall back to `auto`, so a typo cannot silence the demo
+ * fleet on a database that has nothing else to show.
+ */
+function hideMode(): 'auto' | 'always' | 'never' {
+  const raw = String(process.env.HIDE_DEMO_FLEET || '').trim().toLowerCase();
+  if (/^(1|true|yes|on)$/.test(raw)) return 'always';
+  if (/^(0|false|no|off)$/.test(raw)) return 'never';
+  return 'auto';
+}
+
+/** Inactivates every demo car that is still live. Returns how many it hid. */
+async function hideDemoCars(reason: string): Promise<number> {
+  const fleet = getDb('fleet');
+  const live = await fleet
+    .prepare(
+      `SELECT id FROM cars WHERE status = 'active' AND is_deleted = 0
+        AND plate_number IN (${DEMO_PLATES.map(() => '?').join(',')})`,
+    )
+    .all(...DEMO_PLATES) as any[];
+  if (!live.length) return 0;
+
+  const now = nowUtc();
+  for (const car of live) {
+    await fleet
+      .prepare(`UPDATE cars SET status = 'inactive', updated_at = ? WHERE id = ?`)
+      .run(now, car.id);
+  }
+  console.log(`[seed] demo fleet hidden: ${live.length} car(s) set to inactive — ${reason}`);
+  return live.length;
+}
+
+/**
+ * Takes the demo fleet out of the catalogue once it has done its job.
+ *
+ * `inactive` rather than a delete: every foreign key stays intact (photos,
+ * bookings, reviews), nothing is destroyed, and the rows can be brought back by
+ * flipping the listing back to active. Browse and the car page both filter on
+ * active, so the effect for a renter is that the demo cars simply disappear.
+ *
+ * Only licences with our own plates are ever touched, so a real listing can
+ * never be hidden by mistake. Runs on every boot, and is a no-op once they are
+ * already inactive.
+ */
+export async function enforceDemoFleetVisibility(): Promise<number> {
+  const mode = hideMode();
+  if (mode === 'never') return 0;
+  if (mode === 'always') return await hideDemoCars('HIDE_DEMO_FLEET is set');
+
+  const real = await getDb('fleet')
+    .prepare(
+      `SELECT COUNT(*) AS c FROM cars WHERE status = 'active' AND is_deleted = 0
+        AND plate_number NOT IN (${DEMO_PLATES.map(() => '?').join(',')})`,
+    )
+    .get(...DEMO_PLATES) as any;
+  const realCount = Number(real?.c || 0);
+  if (!realCount) return 0;
+  return await hideDemoCars(`${realCount} real listing(s) are live`);
+}
 
 /**
  * Writes generated photos for the demo cars that do not already have usable
@@ -163,6 +239,11 @@ async function ensureDemoPhotos(): Promise<number> {
  * case on every boot after the first.
  */
 export async function ensureDemoFleet(): Promise<number> {
+  // Visibility first, and before the seeding switch: a database that already
+  // has demo cars should lose them once real ones are live even if seeding
+  // itself has been switched off.
+  await enforceDemoFleetVisibility();
+
   if (/^(0|false|no|off)$/i.test(String(process.env.SEED_DEMO_FLEET || '').trim())) {
     console.log('[seed] demo fleet disabled by SEED_DEMO_FLEET');
     return 0;
@@ -254,5 +335,13 @@ export async function ensureDemoFleet(): Promise<number> {
     `[seed] demo fleet created: ${created} cars in ${CITY} across ${HOSTS.length} hosts`,
   );
   console.log(`[seed] host login: ${HOSTS[0].email} / ${DEMO_PASSWORD}`);
+
+  // The visibility pass at the top ran before these rows existed, so an
+  // explicit HIDE_DEMO_FLEET=1 would otherwise seed a brand-new database with
+  // a perfectly visible demo fleet. Hide what was just created; the rows stay
+  // for testing, they are simply not in the catalogue.
+  if (hideMode() === 'always') {
+    await hideDemoCars('HIDE_DEMO_FLEET is set');
+  }
   return created;
 }
