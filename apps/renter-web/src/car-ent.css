@@ -299,6 +299,13 @@
 }
 .ce .pic svg{width:86%;filter:drop-shadow(0 16px 14px rgba(0,0,0,.25));transition:transform .6s cubic-bezier(.2,.8,.2,1)}
 .ce .card:hover .pic svg{transform:translateX(16px) scale(1.07)}
+/* A car with a real cover photo: the image fills the band, and the make label
+   switches to white with a soft shadow so it survives a bright photo. */
+.ce .pic.shot{height:212px;display:block;overflow:hidden;background:#0b0e13}
+.ce .pic.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.ce .card:hover .pic.shot img{transform:scale(1.05)}
+.ce .pic.shot .cl{color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.7)}
 .ce .cl{
   position:absolute;left:20px;top:18px;font-size:12px;font-weight:700;color:var(--gd);
   letter-spacing:.06em;text-transform:uppercase;
@@ -365,6 +372,8 @@
 .ce .tk .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ce .tk:hover .pic svg{transform:translateX(10px) scale(1.05)}
 .ce .tk .in{padding:34px;border-left:1px dashed var(--ln)}
+/* The gallery is the ticket's left half when the car has photos. */
+.ce .tk .car-gallery{padding:24px;align-self:center}
 .ce .in h2{font-size:34px}
 .ce .in .kv{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0}
 .ce .kv small{display:block;color:var(--mu);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}

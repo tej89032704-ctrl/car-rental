@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, currentUser } from '../api.js';
 import CarArt from '../components/CarArt.jsx';
+import CarGallery from '../../../../packages/shared/src/CarGallery.jsx';
 import { CATEGORY_LABEL, carTitle, inr, paintFor, ripple, toast, uprightFor } from '../components/ui.js';
 
 const local = (iso) => {
@@ -30,9 +31,6 @@ export default function CarDetail() {
   const [msg, setMsg] = useState('');
   const [form, setForm] = useState(() => defaults(params));
   const [busy, setBusy] = useState(false);
-  /* A rejected or placeholder upload (some seeds carry a 1px file) would be
-     a flat colour across the whole ticket, so fall back to the artwork. */
-  const [photoOk, setPhotoOk] = useState(true);
 
   useEffect(() => {
     api(`/cars/${id}`).then(setCar).catch((e) => setErr(e.message));
@@ -67,7 +65,7 @@ export default function CarDetail() {
   }
 
   const price = car.pricing || {};
-  const photo = car.photos?.[0]?.file_url;
+  const photos = car.photos || [];
   const verified = car.verification_status === 'verified';
   const category = String(car.category || '').toLowerCase();
   const canBook = currentUser && currentUser.kyc_status === 'approved';
@@ -94,18 +92,11 @@ export default function CarDetail() {
       </div>
 
       <div className="panel tk">
-        <div className="pic">
-          {photo && photoOk
-            ? (
-              <img
-                src={photo}
-                alt={carTitle(car)}
-                onError={() => setPhotoOk(false)}
-                onLoad={(e) => { if (e.currentTarget.naturalWidth < 64) setPhotoOk(false); }}
-              />
-            )
-            : <CarArt accent={paintFor(car)} upright={uprightFor(car)} />}
-        </div>
+        {/* Every photo the owner uploaded, not just the cover: the gallery
+            collapses duplicates and keeps a no-photo car on the artwork. */}
+        {photos.length
+          ? <CarGallery photos={photos} make={car.make} model={car.model} />
+          : <div className="pic"><CarArt accent={paintFor(car)} upright={uprightFor(car)} /></div>}
         <div className="in">
           <span className="stt">{verified ? 'RC verified' : 'Owner-approved'}</span>
           <h2 style={{ marginTop: 12 }}>{car.make} {car.model}</h2>

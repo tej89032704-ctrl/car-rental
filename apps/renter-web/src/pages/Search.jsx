@@ -21,6 +21,32 @@ function defaults() {
   return { from: localInput(from), until: localInput(new Date(from.getTime() + 172800000)) };
 }
 
+/**
+ * The card's top band.
+ *
+ * A car with a cover photo shows it; a car without one falls back to the
+ * artwork the design was built around. The photo that will not load is the case
+ * worth handling: an upload can outlive its bytes (a redeploy empties the
+ * container's disk), and a broken tile in a grid of ten is far worse than the
+ * illustration it replaced — so an error drops this card back to the artwork
+ * rather than leaving the hole.
+ *
+ * `children` are the badges that sit over the car (make label, save heart), and
+ * they are rendered after the image so they stay above it.
+ */
+function CardMedia({ car, children }) {
+  const [failed, setFailed] = useState(false);
+  const photo = !failed && car.cover_photo;
+  return (
+    <div className={photo ? 'pic shot' : 'pic'}>
+      {photo
+        ? <img src={photo} alt={carTitle(car)} loading="lazy" onError={() => setFailed(true)} />
+        : <CarArt accent={paintFor(car)} upright={uprightFor(car)} />}
+      {children}
+    </div>
+  );
+}
+
 export default function Search() {
   const nav = useNavigate();
   const [cars, setCars] = useState([]);
@@ -230,7 +256,7 @@ export default function Search() {
           const rating = Number(car.avg_rating || 0);
           return (
             <article className="card" key={car.id} style={{ '--i': i }}>
-              <div className="pic">
+              <CardMedia car={car}>
                 <span className="cl">{car.make}</span>
                 <button
                   type="button"
@@ -241,8 +267,7 @@ export default function Search() {
                 >
                   ♥
                 </button>
-                <CarArt accent={paintFor(car)} upright={uprightFor(car)} />
-              </div>
+              </CardMedia>
               <div className="bd">
                 <Link to={`/cars/${car.id}`}><h3>{carTitle(car)}</h3></Link>
                 <div className="sc">
