@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { getDb, nowUtc, uuid } from '../../common/db/database';
 import { writeAudit } from '../../common/audit/audit';
 import { StorageService } from '../../common/db/storage.service';
+import { enforceDemoFleetVisibility } from '../../seed-fleet';
 
 const CORE_FIELDS = ['plate_number', 'category'];
 
@@ -213,6 +214,16 @@ export class FleetService {
     });
     await this.syncCarCache();
     const after = await this.getOwnedCar(carId, ownerId);
+    if (paused === 'active' && !coreChanged) {
+      // Resuming a listing puts a real car back on the browse page, so the demo
+      // fleet has to step aside now rather than at the next boot. The check
+      // only ever touches its own plates and is a no-op when this car is one.
+      try {
+        await enforceDemoFleetVisibility();
+      } catch {
+        /* reported by the seed itself */
+      }
+    }
     if (paused && !coreChanged) {
       return { car: after, note: paused === 'inactive' ? 'Listing paused' : 'Listing resumed' };
     }

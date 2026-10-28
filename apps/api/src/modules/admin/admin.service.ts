@@ -7,6 +7,7 @@ import { FleetService } from '../fleet/fleet.service';
 import { CarVerificationService } from '../fleet/car-verification.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuthService } from '../auth/auth.service';
+import { enforceDemoFleetVisibility } from '../../seed-fleet';
 
 @Injectable()
 export class AdminService {
@@ -102,6 +103,17 @@ export class AdminService {
     await this.notifier.notify(car.owner_id, 'car',
       decision === 'approve' ? 'Car approved!' : `Car rejected`,
       decision === 'approve' ? `${car.make} ${car.model} is now live.` : `Reason: ${reason}`, adminId);
+
+    // Approval is the moment a real listing goes live, which is exactly when
+    // the demo fleet is meant to step aside; waiting for the next boot would
+    // leave it on the browse page for however long the process stays up.
+    if (decision === 'approve') {
+      try {
+        await enforceDemoFleetVisibility();
+      } catch (e) {
+        console.warn('[seed] demo fleet visibility check skipped:', (e as Error).message);
+      }
+    }
     return { message: `Car ${decision}d` };
   }
 

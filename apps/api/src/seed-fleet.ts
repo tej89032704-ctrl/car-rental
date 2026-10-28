@@ -141,8 +141,9 @@ async function hideDemoCars(reason: string): Promise<number> {
  * active, so the effect for a renter is that the demo cars simply disappear.
  *
  * Only licences with our own plates are ever touched, so a real listing can
- * never be hidden by mistake. Runs on every boot, and is a no-op once they are
- * already inactive.
+ * never be hidden by mistake. Runs on every boot and again whenever a listing
+ * goes live (admin approval, owner resume), and is a no-op once they are already
+ * inactive.
  */
 export async function enforceDemoFleetVisibility(): Promise<number> {
   const mode = hideMode();
