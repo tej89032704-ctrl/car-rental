@@ -51,7 +51,15 @@ async function initializeDatabase(isProd: boolean): Promise<boolean> {
     try {
       await runMigrations();
       if (isProd) {
-        await ensureSuperAdmin();
+        // Same rule as the seeds below: an admin account that cannot be
+        // created must not hold readiness hostage. The portals are already
+        // serving, and a service that reports "degraded" forever because of
+        // one duplicate row is worse than a missing account in the log.
+        try {
+          await ensureSuperAdmin();
+        } catch (e) {
+          console.warn('[boot] super admin seed skipped:', safeDbError(e));
+        }
         // A freshly migrated database has a catalogue nobody can browse yet.
         // This only ever fills an empty fleet, and a failure here must not
         // hold the boot loop hostage, so it is reported and moved past.
