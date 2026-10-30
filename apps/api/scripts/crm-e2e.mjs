@@ -126,7 +126,11 @@ try {
   try { await agentDb.prepare(`UPDATE crm_enquiries SET customer_user_id = ? WHERE id = ?`).run(randomUUID(),enquiryId); } catch(e) { fkRejected = e.code === '23503'; }
   check('database rejects missing customer',fkRejected);
   const uploadsDir = fs.existsSync(path.resolve('uploads')) ? path.resolve('uploads') : path.resolve('apps/api/uploads');
-  privateFile = path.resolve(uploadsDir, key);
+  // The private-document checks below need a real stored file to serve. `key`
+  // is that file's name and was never defined, so this script always crashed
+  // here before any of the access-control assertions ran.
+  const key = `${randomUUID()}.png`;
+  const privateFile = path.resolve(uploadsDir, key);
   fs.mkdirSync(path.dirname(privateFile), { recursive: true });
   fs.writeFileSync(privateFile,Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==','base64'));
   await auth.prepare(`INSERT INTO kyc_documents (id,user_id,doc_type,file_url,created_at,updated_at,created_by) VALUES (?, ?, 'id_proof', ?, ?, ?, ?)`)

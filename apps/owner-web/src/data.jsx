@@ -101,10 +101,9 @@ export const isDeclined = (b) => ['rejected', 'declined', 'cancelled'].includes(
 export function useRequestRows() {
   const { requests, completed } = useData();
   return useMemo(() => {
-    const pending = (requests || []).map((b) => ({ ...b, tab: 'p' }));
-    const approved = (completed || []).filter(isApproved).map((b) => ({ ...b, tab: 'a' }));
-    const declined = (completed || []).filter(isDeclined).map((b) => ({ ...b, tab: 'd' }));
-    return [...pending, ...approved, ...declined];
+    return [...(requests || []), ...(completed || [])].map((b) => ({
+      ...b, tab: isPending(b) ? 'p' : isApproved(b) ? 'a' : 'd',
+    }));
   }, [requests, completed]);
 }
 

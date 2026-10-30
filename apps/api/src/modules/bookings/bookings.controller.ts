@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Header, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { z } from 'zod';
 import { Roles } from '../../common/auth/guards';
 import { BookingsService } from './bookings.service';
@@ -107,6 +107,22 @@ export class BookingsController {
   }
 
   // ---------- Both ----------
+  /** Sidebar badge: unread chat across every booking this user is part of. */
+  @Roles('car_renter', 'car_owner') @Get('bookings/messages/unread') @Header('Cache-Control', 'private, no-store')
+  async unreadMessages(@Req() req: any) {
+    return this.bookings.unreadMessageCounts(req.user.id, req.user.role);
+  }
+
+  @Roles('car_renter', 'car_owner') @Get('bookings/:id/messages') @Header('Cache-Control', 'private, no-store')
+  async messages(@Req() req: any, @Param('id') id: string) {
+    return this.bookings.bookingMessages(id, req.user.id, req.user.role);
+  }
+
+  @Roles('car_renter', 'car_owner') @Post('bookings/:id/messages') @Header('Cache-Control', 'private, no-store')
+  async sendMessage(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+    const dto = this.parse(z.object({ body: z.string().trim().min(1).max(2000) }), body);
+    return this.bookings.sendBookingMessage(id, req.user.id, req.user.role, dto.body);
+  }
   @Roles('car_renter', 'car_owner') @Get('bookings/:id')
   async detail(@Req() req: any, @Param('id') id: string) {
     return await this.bookings.bookingDetail(id, req.user);

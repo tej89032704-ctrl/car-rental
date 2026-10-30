@@ -29,6 +29,10 @@ export interface LoginResponse {
   refresh_token?: string;
   requires_2fa?: boolean;
   twofa_token?: string;
+  /** Masked address the admin code was emailed to, e.g. `a•••@example.com`. */
+  delivered_to?: string;
+  /** Only returned outside production, when no mail transport is configured. */
+  dev_code?: string;
   user?: AuthUser;
 }
 

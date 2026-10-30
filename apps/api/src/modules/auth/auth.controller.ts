@@ -15,7 +15,9 @@ const signupSchema = z.object({
   role: z.enum(['car_owner', 'car_renter', 'agent']),
 });
 const credentialsSchema = z.object({ email: z.string().email(), password: z.string().min(1) });
-const twofaSchema = z.object({ twofa_token: z.string(), code: z.string() });
+// The code is six digits by construction, so anything else is rejected before
+// it reaches a bcrypt comparison.
+const twofaSchema = z.object({ twofa_token: z.string().min(1), code: z.string().regex(/^\d{6}$/, 'code must be 6 digits') });
 const refreshSchema = z.object({ refresh_token: z.string() });
 const forgotSchema = z.object({ email: z.string().email() });
 const resetSchema = z.object({ token: z.string(), new_password: z.string().min(8) });

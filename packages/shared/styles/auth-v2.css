@@ -193,6 +193,8 @@
 .av2-h2 { font-family: var(--font-display); font-size: 32px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.035em; }
 .av2-sub { margin: 0 0 20px; color: var(--mut); }
 .av2-sub.sw { animation: av2-sw 0.45s both; }
+/* Secondary line under a field: where a delivery went, or the local-only code. */
+.av2-note { margin: -6px 0 16px; color: var(--mut); font-size: 12.5px; line-height: 1.45; }
 @keyframes av2-sw { from { opacity: 0; transform: translateY(10px); } }
 
 .av2-role { margin-bottom: 18px; }

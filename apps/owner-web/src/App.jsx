@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { clearSession, sessionUser } from './api.js';
+import { api, clearSession, sessionUser } from './api.js';
 import { DataProvider, useData, useUnread } from './data.jsx';
 import { CarBuildLoader, Icon, OverlayHost, ToastHost, useToast, useTopProgress } from './ui.jsx';
 import { OverlayRenderer } from './overlays.jsx';
@@ -31,7 +31,7 @@ import { NAV, sectionOf } from './nav.js';
  * to a 70px icon rail purely in CSS at 900px, so there is nothing to toggle.
  */
 
-function Sidebar({ pending, unreadCount }) {
+function Sidebar({ pending, unreadCount, chatCount }) {
   const navigate = useNavigate();
   const user = sessionUser();
 
@@ -48,7 +48,12 @@ function Sidebar({ pending, unreadCount }) {
             className={({ isActive }) => `nv ${isActive ? 'on' : ''}`}>
             <Icon name={n.icon} />
             <span>{n.label}</span>
-            {n.k === 'reqs' && pending > 0 && <em>{pending}</em>}
+            {n.k === 'reqs' && (pending > 0 || chatCount > 0) && (
+              <span className="bgs">
+                {pending > 0 && <em title="Requests waiting on you">{pending}</em>}
+                {chatCount > 0 && <em className="ch" title="Unread messages">{chatCount > 9 ? '9+' : chatCount}</em>}
+              </span>
+            )}
             {n.k === 'not' && unreadCount > 0 && <em>{unreadCount}</em>}
           </NavLink>
         ))}
@@ -105,6 +110,30 @@ function Topbar({ onSearch, bellRef, theme, onTheme, onBell, unreadCount }) {
   );
 }
 
+/* Unread chat lives on its own endpoint rather than in DataProvider: the panel
+   reloads as one unit after a write, while a badge needs to notice a new
+   message every so often without refetching the fleet. The thread itself
+   dispatches `booking-chat-read` on every load, so opening the drawer clears
+   the count immediately instead of waiting out the interval. */
+function useChatUnread() {
+  const [total, setTotal] = useState(0);
+  useEffect(() => {
+    let live = true;
+    const load = () => api('/bookings/messages/unread')
+      .then((res) => { if (live) setTotal(Number(res?.total) || 0); })
+      .catch(() => {});
+    load();
+    window.addEventListener('booking-chat-read', load);
+    const t = setInterval(load, 30000);
+    return () => {
+      live = false;
+      clearInterval(t);
+      window.removeEventListener('booking-chat-read', load);
+    };
+  }, []);
+  return total;
+}
+
 /* The reference paints its car-build loader on first paint and again on every
    section change. We keep the same 2.3s beat for a cold load only -- after
    that the section swap is instant, and spinning on each navigation would be
@@ -121,6 +150,7 @@ function useColdStart() {
 function Shell() {
   const { requests } = useData();
   const { unread } = useUnread();
+  const chatCount = useChatUnread();
   const [overlay, setOverlay] = useState(null);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('oh-th') || ''; } catch { return ''; }
@@ -233,7 +263,7 @@ function Shell() {
       <div className="oh">
         <div className="amb" aria-hidden="true"><i /><i /><i /></div>
         <div className="pb" id="pb" />
-        <Sidebar pending={pendingCount} unreadCount={unreadCount} />
+        <Sidebar pending={pendingCount} unreadCount={unreadCount} chatCount={chatCount} />
         <main>
           <Topbar onSearch={openPalette} bellRef={bellRef} theme={theme}
             onTheme={toggleTheme} onBell={openNotifs} unreadCount={unreadCount} />

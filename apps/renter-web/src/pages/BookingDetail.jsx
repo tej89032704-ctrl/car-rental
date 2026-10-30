@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import CarArt from '../components/CarArt.jsx';
+import BookingChat from '../../../../packages/shared/src/BookingChat.jsx';
 import { carTitle, day, inr, paintFor, toast, uprightFor } from '../components/ui.js';
 
 const STEPS = [
@@ -221,6 +222,10 @@ export default function BookingDetail() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: 18, padding: 22 }}>
+        <BookingChat key={id} bookingId={id} otherLabel="owner" />
       </div>
 
       {showExt && (

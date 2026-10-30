@@ -140,7 +140,16 @@ async function bootstrap() {
   // Vite server on :5173-:5177 and nothing here should serve files.
   if (isProd) servePortals(app);
 
-  const port = Number(process.env.PORT || 4000);
+  // PORT=0 asks Node for an ephemeral port, so the process *looks* healthy while
+  // nothing answers on the port the portals proxy to (4000). A hosting
+  // dashboard can leave an empty or zero PORT behind, which is exactly what
+  // happened locally: the API logged "listening" and every /api call from the
+  // portals failed to connect. Only a real positive port is honoured.
+  const configuredPort = Number(process.env.PORT);
+  const port = Number.isInteger(configuredPort) && configuredPort > 0 ? configuredPort : 4000;
+  if (process.env.PORT !== undefined && port !== configuredPort) {
+    console.warn(`[boot] ignoring PORT=${process.env.PORT}; using ${port}`);
+  }
   await app.listen(port);
   console.log(`API listening on http://localhost:${port}`);
 

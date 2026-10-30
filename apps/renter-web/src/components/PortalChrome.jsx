@@ -13,7 +13,7 @@ import { applyTheme, storedTheme } from './ui.js';
 const TABS = [
   { to: '/', label: 'Find a car', end: true },
   { to: '/enquiries', label: 'Enquiries & quotes' },
-  { to: '/bookings', label: 'My bookings' },
+  { to: '/bookings', label: 'My bookings', chat: true },
   { to: '/reviews', label: 'My reviews' },
   { to: '/kyc', label: 'Verification' },
   { to: '/notifications', label: 'Notifications', badge: true },
@@ -33,6 +33,7 @@ export default function PortalChrome({ guest = false }) {
   const location = useLocation();
   const [user, setUser] = useState(readUser);
   const [unread, setUnread] = useState(0);
+  const [chatUnread, setChatUnread] = useState(0);
   const glowRef = useRef(null);
   const topRef = useRef(null);
 
@@ -80,6 +81,24 @@ export default function PortalChrome({ guest = false }) {
       live = false;
       clearInterval(t);
       window.removeEventListener('ce:notifications', load);
+    };
+  }, [guest, location.pathname]);
+
+  /* Unread chat, separate from notifications: a message from an owner is not a
+     bell entry, and the tab that opens the thread is the one that carries it. */
+  useEffect(() => {
+    if (guest) return undefined;
+    let live = true;
+    const load = () => api('/bookings/messages/unread')
+      .then((res) => { if (live) setChatUnread(Number(res?.total) || 0); })
+      .catch(() => {});
+    load();
+    window.addEventListener('booking-chat-read', load);
+    const t = setInterval(load, 30000);
+    return () => {
+      live = false;
+      clearInterval(t);
+      window.removeEventListener('booking-chat-read', load);
     };
   }, [guest, location.pathname]);
 
@@ -197,6 +216,7 @@ export default function PortalChrome({ guest = false }) {
               >
                 {t.label}
                 {t.badge && unread > 0 ? <b>{unread > 9 ? '9+' : unread}</b> : null}
+                {t.chat && chatUnread > 0 ? <b title="Unread messages">{chatUnread > 9 ? '9+' : chatUnread}</b> : null}
               </NavLink>
             ))}
           </nav>

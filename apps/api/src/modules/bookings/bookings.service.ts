@@ -24,6 +24,56 @@ export class BookingsService {
 
   private pdb() { return getDb('payment'); }
 
+  async bookingMessages(bookingId: string, userId: string, role: string) {
+    const participant = role === 'car_owner' ? 'owner_id' : 'renter_id';
+    const booking = await this.db().prepare(`SELECT id FROM bookings WHERE id = ? AND ${participant} = ? AND is_deleted = 0`).get(bookingId, userId);
+    if (!booking) throw new NotFoundException('Booking not found');
+    // Opening the thread is the read: the watermark moves here, so the sidebar
+    // badge clears for the person who actually read it and for nobody else.
+    await this.markMessagesRead(bookingId, userId);
+    return this.db().prepare(`SELECT id, sender_id, body, created_at FROM (
+      SELECT id, sender_id, body, created_at FROM booking_messages
+      WHERE booking_id = ? AND is_deleted = 0 ORDER BY created_at DESC, id DESC LIMIT 200
+    ) messages ORDER BY created_at, id`).all(bookingId);
+  }
+
+  async sendBookingMessage(bookingId: string, userId: string, role: string, body: string) {
+    const participant = role === 'car_owner' ? 'owner_id' : 'renter_id';
+    const id = uuid();
+    const now = nowUtc();
+    const row = await this.db().prepare(`INSERT INTO booking_messages (id, booking_id, sender_id, body, created_at, updated_at, created_by)
+      SELECT ?, id, ?, ?, ?, ?, ? FROM bookings WHERE id = ? AND ${participant} = ? AND is_deleted = 0
+      RETURNING id, sender_id, body, created_at`).get(id, userId, body, now, now, userId, bookingId, userId);
+    if (!row) throw new NotFoundException('Booking not found');
+    return row;
+  }
+
+  /** Moves one participant's read watermark past everything in the thread. */
+  private async markMessagesRead(bookingId: string, userId: string) {
+    const now = nowUtc();
+    await this.db().prepare(`INSERT INTO booking_message_reads (booking_id, user_id, last_read_at, created_at, updated_at, created_by)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT (booking_id, user_id) DO UPDATE SET last_read_at = EXCLUDED.last_read_at, updated_at = EXCLUDED.updated_at`)
+      .run(bookingId, userId, now, now, now, userId);
+  }
+
+  /**
+   * Unread chat for the sidebar: per-booking counts plus the total, scoped to
+   * bookings this user is a participant of. Their own messages never count.
+   */
+  async unreadMessageCounts(userId: string, role: string) {
+    const participant = role === 'car_owner' ? 'owner_id' : 'renter_id';
+    const rows = await this.db().prepare(`SELECT b.id AS booking_id, COUNT(m.id) AS unread
+      FROM bookings b
+      JOIN booking_messages m ON m.booking_id = b.id AND m.is_deleted = 0 AND m.sender_id <> ?
+      LEFT JOIN booking_message_reads r ON r.booking_id = b.id AND r.user_id = ?
+      WHERE b.${participant} = ? AND b.is_deleted = 0
+        AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+      GROUP BY b.id`).all(userId, userId, userId) as any[];
+    const bookings = rows.map((r) => ({ booking_id: r.booking_id, unread: Number(r.unread) || 0 }));
+    return { total: bookings.reduce((sum, r) => sum + r.unread, 0), bookings };
+  }
+
   // ---------- Helpers ----------
   private async b(id: string): Promise<any> {
     const row = await this.db().prepare(`SELECT * FROM bookings WHERE id = ?`).get(id) as any;
@@ -273,7 +323,7 @@ export class BookingsService {
   async bookingRequestsForOwner(ownerId: string): Promise<any[]> {
     // requested + confirmed + ongoing: the Requests page also hosts Start Trip /
     // Complete actions, so approved and in-progress trips must stay visible here.
-    const rows = await this.db().prepare(`SELECT * FROM bookings WHERE owner_id = ? AND status IN ('requested','confirmed','ongoing') AND is_deleted = 0 ORDER BY created_at DESC`).all(ownerId) as any[];
+    const rows = await this.db().prepare(`SELECT * FROM bookings WHERE owner_id = ? AND status IN ('requested','confirmed','ongoing','rejected','cancelled') AND is_deleted = 0 ORDER BY created_at DESC`).all(ownerId) as any[];
     return await Promise.all(rows.map(async (r: any) => ({
       ...this.row2b(r),
       renter: await this.renterProfile(r.renter_id),

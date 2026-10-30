@@ -4,16 +4,14 @@ import { useCarStats, useData, useRequestRows } from './data.jsx';
 import { COLORS, avatarBg, carColor, dayCount, inr, inrP, pad2, rangeLabel, shortDate, todayISO } from './lib.js';
 import { Icon } from './ui.jsx';
 import CarArt from './CarArt.jsx';
+import BookingChat from '../../../packages/shared/src/BookingChat.jsx';
 import { NAV } from './nav.js';
 
 /**
  * Every overlay the panel can raise: the car drawer, the request drawer, the
  * Add-a-car and Withdraw sheets, and the Ctrl+K palette.
  *
- * Two small pieces of state that the source kept in plain JS objects live in
- * localStorage instead, because there is no column for them:
- *   - weekend-surge / auto-accept per car (`oh-car-<id>-*`)
- *   - the request drawer's message thread (`oh-chat-<id>`)
+ * Per-car weekend-surge and auto-accept preferences live in localStorage.
  * Everything else -- rates, blocked dates, decisions, payouts -- round-trips to
  * Postgres through the real endpoints, and the drawers read by id from context
  * so an approve re-renders against fresh server state rather than a snapshot.
@@ -28,15 +26,6 @@ const readPref = (id, k) => {
 };
 const writePref = (id, k, v) => {
   try { localStorage.setItem(prefKey(id, k), v ? '1' : '0'); } catch { /* private mode */ }
-};
-
-/* Message thread for one booking. Owner-authored only; no messaging backend. */
-const chatKey = (id) => `oh-chat-${id}`;
-const readChat = (id) => {
-  try { return JSON.parse(localStorage.getItem(chatKey(id)) || '[]'); } catch { return []; }
-};
-const writeChat = (id, list) => {
-  try { localStorage.setItem(chatKey(id), JSON.stringify(list)); } catch { /* private mode */ }
 };
 
 function CloseBtn({ onClick }) {
@@ -295,18 +284,9 @@ function timelineFor(b) {
 function ReqDrawer({ bookingId, close, toast, bellShake }) {
   const rows = useRequestRows();
   const { reload } = useData();
-  const [thread, setThread] = useState(() => readChat(bookingId));
-  const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
-  const chatRef = useRef(null);
-
   const b = rows.find((r) => r.id === bookingId);
-
-  useEffect(() => {
-    const el = chatRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [thread]);
 
   if (!b) {
     return (
@@ -343,15 +323,6 @@ function ReqDrawer({ bookingId, close, toast, bellShake }) {
   const current = Math.min(steps.findIndex((s) => !s.done), steps.length - 1);
   const shown = current < 0 ? steps.length - 1 : current;
 
-  function send() {
-    const text = draft.trim();
-    if (!text) return;
-    const next = [...thread, { t: Date.now(), text }];
-    setThread(next);
-    writeChat(bookingId, next);
-    setDraft('');
-  }
-
   return (
     <>
       <CloseBtn onClick={close} />
@@ -384,26 +355,7 @@ function ReqDrawer({ bookingId, close, toast, bellShake }) {
           ))}
         </div>
 
-        <p className="ey">Message thread</p>
-        <div className="chat" ref={chatRef}>
-          {thread.length === 0 && <p className="mt">Nothing written yet.</p>}
-          {thread.map((m, i) => (
-            <div className="bb me" key={`${m.t}-${i}`}>{m.text}</div>
-          ))}
-        </div>
-        <div className="cin">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') send(); }}
-            placeholder="Write a message…"
-            aria-label="Message"
-          />
-          <button className="b" onClick={send} disabled={!draft.trim()}>Send</button>
-        </div>
-        <p className="mt" style={{ fontSize: 12, marginTop: 6 }}>
-          Saved on this device only — renter messaging has no API yet.
-        </p>
+        <BookingChat bookingId={bookingId} otherLabel="renter" />
 
         {err && <p className="err" style={{ marginTop: 12 }}>{err}</p>}
 

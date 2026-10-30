@@ -1,5 +1,5 @@
 import { createHash, randomInt } from 'crypto';
-import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, Injectable, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { getDb, nowUtc, uuid } from '../../common/db/database';
@@ -12,6 +12,10 @@ const ACCESS_TTL_SEC = 15 * 60;
 const REFRESH_TTL_SEC = 7 * 24 * 60 * 60;
 const OTP_TTL_SEC = 10 * 60;
 const RESET_TTL_SEC = 15 * 60;
+/** Wrong guesses one admin code tolerates before it is burned. */
+const TWOFA_MAX_ATTEMPTS = 5;
+/** Floor between two code emails to the same account. */
+const TWOFA_RESEND_COOLDOWN_SEC = 60;
 
 export type Portal = 'main' | 'admin' | 'agent' | 'manager';
 const PORTAL_ROLES: Record<Portal, string[]> = {
@@ -145,8 +149,8 @@ export class AuthService {
       throw new ForbiddenException(`Account ${user.status}. Contact support.`);
     }
     if (user.role === 'super_admin') {
-      const twofaToken = await this.create2faChallenge(user.id);
-      return { requires_2fa: true as const, twofa_token: twofaToken };
+      const challenge = await this.create2faChallenge(user.id);
+      return { requires_2fa: true as const, ...challenge };
     }
     return { ...await this.issueTokens(user), user: this.toPublicUser(user) };
   }
@@ -156,12 +160,140 @@ export class AuthService {
   async loginManager(email: string, password: string) { return await this.loginWithPortal(email, password, 'manager'); }
   async loginAdmin(email: string, password: string) { return await this.loginWithPortal(email, password, 'admin'); }
 
-  private async create2faChallenge(userId: string): Promise<string> {
-    const challenge = jwt.sign({ sub: userId, scope: '2fa' }, JWT_SECRET, { expiresIn: 300 });
+  /**
+   * `a•••@example.com` — enough for the admin to recognise the inbox, not
+   * enough to be useful to whoever is guessing at the account.
+   */
+  private maskedEmail(email: string): string {
+    const [local, domain] = String(email || '').split('@');
+    if (!local || !domain) return 'the account email';
+    return `${local.slice(0, 1)}${'•'.repeat(Math.min(6, Math.max(2, local.length - 1)))}@${domain}`;
+  }
+
+  /**
+   * Issues the second-factor challenge and emails its code.
+   *
+   * The code is delivered, never returned: the response carries only the
+   * challenge token and a masked address, so a stolen password alone is not
+   * enough to sign in and the response body never leaks the second factor.
+   *
+   * Outside production an undeliverable code is returned as `dev_code`, the
+   * same escape hatch phone verification uses, so the flow stays testable on a
+   * machine with no mail provider. In production that would be a bypass, so an
+   * undelivered code fails the request instead of quietly leaving the admin
+   * with no way in.
+   */
+  private async create2faChallenge(userId: string): Promise<{
+    twofa_token: string;
+    delivered_to: string;
+    dev_code?: string;
+  }> {
+    const db = getDb('auth');
+    const user = await this.getUserRaw(userId);
+
+    // Every challenge sends a real email, so an unthrottled loop is a free way
+    // to flood an administrator's inbox (and to burn the provider's quota).
+    const last = await db.prepare(
+      `SELECT created_at FROM otp_verifications WHERE user_id = ? AND purpose = 'admin_2fa' ORDER BY created_at DESC LIMIT 1`,
+    ).get(userId) as any;
+    if (last && Date.now() - new Date(last.created_at).getTime() < TWOFA_RESEND_COOLDOWN_SEC * 1000) {
+      const wait = Math.ceil(
+        (TWOFA_RESEND_COOLDOWN_SEC * 1000 - (Date.now() - new Date(last.created_at).getTime())) / 1000,
+      );
+      throw new HttpException(`Wait ${wait}s before requesting another code`, 429);
+    }
+
+    // A new code replaces older ones. Several live codes at once multiply the
+    // guesses an attacker gets without helping the admin at all.
+    await db.prepare(
+      `UPDATE otp_verifications SET consumed_at = ?, updated_at = ?
+        WHERE user_id = ? AND purpose = 'admin_2fa' AND consumed_at IS NULL`,
+    ).run(nowUtc(), nowUtc(), userId);
+
     const code = await this.createOtp(userId, 'admin_2fa');
-    const u = await this.getUserRaw(userId);
-    await this.notifier.sendSms(u.phone, `Your admin login verification code is ${code}. Expires in 10 min.`);
-    return challenge;
+    const challenge = jwt.sign({ sub: userId, scope: '2fa' }, JWT_SECRET, { expiresIn: 300 });
+
+    const result = await this.notifier.sendEmail(
+      user.email,
+      'Your ControlRoom sign-in code',
+      `${code} is your ControlRoom verification code. It expires in ${Math.round(OTP_TTL_SEC / 60)} minutes.\n\n` +
+        'If you did not try to sign in, someone has your admin password — change it now.',
+    );
+
+    await writeAudit('auth', {
+      actor_id: userId,
+      action: result.delivered ? 'admin_2fa_code_sent' : 'admin_2fa_code_not_sent',
+      entity_type: 'user',
+      entity_id: userId,
+      after_value: { channel: 'email', delivered: result.delivered, error: result.error ?? null },
+    });
+
+    if (!result.delivered && process.env.NODE_ENV === 'production') {
+      throw new ServiceUnavailableException(
+        'The verification code could not be delivered. Check the mail transport (RESEND_API_KEY / MAIL_FROM).',
+      );
+    }
+
+    return {
+      twofa_token: challenge,
+      delivered_to: this.maskedEmail(user.email),
+      dev_code: result.delivered ? undefined : code,
+    };
+  }
+
+  /**
+   * Redeems an admin code, counting wrong guesses.
+   *
+   * Six digits is about twenty bits, so the code is only safe because this cap
+   * exists: after TWOFA_MAX_ATTEMPTS failures the row is consumed and the admin
+   * has to start again, which turns a 1-in-a-million guess into a handful of
+   * tries per ten minutes.
+   */
+  private async consumeAdmin2fa(userId: string, code: string): Promise<boolean> {
+    const db = getDb('auth');
+    const row = await db.prepare(
+      `SELECT id, code_hash, expires_at, attempts FROM otp_verifications
+        WHERE user_id = ? AND purpose = 'admin_2fa' AND consumed_at IS NULL
+        ORDER BY created_at DESC LIMIT 1`,
+    ).get(userId) as any;
+    if (!row) return false;
+
+    const consume = async () =>
+      await db.prepare(`UPDATE otp_verifications SET consumed_at = ?, updated_at = ? WHERE id = ?`)
+        .run(nowUtc(), nowUtc(), row.id);
+
+    if (new Date(row.expires_at) < new Date()) {
+      await consume();
+      return false;
+    }
+
+    if (Number(row.attempts) >= TWOFA_MAX_ATTEMPTS) {
+      await consume();
+      await writeAudit('auth', {
+        actor_id: userId,
+        action: 'admin_2fa_locked',
+        entity_type: 'user',
+        entity_id: userId,
+        after_value: { attempts: Number(row.attempts) },
+      });
+      throw new HttpException('Too many incorrect codes. Sign in again.', 429);
+    }
+
+    if (!this.compare(code, row.code_hash)) {
+      await db.prepare(`UPDATE otp_verifications SET attempts = attempts + 1, updated_at = ? WHERE id = ?`)
+        .run(nowUtc(), row.id);
+      await writeAudit('auth', {
+        actor_id: userId,
+        action: 'admin_2fa_failed',
+        entity_type: 'user',
+        entity_id: userId,
+        after_value: { attempts: Number(row.attempts) + 1 },
+      });
+      return false;
+    }
+
+    await consume();
+    return true;
   }
 
   async verifyAdmin2fa(twofaToken: string, code: string) {
@@ -174,7 +306,14 @@ export class AuthService {
     if (payload.scope !== '2fa') throw new UnauthorizedException('Bad 2FA session');
     const user = await this.getUserRaw(payload.sub);
     if (!user || user.status !== 'active' || user.role !== 'super_admin') throw new UnauthorizedException('Invalid credentials for this portal');
-    if (!await this.consumeOtp(user.id, 'admin_2fa', code)) throw new UnauthorizedException('Incorrect verification code');
+    if (!await this.consumeAdmin2fa(user.id, code)) throw new UnauthorizedException('Incorrect verification code');
+    await writeAudit('auth', {
+      actor_id: user.id,
+      action: 'admin_2fa_verified',
+      entity_type: 'user',
+      entity_id: user.id,
+      after_value: { channel: 'email' },
+    });
     return { ...await this.issueTokens(user), user: this.toPublicUser(user) };
   }
 

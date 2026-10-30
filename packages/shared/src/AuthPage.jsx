@@ -196,6 +196,9 @@ export default function AuthPage({
      or the user goes back to the email/password form. */
   const [twofaToken, setTwofaToken] = useState(null);
   const [code, setCode] = useState('');
+  /* Where the admin code went, and — outside production only — the code itself. */
+  const [twofaDelivery, setTwofaDelivery] = useState(null);
+  const [devCode, setDevCode] = useState(null);
 
   const copy = COPY[role];
   const reduced =
@@ -370,6 +373,8 @@ export default function AuthPage({
       // verifyCode() below trades it for a real session.
       if (data.requires_2fa) {
         setTwofaToken(data.twofa_token);
+        setTwofaDelivery(data.delivered_to || null);
+        setDevCode(data.dev_code || null);
         setCode('');
         setBusy('');
         return;
@@ -495,6 +500,16 @@ export default function AuthPage({
 
               {twofaToken ? (
                 <form ref={inRef} onSubmit={verifyCode} noValidate>
+                  <p className="av2-sub">
+                    {twofaDelivery
+                      ? <>We emailed a 6-digit code to <b>{twofaDelivery}</b>.</>
+                      : 'Enter the 6-digit code we emailed to your account.'}
+                  </p>
+                  {devCode && (
+                    <p className="av2-note">
+                      No mail transport is configured, so your code is <b>{devCode}</b>.
+                    </p>
+                  )}
                   <label className="av2-f">
                     <input
                       type="text" inputMode="numeric" maxLength={6}
@@ -512,7 +527,7 @@ export default function AuthPage({
                   <div className="av2-opt">
                     <button
                       type="button" className="av2-link"
-                      onClick={() => { setTwofaToken(null); setCode(''); setErr(''); }}
+                      onClick={() => { setTwofaToken(null); setCode(''); setErr(''); setTwofaDelivery(null); setDevCode(null); }}
                     >
                       Use a different account
                     </button>

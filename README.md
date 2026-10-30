@@ -33,6 +33,8 @@ One Docker web service (`Dockerfile`, blueprint in `render.yaml`) serves the API
 
 Environment: `DATABASE_URL` (required) and `JWT_SECRET` (32+ random characters). Without a `JWT_SECRET` a production process still starts, on a randomly generated secret: sign-in works, but every restart signs everyone out — `/api/health` then reports `"jwt_secret": "generated"`, and setting the variable makes sessions durable. Optional `ADMIN_EMAIL` / `ADMIN_PASSWORD` for the seeded super admin, optional `DB_SSL=auto|require|disable` (default `auto`: TLS for public hostnames, plain for dotless private hosts such as Render's internal database).
 
+Admin sign-in emails its verification code, so a deployment also needs `RESEND_API_KEY` and `MAIL_FROM` (a verified sender, e.g. `CAR-ENT <no-reply@yourdomain.com>`). Without them the admin endpoint answers `503` instead of issuing a code nobody can read. Locally both can stay unset: the code comes back as `dev_code` and the sign-in screen shows it, so the flow is testable without a mail provider.
+
 `GET /api/health` answers 200 whenever the process is up and reports the database in its body, so a starting or unreachable database never turns into a deploy that hangs:
 
 ```json

@@ -36,7 +36,7 @@
 .oh .nv:hover{color:#fff;background:rgba(255,255,255,.06)}.oh .nv:hover svg{transform:scale(1.15) rotate(-6deg)}
 .oh .nv.on{color:#b6ffe0;background:linear-gradient(90deg,rgba(0,250,154,.2),transparent)}
 .oh .nv.on::before{content:"";position:absolute;left:-14px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:#00fa9a;box-shadow:0 0 14px #00fa9a}
-.oh .nv:active{transform:scale(.97)}.oh .nv em{margin-left:auto;font-style:normal;font-size:11px;font-weight:600;background:#00fa9a;color:#032016;border-radius:99px;padding:1px 8px}
+.oh .nv:active{transform:scale(.97)}.oh .nv em{margin-left:auto;font-style:normal;font-size:11px;font-weight:600;background:#00fa9a;color:#032016;border-radius:99px;padding:1px 8px}.oh .nv .bgs{margin-left:auto;display:flex;align-items:center;gap:5px}.oh .nv .bgs em{margin-left:0}.oh .nv em.ch{background:#ffcc4d;color:#3a2a05}
 .oh .us{margin-top:auto;display:flex;gap:12px;align-items:center;padding:12px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
 .oh .us i{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#b6ffe0,#00fa9a);color:#032016;display:grid;place-items:center;font:500 16px Fraunces;font-style:normal;flex:none}
 .oh .us small{display:block;color:#8fb0a0;font-size:12px}
