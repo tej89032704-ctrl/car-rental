@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../data.jsx';
-import { api } from '../api.js';
 import { useToast } from '../ui.jsx';
-import { pad2, todayISO } from '../lib.js';
+import { todayISO } from '../lib.js';
+import {
+  iso,
+  eachDay,
+  holdsCar,
+  fetchMonth,
+  flipDay,
+  pendingChanges,
+  saveDays,
+  conflictingDays,
+  dayBlockedWarning,
+  saveConflictWarning,
+  shownAvailable,
+  tripLabel,
+} from '../availability.js';
 
 /**
  * The fleet's month at a glance, and the place an owner blocks days.
@@ -17,22 +30,23 @@ import { pad2, todayISO } from '../lib.js';
  * does it: a week of maintenance is one round trip, and a mis-tap costs nothing
  * until Save. Switching car or month drops the queue, which the header says out
  * loud so a lost block is never a surprise.
+ *
+ * A day a booking covers is not a block candidate: the API writes
+ * car_availability without looking at bookings, so tapping one would quietly
+ * put a hatch over a confirmed trip. Those days refuse the tap with an
+ * explanation, and Save re-reads the owner's bookings before writing, so a trip
+ * that landed while the page was open cannot be blocked behind the owner's
+ * back either. All of that -- the read, the draft diff, the write and the
+ * booking guard -- lives in ../availability.js so the car drawer behaves
+ * identically; this page keeps the grid, the month's own state and the copy.
  */
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// Local-day ISO helpers. Booking dates are plain YYYY-MM-DD and new Date()
-// would parse them as UTC, shifting a day backwards in negative-offset
-// zones — fatal for a grid keyed on exact days.
-const iso = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-const parseISO = (s) => {
-  const [y, m, d] = String(s || '').slice(0, 10).split('-').map(Number);
-  return y && m && d ? new Date(y, m - 1, d) : null;
-};
 const isPending = (b) => b.status === 'requested' || b.status === 'pending';
 
 export default function Calendar() {
-  const { cars, requests, completed } = useData();
+  const { cars, requests, completed, reload } = useData();
   const toast = useToast();
 
   const [month, setMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1); });
@@ -44,6 +58,10 @@ export default function Calendar() {
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  // A tap or Save that was refused because a booking owns the day. Kept apart
+  // from `err` so it can read as guidance rather than a failure, and so it can
+  // offer the reload that fixes stale booking data.
+  const [warn, setWarn] = useState('');
 
   const y = month.getFullYear();
   const m = month.getMonth();
@@ -65,38 +83,29 @@ export default function Calendar() {
   useEffect(() => {
     if (!carId) { setAvail(new Map()); setDraft(new Map()); setReady(true); return () => {}; }
     let live = true;
-    const from = iso(month);
-    const to = iso(new Date(y, m + 1, 0)); // last day of the displayed month
     setReady(false);
-    api(`/cars/${carId}/availability?from=${from}&to=${to}`)
-      .then((rows) => {
+    fetchMonth(carId, month)
+      .then((map) => {
         if (!live) return;
-        const map = new Map();
-        for (const r of rows || []) {
-          if (!r || !r.date) continue;
-          map.set(String(r.date).slice(0, 10), r.is_available === true || r.is_available === 1);
-        }
         setAvail(map);
         setDraft(new Map());
         setErr('');
+        setWarn('');
         setReady(true);
       })
       .catch((e) => { if (live) { setAvail(new Map()); setDraft(new Map()); setErr(e.message); setReady(true); } });
     return () => { live = false; };
   }, [carId, month]);
 
-  // Day ISO -> bookings covering it, so each cell is a single Map lookup.
+  // Day ISO -> every booking covering it, for the chips. The guard below reads
+  // the same map, so the month is walked once.
   const byDay = useMemo(() => {
     const map = new Map();
     for (const b of [...(requests || []), ...(completed || [])]) {
-      const a = parseISO(b.start_date);
-      if (!a) continue;
-      const z = parseISO(b.end_date) || a;
-      for (const t = new Date(a); t <= z; t.setDate(t.getDate() + 1)) {
-        const key = iso(t);
+      eachDay(b.start_date, b.end_date, (key) => {
         if (!map.has(key)) map.set(key, []);
         map.get(key).push(b);
-      }
+      });
     }
     return map;
   }, [requests, completed]);
@@ -115,56 +124,52 @@ export default function Calendar() {
   const shift = (n) => setMonth(new Date(y, m + n, 1));
 
   // What the grid should show for a day: the draft when the owner touched it,
-  // otherwise the server's answer. A day with no row is available.
-  const isAvailable = (key) => (draft.has(key) ? draft.get(key) : (avail.has(key) ? avail.get(key) : true));
+  // otherwise the server's answer.
+  const isAvailable = (key) => shownAvailable(draft, avail, key);
+
+  // This car's own trip on a day, if any. The chips above show the whole fleet;
+  // only this car's trips can be hidden by blocking this car's days.
+  const tripOn = (key) => (byDay.get(key) || []).find((b) => b.car_id === car?.id && holdsCar(b));
 
   function toggleDay(key) {
     if (!car || key < today) return;
     setErr('');
-    setDraft((prev) => {
-      const next = new Map(prev);
-      next.set(key, !isAvailable(key));
-      // A tap that lands back on the server's value is not a change.
-      const server = avail.has(key) ? avail.get(key) : true;
-      if (next.get(key) === server) next.delete(key);
-      return next;
-    });
+    setWarn('');
+    // Only blocking can hide a trip; reopening a day that is already closed is
+    // always safe and stays available.
+    const trip = tripOn(key);
+    if (isAvailable(key) && trip) {
+      setWarn(dayBlockedWarning(key, trip));
+      return;
+    }
+    setDraft((prev) => flipDay(prev, avail, key));
   }
 
-  const block = [...draft].filter(([, av]) => !av).map(([d]) => d);
-  const unblock = [...draft].filter(([, av]) => av).map(([d]) => d);
+  const { block, unblock } = pendingChanges(draft);
+  const dirty = block.length + unblock.length;
 
   async function save() {
     if (!car || (!block.length && !unblock.length)) return;
-    setSaving(true);
     setErr('');
+    setWarn('');
+    setSaving(true);
     try {
-      if (block.length) {
-        await api(`/cars/${car.id}/availability`, {
-          method: 'PUT',
-          body: { dates: block, is_available: false, reason: 'Blocked by owner' },
-        });
+      // Bookings can arrive between the load and the Save click, so the guard
+      // re-reads them (shared with the drawer) instead of trusting this page's
+      // copy. A clash refuses the whole write rather than half-applying it over
+      // a trip: the grid is stale, and the honest next step is a fresh read.
+      const clashes = await conflictingDays(car.id, block);
+      if (clashes.length) {
+        setWarn(saveConflictWarning(clashes));
+        return;
       }
-      if (unblock.length) {
-        await api(`/cars/${car.id}/availability`, {
-          method: 'PUT',
-          body: { dates: unblock, is_available: true },
-        });
-      }
+      await saveDays(car.id, { block, unblock });
       const parts = [];
       if (block.length) parts.push(`${block.length} day${block.length === 1 ? '' : 's'} blocked`);
       if (unblock.length) parts.push(`${unblock.length} reopened`);
       toast(parts.join(' · '));
       // Re-read rather than assuming: the server decides what a day now looks like.
-      const from = iso(month);
-      const to = iso(new Date(y, m + 1, 0));
-      const rows = await api(`/cars/${car.id}/availability?from=${from}&to=${to}`);
-      const map = new Map();
-      for (const r of rows || []) {
-        if (!r || !r.date) continue;
-        map.set(String(r.date).slice(0, 10), r.is_available === true || r.is_available === 1);
-      }
-      setAvail(map);
+      setAvail(await fetchMonth(car.id, month));
       setDraft(new Map());
     } catch (e) {
       setErr(e.message);
@@ -172,8 +177,6 @@ export default function Calendar() {
       setSaving(false);
     }
   }
-
-  const dirty = dirtyFrom(draft, avail);
 
   return (
     <div className="wrap">
@@ -183,7 +186,7 @@ export default function Calendar() {
           <h2>{first.toLocaleDateString('en', { month: 'long' })} <em>{y}</em></h2>
           <p className="mt">
             {car
-              ? `Tap a day to block or reopen it for ${car.make} ${car.model} (${car.plate_number}).`
+              ? `Tap a day to block or reopen it for ${car.make} ${car.model} (${car.plate_number}). Days a booking covers stay open.`
               : 'Bookings across your fleet. Add and approve a car to block its days here.'}
           </p>
         </div>
@@ -225,6 +228,13 @@ export default function Calendar() {
 
       {err && <div className="alert err" style={{ marginTop: 12 }}>{err}</div>}
 
+      {warn && (
+        <div className="alert info" style={{ marginTop: 12, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }} role="status">
+          <span style={{ flex: 1, minWidth: 220 }}><b>Can’t block.</b> {warn}</span>
+          <button className="o" type="button" onClick={() => { setWarn(''); reload?.(); }}>Refresh bookings</button>
+        </div>
+      )}
+
       <div className="card">
         {/* Skeleton only for the first round; month flips just swap the grid. */}
         {!ready ? (
@@ -246,6 +256,10 @@ export default function Calendar() {
                 const blocked = !isAvailable(key);
                 const touched = draft.has(key);
                 const past = key < today;
+                // This car's own trip on this day: the cell says so, and the tap
+                // is refused below rather than silently hatching over it.
+                const booking = tripOn(key);
+                const trip = booking ? tripLabel(booking) : '';
                 const body = (
                   <>
                     <b>{d}</b>
@@ -276,10 +290,11 @@ export default function Calendar() {
                   <button
                     key={key}
                     type="button"
-                    className={`cl${key === today ? ' t' : ''}${blocked ? ' blk' : ''}${touched ? ' touched' : ''}`}
+                    className={`cl${key === today ? ' t' : ''}${blocked ? ' blk' : ''}${touched ? ' touched' : ''}${booking && !blocked ? ' bkd' : ''}`}
                     onClick={() => toggleDay(key)}
                     aria-pressed={blocked}
-                    aria-label={`${key} ${blocked ? 'blocked, tap to reopen' : 'available, tap to block'} for ${car.make} ${car.model}`}
+                    title={booking && !blocked ? `Covered by ${trip} — cannot block` : undefined}
+                    aria-label={`${key} ${blocked ? 'blocked, tap to reopen' : booking ? `covered by ${trip}, cannot block` : 'available, tap to block'} for ${car.make} ${car.model}`}
                   >
                     {body}
                   </button>
@@ -307,12 +322,3 @@ export default function Calendar() {
   );
 }
 
-/** How many days the owner has touched that differ from the server's answer. */
-function dirtyFrom(draft, avail) {
-  let n = 0;
-  for (const [key, want] of draft) {
-    const server = avail.has(key) ? avail.get(key) : true;
-    if (want !== server) n += 1;
-  }
-  return n;
-}

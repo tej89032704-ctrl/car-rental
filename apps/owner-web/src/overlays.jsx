@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
+import {
+  bookedDays,
+  conflictingDays,
+  fetchMonth,
+  flipDay,
+  pendingChanges,
+  saveDays,
+  dayBlockedWarning,
+  saveConflictWarning,
+  shownAvailable,
+} from './availability.js';
 import { useCarStats, useData, useRequestRows } from './data.jsx';
 import { COLORS, avatarBg, carColor, dayCount, inr, inrP, pad2, rangeLabel, shortDate, todayISO } from './lib.js';
 import { Icon } from './ui.jsx';
@@ -67,7 +78,7 @@ function monthCells(month) {
 }
 
 function CarDrawer({ carId, close, toast, go }) {
-  const { cars, reload } = useData();
+  const { cars, reload, requests, completed } = useData();
   const car = cars.find((c) => c.id === carId);
   const stats = useCarStats().get(carId) || { trips: 0, earned: 0 };
 
@@ -82,8 +93,11 @@ function CarDrawer({ carId, close, toast, go }) {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
   });
-  const [blocked, setBlocked] = useState(() => new Set());
-  const [toggled, setToggled] = useState(() => new Map());
+  // Day availability, in the same shape the Calendar keeps it: the server's
+  // answer, plus a draft of only the days the owner has touched. Both come from
+  // ../availability.js, so a change to blocking behaviour lands in both places.
+  const [avail, setAvail] = useState(() => new Map());
+  const [draft, setDraft] = useState(() => new Map());
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -104,22 +118,22 @@ function CarDrawer({ carId, close, toast, go }) {
 
   useEffect(() => {
     let live = true;
-    const y = month.getFullYear();
-    const m = month.getMonth();
-    const from = `${y}-${pad(m + 1)}-01`;
-    const to = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
-    api(`/cars/${carId}/availability?from=${from}&to=${to}`)
-      .then((rows) => {
+    fetchMonth(carId, month)
+      .then((map) => {
         if (!live) return;
-        const held = (rows || [])
-          .filter((r) => !(r.is_available === true || r.is_available === 1))
-          .map((r) => r.date);
-        setBlocked(new Set(held));
-        setToggled(new Map());
+        setAvail(map);
+        setDraft(new Map());
       })
       .catch(() => { /* a month with no rows is just an empty grid */ });
     return () => { live = false; };
   }, [carId, month]);
+
+  // This car's own trips. A day a booking covers cannot be blocked from here
+  // either -- the same rule the Calendar applies, from the same helper.
+  const trips = useMemo(
+    () => bookedDays(carId, [...(requests || []), ...(completed || [])]),
+    [carId, requests, completed],
+  );
 
   if (!car) {
     return (
@@ -130,23 +144,33 @@ function CarDrawer({ carId, close, toast, go }) {
     );
   }
 
-  const isBlocked = (date) => (toggled.has(date) ? toggled.get(date) : blocked.has(date));
+  const isBlocked = (date) => !shownAvailable(draft, avail, date);
 
   function toggleDay(date) {
     if (date < todayISO()) return;
-    setToggled((prev) => {
-      const next = new Map(prev);
-      const want = !isBlocked(date);
-      if (want === blocked.has(date)) next.delete(date);
-      else next.set(date, want);
-      return next;
-    });
+    // Only blocking can hide a trip; reopening a closed day is always safe.
+    const trip = trips.get(date);
+    if (!isBlocked(date) && trip) {
+      setErr(dayBlockedWarning(date, trip));
+      return;
+    }
+    setErr('');
+    setDraft((prev) => flipDay(prev, avail, date));
   }
 
   async function save() {
     setBusy(true);
     setErr('');
     try {
+      const { block, unblock } = pendingChanges(draft);
+      // Check the booking guard before any write, so a refused save leaves the
+      // rate untouched too. It throws when the bookings could not be read.
+      const clashes = await conflictingDays(carId, block);
+      if (clashes.length) {
+        setErr(saveConflictWarning(clashes));
+        return;
+      }
+
       await api(`/cars/${carId}/pricing`, {
         method: 'PUT',
         body: {
@@ -157,14 +181,10 @@ function CarDrawer({ carId, close, toast, go }) {
         },
       });
 
-      const unblock = [...toggled.entries()].filter(([, want]) => !want).map(([d]) => d);
-      const hold = [...toggled.entries()].filter(([, want]) => want).map(([d]) => d);
-      if (hold.length) {
-        await api(`/cars/${carId}/availability`, { method: 'PUT', body: { dates: hold, is_available: false } });
-      }
-      if (unblock.length) {
-        await api(`/cars/${carId}/availability`, { method: 'PUT', body: { dates: unblock, is_available: true } });
-      }
+      await saveDays(carId, { block, unblock });
+      // Re-read rather than assuming: the server decides what a day now looks like.
+      setAvail(await fetchMonth(carId, month));
+      setDraft(new Map());
 
       // Auto-accept only travels when it actually changed, so an unrelated save
       // (a new rate, a blocked day) never rewrites the setting underneath the
