@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { getDb, nowUtc, uuid } from '../../common/db/database';
 import { writeAudit } from '../../common/audit/audit';
 import { StorageService } from '../../common/db/storage.service';
@@ -12,6 +12,13 @@ const CORE_FIELDS = ['plate_number', 'category'];
  * car that needs them, and they keep their own pending/approved status.
  */
 const CAR_DOC_TYPES = ['rc_book', 'insurance', 'puc', 'fitness', 'permit'];
+
+/**
+ * Booking statuses that hold a car for their dates. `rejected` and `cancelled`
+ * free the days again; everything else -- including a request nobody has
+ * answered yet -- is a trip that blocking a day would hide.
+ */
+const BOOKING_HOLDS = ['requested', 'pending', 'confirmed', 'ongoing', 'completed'];
 
 @Injectable()
 export class FleetService {
@@ -330,12 +337,56 @@ export class FleetService {
     return { message: 'Pricing saved' };
   }
 
+  /**
+   * Days among `dates` that a booking already covers for this car.
+   *
+   * The owner UI refuses these taps and re-reads bookings before saving, but
+   * the UI is not the only caller of this endpoint: a direct PUT that blocked a
+   * booked day would hatch over a confirmed trip and hide it from the renter.
+   * So the rule lives here as well, and this is the copy that cannot be
+   * bypassed.
+   */
+  private async bookingConflicts(carId: string, dates: string[]) {
+    if (!dates.length) return [] as any[];
+    const sorted = [...dates].sort();
+    const rows = await getDb('booking').prepare(
+      `SELECT id, start_date, end_date, status FROM bookings
+        WHERE car_id = ? AND is_deleted = 0
+          AND status IN (${BOOKING_HOLDS.map(() => '?').join(',')})
+          AND start_date <= ? AND end_date >= ?`,
+    ).all(carId, ...BOOKING_HOLDS, sorted[sorted.length - 1], sorted[0]) as any[];
+    const conflicts: any[] = [];
+    for (const date of sorted) {
+      const trip = rows.find(
+        (b) => String(b.start_date).slice(0, 10) <= date && String(b.end_date).slice(0, 10) >= date,
+      );
+      if (trip) {
+        conflicts.push({ date, booking_id: trip.id, status: trip.status, start_date: trip.start_date, end_date: trip.end_date });
+      }
+    }
+    return conflicts;
+  }
+
   async setAvailability(ownerId: string, carId: string, dates: string[], isAvailable: boolean, reason?: string) {
     await this.getOwnedCar(carId, ownerId);
     const db = this.db();
+    for (const date of dates) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new BadRequestException(`Invalid date: ${date}`);
+    }
+    // Reopening a day can never hide a trip, so the guard only watches blocks --
+    // and it runs before the transaction, so a refused request writes nothing.
+    if (!isAvailable) {
+      const conflicts = await this.bookingConflicts(carId, dates);
+      if (conflicts.length) {
+        const days = conflicts.map((c) => c.date).join(', ');
+        throw new ConflictException({
+          message: `${days} ${conflicts.length === 1 ? 'is' : 'are'} covered by a booking — the day cannot be blocked. Cancel or move the booking first.`,
+          conflicts,
+        });
+      }
+    }
     await db.transaction(async () => {
       for (const date of dates) {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new BadRequestException(`Invalid date: ${date}`);
         const existing = await db.prepare(`SELECT id FROM car_availability WHERE car_id = ? AND date = ?`).get(carId, date) as any;
         if (existing) {
           await db.prepare(`UPDATE car_availability SET is_available = ?, reason = ?, updated_at = ? WHERE id = ?`)
