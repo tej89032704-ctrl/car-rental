@@ -11,15 +11,16 @@ import { NAV } from './nav.js';
  * Every overlay the panel can raise: the car drawer, the request drawer, the
  * Add-a-car and Withdraw sheets, and the Ctrl+K palette.
  *
- * Per-car weekend-surge and auto-accept preferences live in localStorage.
- * Everything else -- rates, blocked dates, decisions, payouts -- round-trips to
- * Postgres through the real endpoints, and the drawers read by id from context
- * so an approve re-renders against fresh server state rather than a snapshot.
+ * Weekend-surge stays a localStorage preference; auto-accept is a real column on
+ * the car, because it decides server-side whether a booking needs the owner's
+ * approval. Everything else -- rates, blocked dates, decisions, payouts --
+ * round-trips to Postgres through the real endpoints, and the drawers read by id
+ * from context so an approve re-renders against fresh server state.
  */
 
 const pad = pad2;
 
-/* Per-car toggles with no backend column yet: persisted locally, per car. */
+/* Per-car toggles with no backend column yet (weekend surge): persisted locally. */
 const prefKey = (id, k) => `oh-car-${id}-${k}`;
 const readPref = (id, k) => {
   try { return localStorage.getItem(prefKey(id, k)) === '1'; } catch { return false; }
@@ -73,7 +74,10 @@ function CarDrawer({ carId, close, toast, go }) {
   const [detail, setDetail] = useState(null);
   const [rate, setRate] = useState(() => Math.round((car?.daily_rate_paise || 150000) / 100));
   const [surge, setSurge] = useState(() => readPref(carId, 'surge'));
-  const [auto, setAuto] = useState(() => readPref(carId, 'auto'));
+  // Auto-accept is server state, not a local preference: it is what decides
+  // whether this car's bookings skip the approval queue. Loaded with the car
+  // detail below and saved through /cars/:id/auto-accept.
+  const [auto, setAuto] = useState(() => Number(car?.auto_accept) === 1);
   const [month, setMonth] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
@@ -89,7 +93,11 @@ function CarDrawer({ carId, close, toast, go }) {
   useEffect(() => {
     let live = true;
     api(`/cars/${carId}`)
-      .then((d) => { if (live) setDetail(d); })
+      .then((d) => {
+        if (!live) return;
+        setDetail(d);
+        setAuto(Number(d?.auto_accept) === 1);
+      })
       .catch((e) => { if (live) setErr(e.message); });
     return () => { live = false; };
   }, [carId]);
@@ -158,8 +166,14 @@ function CarDrawer({ carId, close, toast, go }) {
         await api(`/cars/${carId}/availability`, { method: 'PUT', body: { dates: unblock, is_available: true } });
       }
 
+      // Auto-accept only travels when it actually changed, so an unrelated save
+      // (a new rate, a blocked day) never rewrites the setting underneath the
+      // owner -- or worse, flips it back on a stale read.
+      if ((auto ? 1 : 0) !== Number(detail?.auto_accept || 0)) {
+        await api(`/cars/${carId}/auto-accept`, { method: 'PUT', body: { enabled: auto } });
+      }
+
       writePref(carId, 'surge', surge);
-      writePref(carId, 'auto', auto);
       await reload();
       toast('Saved changes');
     } catch (e) {

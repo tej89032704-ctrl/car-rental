@@ -4,6 +4,15 @@ import { api } from '../api.js';
 import { RcVerifyBlock, verificationPillClass } from '../../../../packages/shared/src/RcVerify.jsx';
 import { Stars, RatingSummary } from '../../../../packages/shared/src/Reviews.jsx';
 
+/** The five document types the API accepts, in the order an owner meets them. */
+const DOC_LABEL = {
+  rc_book: 'RC book',
+  insurance: 'Insurance',
+  puc: 'PUC certificate',
+  fitness: 'Fitness certificate',
+  permit: 'Permit',
+};
+
 export default function CarEditor() {
   const { id } = useParams();
   const [car, setCar] = useState(null);
@@ -87,9 +96,9 @@ export default function CarEditor() {
 
       <div className="card">
         <h2>Documents</h2>
-        {['rc_book', 'insurance'].map((t) => (
+        {['rc_book', 'insurance', 'puc', 'fitness', 'permit'].map((t) => (
           <div key={t} className="info-row">
-            <span className="info-label">{t.replace('_', ' ')}</span>
+            <span className="info-label">{DOC_LABEL[t]}</span>
             <input type="file" onChange={(e) => e.target.files[0] && act(() => api(`/cars/${id}/documents`, { method: 'POST', form: (() => { const fd = new FormData(); fd.append('doc_type', t); fd.append('file', e.target.files[0]); return fd; })() }))} />
           </div>
         ))}

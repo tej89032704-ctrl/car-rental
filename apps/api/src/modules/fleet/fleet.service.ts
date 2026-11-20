@@ -6,6 +6,13 @@ import { enforceDemoFleetVisibility } from '../../seed-fleet';
 
 const CORE_FIELDS = ['plate_number', 'category'];
 
+/**
+ * The document types a car may carry. `rc_book` and `insurance` are still the
+ * only two review requires; the rest are evidence an owner can attach for a
+ * car that needs them, and they keep their own pending/approved status.
+ */
+const CAR_DOC_TYPES = ['rc_book', 'insurance', 'puc', 'fitness', 'permit'];
+
 @Injectable()
 export class FleetService {
   constructor(private readonly storage: StorageService) {}
@@ -253,7 +260,7 @@ export class FleetService {
 
   async addDocument(ownerId: string, carId: string, docType: string, file: Express.Multer.File) {
     await this.getOwnedCar(carId, ownerId);
-    if (!['rc_book', 'insurance'].includes(docType)) throw new BadRequestException('doc_type must be rc_book or insurance');
+    if (!CAR_DOC_TYPES.includes(docType)) throw new BadRequestException(`doc_type must be one of ${CAR_DOC_TYPES.join(', ')}`);
     const url = this.storage.save(file);
     const db = this.db();
     const existing = await db.prepare(`SELECT id FROM car_documents WHERE car_id = ? AND doc_type = ? AND is_deleted = 0`).get(carId, docType) as any;
@@ -283,6 +290,25 @@ export class FleetService {
     await this.db().prepare(`UPDATE cars SET status = 'pending_review', updated_at = ? WHERE id = ?`).run(nowUtc(), carId);
     await this.syncCarCache();
     return { message: 'Car submitted for review. Super Admin will approve or reject it.' };
+  }
+
+  /**
+   * The owner's standing yes to requests this car can legally take.
+   *
+   * Stored on the car rather than in the browser, and read by booking creation
+   * straight from this schema: a switch flipped here affects the next request,
+   * and a stale car_cache row cannot resurrect an old preference.
+   */
+  async setAutoAccept(ownerId: string, carId: string, enabled: boolean) {
+    await this.getOwnedCar(carId, ownerId);
+    await this.db()
+      .prepare(`UPDATE cars SET auto_accept = ?, updated_at = ? WHERE id = ?`)
+      .run(enabled ? 1 : 0, nowUtc(), carId);
+    await this.syncCarCache();
+    return {
+      message: enabled ? 'Auto-accept is on' : 'Auto-accept is off',
+      auto_accept: enabled ? 1 : 0,
+    };
   }
 
   async setPricing(ownerId: string, carId: string, dto: any) {
@@ -425,5 +451,11 @@ export class FleetService {
 }
 
 function doc_type_label(t: string) {
-  return t === 'rc_book' ? 'RC book' : 'Insurance';
+  return {
+    rc_book: 'RC book',
+    insurance: 'Insurance',
+    puc: 'PUC certificate',
+    fitness: 'Fitness certificate',
+    permit: 'Permit',
+  }[t] || t;
 }

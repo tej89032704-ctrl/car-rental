@@ -131,6 +131,17 @@ export class BookingsService {
     if (car.status !== 'active') throw new BadRequestException('Only active cars can be booked');
     if (car.is_deleted) throw new BadRequestException('Car is deleted');
 
+    // Auto-accept is the owner's standing yes: a request for a car with the
+    // setting on is created where the Approve button would have left it --
+    // confirmed, with the renter told to pay the 20% -- so no manual step is
+    // needed. Read from the fleet schema rather than car_cache so the switch
+    // takes effect on the next request instead of on the next cache sync.
+    const settings = await getDb('fleet')
+      .prepare(`SELECT auto_accept FROM cars WHERE id = ? AND is_deleted = 0`)
+      .get(body.car_id) as any;
+    const autoAccepted = Number(settings?.auto_accept) === 1;
+    const status = autoAccepted ? 'confirmed' : 'requested';
+
     // Accept either 'YYYY-MM-DD' or a full ISO datetime; normalize to a UTC day string
     // so downstream consumers (cancel/extension/sweep) can rely on date-only values.
     const toUtcDay = (s: string) => {
@@ -150,22 +161,31 @@ export class BookingsService {
 
     const id = uuid();
     await this.db().prepare(`INSERT INTO bookings (id, car_id, renter_id, owner_id, start_date, end_date, status, total_amount_paise, online_paid_paise, remaining_due_paise, security_deposit_paise, late_fee_paise, completed_at, cancelled_at, is_deleted, created_at, updated_at, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, 'requested', ?, 0, ?, ?, 0, NULL, NULL, 0, ?, ?, ?)`)
-      .run(id, body.car_id, renterId, car.owner_id, startDay, endDay, total, total,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, NULL, NULL, 0, ?, ?, ?)`)
+      .run(id, body.car_id, renterId, car.owner_id, startDay, endDay, status, total, total,
         car.security_deposit_paise || 0, now, now, renterId);
 
     writeAudit('booking', {
-      actor_id: renterId, action: 'booking.requested', entity_type: 'booking',
+      actor_id: renterId,
+      action: autoAccepted ? 'booking.auto_approved' : 'booking.requested',
+      entity_type: 'booking',
       entity_id: id, after_value: { car_id: body.car_id, start_date: body.start_date, end_date: body.end_date, total_amount_paise: total },
     });
 
     await this.db().prepare(`UPDATE car_cache SET is_available = 0 WHERE id = ?`).run(body.car_id);
 
     const renter = await getDb('auth').prepare(`SELECT name FROM users WHERE id = ?`).get(renterId) as any;
-    await this.notifier.notify(car.owner_id, 'booking', 'New booking request',
-      `${renter?.name ?? 'A renter'} requested ${car.brand} ${car.model} (${body.start_date} → ${body.end_date})`, renterId);
+    await this.notifier.notify(car.owner_id, 'booking',
+      autoAccepted ? 'New booking — auto-accepted' : 'New booking request',
+      autoAccepted
+        ? `${renter?.name ?? 'A renter'} booked ${car.brand} ${car.model} (${body.start_date} → ${body.end_date}). Your auto-accept setting confirmed it.`
+        : `${renter?.name ?? 'A renter'} requested ${car.brand} ${car.model} (${body.start_date} → ${body.end_date})`, renterId);
+    if (autoAccepted) {
+      await this.notifier.notify(renterId, 'booking', 'Booking confirmed!',
+        `Your booking for ${car.brand} ${car.model} was accepted automatically. Pay 20% online in My Bookings to confirm.`, car.owner_id);
+    }
 
-    return { id, status: 'requested', total_amount_paise: total, car: { id: car.id, brand: car.brand, model: car.model, plate: car.plate, price_paise_per_day: car.price_paise_per_day, image_url: car.image_url } };
+    return { id, status, total_amount_paise: total, car: { id: car.id, brand: car.brand, model: car.model, plate: car.plate, price_paise_per_day: car.price_paise_per_day, image_url: car.image_url } };
   }
 
   // ---------- Renter / Owner: my bookings ----------

@@ -242,7 +242,7 @@ export default function Cars() {
 
       <div className="fd">
         <div className="chs">
-          {[['all', 'All'], ['live', 'Live'], ['paused', 'Paused']].map(([k, label]) => (
+          {[['all', 'All'], ['live', 'Approved'], ['paused', 'Paused']].map(([k, label]) => (
             <button key={k} className={`ch2 ${filter === k ? 'on' : ''}`} onClick={() => setFilter(k)}>
               {label}
             </button>
@@ -282,7 +282,7 @@ export default function Cars() {
               <div className="stage">
                 <div className="chip">
                   <span className={`dot ${live ? '' : 'off'}`} />
-                  {live ? 'Live' : car.status === 'pending_review' ? 'In review' : car.status.replace('_', ' ')}
+                  {live ? 'Approved' : car.status === 'pending_review' ? 'In review' : car.status.replace('_', ' ')}
                 </div>
                 <CarArt category={car.category} color={carColor(car.id)} />
               </div>

@@ -102,6 +102,12 @@ export class FleetController {
     return await this.fleet.setPricing(req.user.id, id, this.parse(pricingSchema, body));
   }
 
+  @Roles('car_owner') @Put('cars/:id/auto-accept')
+  async autoAccept(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
+    const dto = this.parse(z.object({ enabled: z.boolean() }), body);
+    return await this.fleet.setAutoAccept(req.user.id, id, dto.enabled);
+  }
+
   @Roles('car_owner') @Put('cars/:id/availability')
   async availability(@Req() req: any, @Param('id') id: string, @Body() body: unknown) {
     const dto = this.parse(availabilitySchema, body);
