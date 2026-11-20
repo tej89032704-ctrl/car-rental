@@ -33,10 +33,12 @@ services:
         value: production
       - key: JWT_SECRET
         generateValue: true
+      # Managed in the dashboard (Environment → DATABASE_URL), not pulled from
+      # the Render database below: that free instance expired on 17 Nov 2026
+      # and the app now runs on a free Neon Postgres in Oregon. `sync: false`
+      # keeps a blueprint sync from overwriting the dashboard value.
       - key: DATABASE_URL
-        fromDatabase:
-          name: car-rental-db
-          property: connectionString
+        sync: false
       # Render's internal database hostname has no dot, so the API connects
       # without TLS; a public host (Supabase, Neon, Render's external URL) is
       # detected from the hostname and uses TLS. Override with DB_SSL=require or
