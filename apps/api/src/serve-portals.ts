@@ -77,10 +77,24 @@ export function servePortals(app: NestExpressApplication): void {
     mounted += 1;
   }
 
-  // The entry point. Root is not a portal, so send visitors to the public one.
+  // The entry point. The bare domain is the sign-in screen, not the browse page:
+  // everyone here is on their way into a portal, and each role has its own half
+  // of the split document. `/renter` still serves the public browse landing page
+  // for anyone who wants to look before signing in.
+  //
+  // Served directly rather than redirected so the URL stays the bare domain. The
+  // document works from there: its assets are inline, its API calls are absolute
+  // (/api/...), and its role routing falls back to `/renter/` when the path is
+  // not under a portal prefix — so a renter lands on /renter and an owner is
+  // handed to /owner through window.name, exactly as from /renter/login.
+  //
   // Reached through the Express instance rather than app.get(), which Nest
   // reserves for resolving providers from the DI container.
-  app.getHttpAdapter().getInstance().get('/', (_req: any, res: any) => res.redirect('/renter'));
+  const entrySplit = path.resolve(REPO_ROOT, 'apps/renter-web/dist/login-split.html');
+  app.getHttpAdapter().getInstance().get('/', (_req: any, res: any) => {
+    if (fs.existsSync(entrySplit)) return res.sendFile(entrySplit);
+    res.redirect('/renter');
+  });
 
   // Anything unmatched is a stray root-level link from before the portals moved
   // under prefixes; land it in the renter SPA rather than a bare Nest 404. API
