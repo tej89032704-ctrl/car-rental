@@ -20,6 +20,19 @@ import KycVerify from '../../../../packages/shared/src/KycVerify.jsx';
  * not try to reproduce.
  */
 
+/**
+ * What each document step actually accepts.
+ *
+ * "Identity document" on its own means nothing to someone standing there with a
+ * PAN card, so the step names the papers the reviewer will accept. Aadhaar is
+ * listed first on purpose: the API verifies it against the UIDAI record and
+ * approves it without a human, while the rest go to manual review.
+ */
+const DOC_HINTS = {
+  id_proof: 'Aadhaar, PAN card, passport or driving licence — photo or PDF',
+  address_proof: 'Aadhaar, electricity bill, rent agreement or bank statement — photo or PDF',
+};
+
 const TONE = {
   approved: { bg: 'color-mix(in srgb, var(--ok) 16%, transparent)', fg: 'var(--ok)', glyph: '✓' },
   pending: { bg: 'color-mix(in srgb, var(--acc) 14%, transparent)', fg: 'var(--acc)', glyph: '…' },
@@ -62,12 +75,21 @@ export default function Kyc() {
     return { key: type, label, tone: 'pending', text: 'In review' };
   }
 
+  /**
+   * The accepted papers are only worth repeating while the step still needs
+   * something from the user -- once it is approved the line is just clutter.
+   */
+  function withHint(step) {
+    if (step.tone === 'approved') return step;
+    return { ...step, hint: DOC_HINTS[step.key] };
+  }
+
   const rcVerified = cars.some((c) => c.verification_status === 'verified');
   const rcStarted = cars.some((c) => c.verification_status && c.verification_status !== 'unverified');
 
   const steps = [
-    docStep('id_proof', 'Identity document'),
-    docStep('address_proof', 'Address proof'),
+    withHint(docStep('id_proof', 'Identity document')),
+    withHint(docStep('address_proof', 'Address proof')),
     user?.phone
       ? { key: 'phone', label: 'Phone number', tone: 'approved', text: user.phone }
       : { key: 'phone', label: 'Phone number', tone: 'action', text: 'Not added', action: 'Complete', go: '/profile' },
@@ -156,6 +178,7 @@ export default function Kyc() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <b>{step.label}</b>
                   <div className="mt" style={{ fontSize: 13 }}>{step.text}</div>
+                  {step.hint && <div className="mt" style={{ fontSize: 12, marginTop: 2 }}>{step.hint}</div>}
                 </div>
 
                 {step.docType && (
