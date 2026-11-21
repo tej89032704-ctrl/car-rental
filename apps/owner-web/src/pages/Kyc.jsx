@@ -32,6 +32,28 @@ const DOC_HINTS = {
   id_proof: 'Aadhaar, PAN card, passport or driving licence — photo or PDF',
   address_proof: 'Aadhaar, electricity bill, rent agreement or bank statement — photo or PDF',
 };
+/**
+ * What the upload button offers, in the order the reviewer prefers it.
+ *
+ * The file dialog alone cannot say which document it is opening for, and the
+ * API files an upload under a `doc_type` -- sending a PAN card as "aadhaar"
+ * would claim a UIDAI check that never happened. Naming the paper first also
+ * lets Aadhaar take the instant-verification path instead of manual review.
+ */
+const DOC_CHOICES = {
+  id_proof: [
+    { key: 'aadhaar', label: 'Aadhaar card', docType: 'aadhaar', note: 'Verified instantly' },
+    { key: 'pan', label: 'PAN card', docType: 'id_proof' },
+    { key: 'passport', label: 'Passport', docType: 'id_proof' },
+    { key: 'licence', label: 'Driving licence', docType: 'driving_license' },
+  ],
+  address_proof: [
+    { key: 'aadhaar', label: 'Aadhaar card', docType: 'address_proof' },
+    { key: 'bill', label: 'Electricity bill', docType: 'address_proof' },
+    { key: 'rent', label: 'Rent agreement', docType: 'address_proof' },
+    { key: 'bank', label: 'Bank statement', docType: 'address_proof' },
+  ],
+};
 
 const TONE = {
   approved: { bg: 'color-mix(in srgb, var(--ok) 16%, transparent)', fg: 'var(--ok)', glyph: '✓' },
@@ -47,7 +69,12 @@ export default function Kyc() {
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const [grown, setGrown] = useState(false);
+  // The step whose document chooser is open, if any.
+  const [picking, setPicking] = useState(null);
   const fileRefs = useRef({});
+  // What the user picked in the chooser, read when the file dialog answers.
+  // Only one chooser can be open at a time, so one slot is enough.
+  const pendingDoc = useRef(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setGrown(true));
@@ -57,39 +84,43 @@ export default function Kyc() {
   const user = profile?.user;
   const docs = kyc?.documents || [];
 
-  /** Newest document of a type wins -- a re-upload supersedes the first. */
-  const docFor = (type) => docs
-    .filter((d) => d.doc_type === type)
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+  /**
+   * Newest document of a type wins -- a re-upload supersedes the first.
+   *
+   * An Aadhaar card fills the identity slot too (the API treats it as an id
+   * proof), so the step must not read "Not uploaded yet" after one is filed.
+   */
+  const docFor = (type) => {
+    const types = type === 'id_proof' ? ['id_proof', 'aadhaar'] : [type];
+    return docs
+      .filter((d) => types.includes(d.doc_type))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+  };
 
+  /**
+   * A document step. The accepted papers ride along only while the step still
+   * needs something -- an approved step has no hint to give.
+   */
   function docStep(type, label) {
     const d = docFor(type);
-    if (!d) return { key: type, label, tone: 'action', text: 'Not uploaded yet', action: 'Upload', docType: type };
+    const hint = DOC_HINTS[type];
+    if (!d) return { key: type, label, tone: 'action', text: 'Not uploaded yet', action: 'Upload', docType: type, hint };
     if (d.status === 'approved') return { key: type, label, tone: 'approved', text: 'Approved' };
     if (d.status === 'rejected') {
       return {
-        key: type, label, tone: 'rejected', docType: type, action: 'Re-upload',
+        key: type, label, tone: 'rejected', docType: type, action: 'Re-upload', hint,
         text: d.rejection_reason ? `Rejected — ${d.rejection_reason}` : 'Rejected — upload it again',
       };
     }
-    return { key: type, label, tone: 'pending', text: 'In review' };
-  }
-
-  /**
-   * The accepted papers are only worth repeating while the step still needs
-   * something from the user -- once it is approved the line is just clutter.
-   */
-  function withHint(step) {
-    if (step.tone === 'approved') return step;
-    return { ...step, hint: DOC_HINTS[step.key] };
+    return { key: type, label, tone: 'pending', text: 'In review', hint };
   }
 
   const rcVerified = cars.some((c) => c.verification_status === 'verified');
   const rcStarted = cars.some((c) => c.verification_status && c.verification_status !== 'unverified');
 
   const steps = [
-    withHint(docStep('id_proof', 'Identity document')),
-    withHint(docStep('address_proof', 'Address proof')),
+    docStep('id_proof', 'Identity document'),
+    docStep('address_proof', 'Address proof'),
     user?.phone
       ? { key: 'phone', label: 'Phone number', tone: 'approved', text: user.phone }
       : { key: 'phone', label: 'Phone number', tone: 'action', text: 'Not added', action: 'Complete', go: '/profile' },
@@ -110,22 +141,36 @@ export default function Kyc() {
 
   async function upload(step, file) {
     if (!file || !step.docType) return;
+    const picked = pendingDoc.current?.stepKey === step.key
+      ? pendingDoc.current
+      : { docType: step.docType, label: step.label };
     setBusy(step.key);
     setErr('');
     try {
       const fd = new FormData();
-      fd.append('doc_type', step.docType);
+      fd.append('doc_type', picked.docType);
       fd.append('file', file);
       const r = await api('/kyc/documents', { method: 'POST', form: fd });
       await reload();
       setGrown(true);
-      toast(r?.verify_detail || `${step.label} uploaded. Awaiting review.`);
+      toast(r?.verify_detail || `${picked.label} uploaded. Awaiting review.`);
     } catch (e) {
       setErr(e.message);
     } finally {
       setBusy('');
+      pendingDoc.current = null;
       if (fileRefs.current[step.key]) fileRefs.current[step.key].value = '';
     }
+  }
+
+  /**
+   * Remember which paper was chosen, then open the file dialog from inside the
+   * same click so the browser still treats it as a user gesture.
+   */
+  function chooseDocument(step, choice) {
+    pendingDoc.current = { ...choice, stepKey: step.key };
+    fileRefs.current[step.key]?.click();
+    setPicking(null);
   }
 
   return (
@@ -192,7 +237,7 @@ export default function Kyc() {
                     />
                     {step.action && (
                       <button className="o" disabled={busy === step.key}
-                        onClick={() => fileRefs.current[step.key]?.click()}>
+                        onClick={() => setPicking(step)}>
                         {busy === step.key ? 'Uploading…' : step.action}
                       </button>
                     )}
@@ -206,6 +251,47 @@ export default function Kyc() {
           })}
         </div>
       </div>
+
+      {picking && (
+        <div className="mdl on" onClick={() => setPicking(null)}>
+          <div
+            className="sheet modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Choose the document to upload"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="dp">
+              <div className="ey">Upload</div>
+              <h3 className="sf" style={{ fontSize: 24, marginBottom: 6 }}>
+                Which document is this?
+              </h3>
+              <p className="mt" style={{ fontSize: 13, marginBottom: 16 }}>
+                Pick the paper first, then choose the file from your device.
+              </p>
+              <div className="spd">
+                {(DOC_CHOICES[picking.key] || []).map((choice) => (
+                  <button
+                    key={choice.key}
+                    className="o"
+                    onClick={() => chooseDocument(picking, choice)}
+                  >
+                    {choice.label}
+                    {choice.note && (
+                      <small className="mt" style={{ fontWeight: 400, fontSize: 12, marginLeft: 8 }}>
+                        {choice.note}
+                      </small>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+                <button className="o" onClick={() => setPicking(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="page-section-title">Document verification</div>
       <p className="mt" style={{ marginTop: -6, marginBottom: 16 }}>

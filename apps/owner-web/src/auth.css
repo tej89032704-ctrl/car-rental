@@ -44,7 +44,7 @@
     radial-gradient(ellipse 600px 400px at 20% 30%, color-mix(in srgb, var(--acc) 10%, transparent) 0%, transparent 70%),
     radial-gradient(ellipse 500px 500px at 80% 70%, color-mix(in srgb, var(--acc) 7%, transparent) 0%, transparent 70%);
   pointer-events: none;
-  animation: authBgShift 12s ease-in-out infinite;
+  animation: authBgShift 18s ease-in-out infinite;
   background-size: 200% 200%;
 }
 .auth-shell::after {
@@ -368,7 +368,6 @@
   background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0;
   animation: auroraDrift 28s ease-in-out infinite;
 }
-.auth-shell::before { animation-duration: 18s; }
 .auth-shell::after {
   width: 440px;
   height: 440px;
