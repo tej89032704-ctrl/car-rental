@@ -307,3 +307,197 @@
 .auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--muted); font-size: 13px; }
 .auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 .auth-split { display: none; }
+
+/* ═══════════════════════════════════════════════════════
+   LIVE LAYER — ambient background, hover feedback and
+   always-on motion for the auth / onboarding screens.
+   Everything here is decorative: no layout depends on it,
+   and the block at the bottom switches it all off for
+   visitors who ask for reduced motion.
+   ═══════════════════════════════════════════════════════ */
+
+@property --auth-turn { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+@keyframes auroraDrift {
+  0%, 100% { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0; }
+  50%      { background-position: 45% 35%, 55% 30%, 60% 55%, 40% 60%, 0 0; }
+}
+@keyframes spinEdge { to { --auth-turn: 360deg; } }
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(26px, -34px) scale(1.08); }
+  66%      { transform: translate(-18px, 22px) scale(0.94); }
+}
+@keyframes riseIn { from { opacity: 0; transform: translateY(14px); } }
+@keyframes focusBreathe {
+  0%, 100% { box-shadow: 0 0 0 4px var(--acc-soft); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--acc) 12%, transparent); }
+}
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--acc) 55%, transparent); opacity: 1; }
+  70%      { box-shadow: 0 0 0 7px transparent; opacity: 0.7; }
+}
+@keyframes saveSweep { to { transform: translateX(100%); } }
+@keyframes popIn { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
+@keyframes shakeIn {
+  0%   { opacity: 0; transform: translateX(-10px); }
+  35%  { transform: translateX(7px); }
+  60%  { transform: translateX(-4px); }
+  80%  { transform: translateX(2px); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* ---------- 1. background: slow aurora, dot field, drifting orb ---------- */
+/* The shared .btn tokens still carry PIT LANE's amber gradient, which mixes
+   into a green-to-orange CTA now that the owner theme re-points --acc to mint.
+   Re-pointing them here keeps every auth-screen action on the owner palette. */
+.auth-shell {
+  --acc-grad: linear-gradient(180deg, #38ffb8, #00e28a);
+  --acc-ink: #032016;
+  --acc-text: #00875a;
+  --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(55% 45% at 12% 18%, color-mix(in srgb, var(--acc) 18%, transparent), transparent 72%),
+    radial-gradient(45% 50% at 88% 12%, color-mix(in srgb, var(--acc) 13%, transparent), transparent 70%),
+    radial-gradient(55% 55% at 78% 88%, color-mix(in srgb, var(--acc) 15%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 22% 82%, color-mix(in srgb, var(--acc) 11%, transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 0);
+  background-size: 180% 180%, 180% 180%, 180% 180%, 180% 180%, 24px 24px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0;
+  animation: auroraDrift 28s ease-in-out infinite;
+}
+.auth-shell::before { animation-duration: 18s; }
+.auth-shell::after {
+  width: 440px;
+  height: 440px;
+  bottom: -140px;
+  left: -120px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--acc) 14%, transparent) 0%, transparent 68%);
+  filter: blur(6px);
+  animation: orbDrift 13s ease-in-out infinite;
+}
+
+/* ---------- 2. card: rotating edge, lift on hover ---------- */
+.auth-card-center {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s ease;
+  box-shadow: var(--shadow-lg), 0 34px 60px -44px color-mix(in srgb, var(--acc) 55%, transparent);
+}
+.auth-card-center:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg), 0 40px 70px -40px color-mix(in srgb, var(--acc) 60%, transparent);
+}
+.auth-card-center::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 21px;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--auth-turn),
+    transparent 0deg,
+    color-mix(in srgb, var(--acc) 80%, transparent) 55deg,
+    transparent 130deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: spinEdge 7s linear infinite;
+  pointer-events: none;
+}
+
+/* ---------- 3. content: staggered entrance, pulsing tag ---------- */
+.auth-card-center .portal-tag::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--acc);
+  vertical-align: middle;
+  animation: dotPulse 2.4s ease-out infinite;
+}
+.auth-card-center .field { animation: riseIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.auth-card-center form .field:nth-child(1) { animation-delay: 0.06s; }
+.auth-card-center form .field:nth-child(2) { animation-delay: 0.12s; }
+.auth-card-center form .field:nth-child(3) { animation-delay: 0.18s; }
+.auth-card-center form .field:nth-child(4) { animation-delay: 0.24s; }
+.auth-card-center form .field:nth-child(5) { animation-delay: 0.30s; }
+.auth-card-center form .field:nth-child(6) { animation-delay: 0.36s; }
+.auth-card-center form .field:nth-child(7) { animation-delay: 0.42s; }
+
+/* ---------- 4. hover + focus feedback on controls ---------- */
+.auth-card-center label.f { transition: color 0.25s ease, letter-spacing 0.25s ease; }
+.auth-card-center .field:hover label.f { color: var(--acc); letter-spacing: 0.01em; }
+
+.auth-card-center input.f,
+.auth-card-center select.f {
+  transition: border-color 0.25s ease, box-shadow 0.3s ease, transform 0.25s ease, background 0.25s ease;
+}
+.auth-card-center input.f:hover,
+.auth-card-center select.f:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px -18px color-mix(in srgb, var(--acc) 80%, transparent);
+}
+.auth-card-center input.f:focus,
+.auth-card-center select.f:focus {
+  transform: translateY(-1px);
+  animation: focusBreathe 2.6s ease-in-out infinite;
+}
+
+.sug-pop { animation: popIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.sug-item { transition: background 0.2s ease, transform 0.2s ease; }
+.sug-item:hover { transform: translateX(3px); }
+
+.location-picker-map {
+  border-radius: 14px;
+  transition: box-shadow 0.4s ease, transform 0.4s ease;
+}
+.location-picker-map:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 44px -30px color-mix(in srgb, var(--acc) 70%, transparent);
+}
+.location-results > * { transition: background 0.2s ease, transform 0.2s ease; }
+.location-results > *:hover { transform: translateX(3px); }
+
+.auth-card-center .btn-full:disabled { position: relative; overflow: hidden; }
+.auth-card-center .btn-full:disabled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.4) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: saveSweep 1.6s ease-in-out infinite;
+}
+
+.auth-card-center > p button {
+  transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.auth-card-center > p button:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--acc) 10%, transparent) !important;
+}
+
+.alert.err { animation: shakeIn 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+
+/* ---------- 5. respect the visitor's motion preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell,
+  .auth-shell::before,
+  .auth-shell::after,
+  .auth-card-center,
+  .auth-card-center::after,
+  .auth-card-center .field,
+  .auth-card-center .portal-tag::before,
+  .auth-card-center .btn-full:disabled::after,
+  .sug-pop,
+  .alert.err {
+    animation: none !important;
+    transition: none !important;
+  }
+  .auth-card-center .field { opacity: 1; transform: none; }
+}

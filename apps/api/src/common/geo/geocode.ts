@@ -277,11 +277,128 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
     `&format=jsonv2&addressdetails=1&zoom=18`;
 
   const body: any = await queued(() => send(url));
-  if (!body || typeof body !== 'object' || body.error) return null;
-
-  const parts = toAddressParts(body.address, firstString(body.display_name));
+  const nominatim =
+    body && typeof body === 'object' && !body.error
+      ? toAddressParts(body.address, firstString(body.display_name))
+      : null;
+  // An empty answer is as useless as a failed one: the form would clear nothing
+  // and the user would see a pin with no address beside it.
+  let parts = nominatim && hasAddress(nominatim) ? nominatim : await fallbackReverse(latitude, longitude);
+  if (!parts) return null;
+  // Photon knows the street but files the taluk as the city ("Bangalore South"
+  // for a point in Bengaluru). Fill the gaps from the second provider only when
+  // something is actually missing, so the common case is one request.
+  if (!parts.city) {
+    const wider = await bigDataCloudAddress(latitude, longitude);
+    if (wider) {
+      parts = {
+        address_line: parts.address_line || wider.city,
+        city: wider.city || parts.city,
+        state: parts.state || wider.state,
+        pincode: parts.pincode || wider.pincode,
+        label: parts.label || wider.city,
+      };
+    }
+  }
   lookupSet(key, parts);
   return parts;
+}
+
+/**
+ * A point -> address when Nominatim has nothing to say, best effort.
+ *
+ * The public Nominatim instance refuses much datacentre traffic, and a Render
+ * dyno is exactly that: in production every lookup came back empty, so "Use my
+ * location" dropped a pin and left the address boxes blank. Two keyless
+ * services over the same OpenStreetMap data cover for it: Photon for the
+ * street-level line (it carries house numbers and neighbourhoods) and
+ * BigDataCloud for the city/state/PIN, which Photon often files under the
+ * county instead. Either alone leaves a hole; together they fill all four.
+ */
+async function fallbackReverse(latitude: number, longitude: number): Promise<AddressParts | null> {
+  const photon = await photonReverse(latitude, longitude);
+  if (photon) return photon;
+
+  const wider = await bigDataCloudAddress(latitude, longitude);
+  if (!wider) return null;
+  return {
+    // Nothing street-level survived, so the finest name available stands in for
+    // the address line rather than leaving the box empty.
+    address_line: wider.city,
+    city: wider.city,
+    state: wider.state,
+    pincode: wider.pincode,
+    label: wider.city,
+  };
+}
+
+/** True when a lookup actually named something, rather than returning {}. */
+function hasAddress(a: AddressParts): boolean {
+  return Boolean(a.address_line || a.city || a.state || a.pincode);
+}
+
+/**
+ * Photon (komoot) reverse lookup: street-level detail, keyless.
+ *
+ * Photon names its fields slightly differently (housenumber/street/district),
+ * so its properties are folded into the Nominatim shape before parsing.
+ */
+const PHOTON_REVERSE = 'https://photon.komoot.io/reverse';
+const BDC_ENDPOINT = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
+
+/** City/state/PIN for a point, keyless. `null` when the service is unreachable. */
+async function bigDataCloudAddress(latitude: number, longitude: number) {
+  try {
+    const res = await fetch(
+      `${BDC_ENDPOINT}?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+      {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      },
+    );
+    if (!res.ok) return null;
+    const body: any = await res.json();
+    const city = firstString(body?.city, body?.locality, body?.principalSubdivision);
+    return {
+      city,
+      state: firstString(body?.principalSubdivision),
+      pincode: firstString(body?.postcode).replace(/[^0-9]/g, '').slice(0, 6),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function photonReverse(latitude: number, longitude: number): Promise<AddressParts | null> {
+  const url = `${PHOTON_REVERSE}?lat=${latitude}&lon=${longitude}&limit=1&lang=en`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    const body: any = await res.json();
+    const props = body?.features?.[0]?.properties;
+    if (!props || typeof props !== 'object') return null;
+
+    const parts = toAddressParts(
+      {
+        house_number: props.housenumber,
+        road: firstString(props.street, props.housename),
+        suburb: firstString(props.district, props.locality, props.neighbourhood),
+        // Deliberately no `county`: Photon's county for a Bengaluru point is the
+        // taluk ("Bangalore South"), and handing that to the parser as the city
+        // would stop the wider lookup below from ever finding the real one.
+        city: firstString(props.city, props.town, props.village, props.municipality),
+        state: props.state,
+        postcode: props.postcode,
+      },
+      firstString(props.name, props.street, props.city),
+    );
+    return hasAddress(parts) ? parts : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

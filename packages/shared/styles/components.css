@@ -284,3 +284,60 @@
 /* ── Focus visibility (accessibility) ── */
 :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 ::selection { background: var(--acc-soft); }
+
+/* ── Gender picker: icon radios ─────────────────────────────────────────────
+   Ported from the Tailwind chip design: a tinted disc per option that scales
+   and rings when chosen, with a colour burst that expands from behind it.
+   Written in the shared layer because ProfileDetails is used by every portal;
+   the disc colour mixes with --card so it follows light and dark themes. */
+.gpick { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 10px 0 4px; }
+.gchip {
+  position: relative; width: 54px; height: 54px; display: grid; place-items: center;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  --chip-ring: #3b82f6;
+  --chip-bg: color-mix(in srgb, var(--chip-ring) 16%, var(--card));
+  --chip-burst: color-mix(in srgb, var(--chip-ring) 30%, var(--card));
+}
+.gchip[data-g="male"] { --chip-ring: #3b82f6; }
+.gchip[data-g="female"] { --chip-ring: #ec4899; }
+.gchip[data-g="non_binary"] { --chip-ring: #a855f7; }
+.gchip[data-g="other"] { --chip-ring: #a3a3a3; }
+.gchip[data-g="prefer_not_to_say"] { --chip-ring: #9ca3af; }
+.gchip input {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+  opacity: 0; cursor: pointer; z-index: 3;
+}
+/* Soft halo that blooms behind the chosen disc. Kept small and blurred so it
+   stays inside the chip instead of spreading over the rest of the form. */
+.gburst {
+  position: absolute; inset: -7px; border-radius: 50%; background: var(--chip-burst);
+  opacity: 0; filter: blur(7px); transform: scale(0.55); z-index: 0;
+  transition: opacity 0.35s ease, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.gdisc {
+  position: relative; z-index: 1; width: 100%; height: 100%; border-radius: 50%;
+  display: grid; place-items: center; background: var(--chip-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: transform 0.3s cubic-bezier(0.3, 1.5, 0.5, 1), box-shadow 0.3s ease;
+}
+.gchip svg {
+  width: 26px; height: 26px; display: block; fill: none; stroke: var(--chip-ring);
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.gchip[data-g="female"] svg,
+.gchip[data-g="non_binary"] svg,
+.gchip[data-g="other"] svg { stroke: none; fill: var(--chip-ring); }
+.gchip:hover .gdisc { transform: translateY(-2px) scale(1.06); }
+.gchip:hover svg { transform: scale(1.08) rotate(-4deg); }
+.gchip input:checked ~ .gburst { opacity: 0.85; transform: scale(1); }
+.gchip input:checked ~ .gdisc {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px var(--chip-ring), 0 8px 18px -8px var(--chip-ring);
+}
+.gchip input:focus-visible ~ .gdisc { outline: 2px solid var(--acc); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gchip .gdisc, .gchip svg, .gburst { transition: none !important; }
+  .gchip:hover .gdisc, .gchip:hover svg { transform: none !important; }
+}
