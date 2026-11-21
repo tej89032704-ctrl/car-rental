@@ -197,6 +197,11 @@ export interface AddressParts {
   state: string;
   pincode: string;
   label: string;
+  /**
+   * Administrative district behind a fallback answer, kept only so the caller
+   * can use it when no city lookup succeeds. Never displayed on its own.
+   */
+  county?: string;
 }
 
 /** A place a PIN code covers, as offered to the user to pick from. */
@@ -292,6 +297,7 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
     const wider = await bigDataCloudAddress(latitude, longitude);
     if (wider) {
       parts = {
+        ...parts,
         address_line: parts.address_line || wider.city,
         city: wider.city || parts.city,
         state: parts.state || wider.state,
@@ -299,6 +305,10 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
         label: parts.label || wider.city,
       };
     }
+    // Still nothing: the service that supplies city names is unreachable from
+    // this host. The district name at least puts a real place in the box, and
+    // the box is editable, which beats leaving it blank.
+    if (!parts.city && parts.county) parts = { ...parts, city: parts.county };
   }
   lookupSet(key, parts);
   return parts;
@@ -395,7 +405,9 @@ async function photonReverse(latitude: number, longitude: number): Promise<Addre
       },
       firstString(props.name, props.street, props.city),
     );
-    return hasAddress(parts) ? parts : null;
+    if (!hasAddress(parts)) return null;
+    const county = firstString(props.county, props.state_district, props.city_district);
+    return county ? { ...parts, county } : parts;
   } catch {
     return null;
   }
