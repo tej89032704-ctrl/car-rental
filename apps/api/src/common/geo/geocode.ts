@@ -168,9 +168,146 @@ export async function geocode(query: string): Promise<GeocodeHit[] | null> {
   const cached = cacheGet(key);
   if (cached) return cached;
 
-  const hits = await queued(() => requestNow(trimmed));
+  const primary = await queued(() => requestNow(trimmed));
+  // Nominatim refuses datacentre traffic, so a Render deployment gets nothing
+  // back for every query. When it has no answer -- unreachable or no match --
+  // the same Photon fallback the reverse lookup uses answers instead.
+  const hits = primary && primary.length ? primary : await photonSearch(trimmed);
   if (hits === null) return null;
   cacheSet(key, hits);
+  return hits;
+}
+
+/**
+ * Photon (komoot) free-text search, used when Nominatim has nothing.
+ *
+ * Photon returns GeoJSON features rather than Nominatim's flat rows, and its
+ * labels are a set of parts rather than one display string, so the name, city,
+ * state and country are joined and de-duplicated ("Bengaluru, Bengaluru" reads
+ * like a bug). Coordinates arrive as [lon, lat], the opposite order to
+ * everything else in this file.
+ */
+const PHOTON_SEARCH = 'https://photon.komoot.io/api';
+
+/** Raw features for a query: `null` when the service could not be reached. */
+async function photonFeatures(query: string, limit = LIMIT): Promise<any[] | null> {
+  const url = `${PHOTON_SEARCH}?q=${encodeURIComponent(query)}&limit=${limit}&lang=en`;
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    const body: any = await res.json();
+    return Array.isArray(body?.features) ? body.features : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The city behind a PIN code, from India Post's public PIN directory.
+ *
+ * Keyless and authoritative: the district that owns the post office is the
+ * city a person names (560066 -> Bangalore), while the OSM data Photon reads
+ * files the same point under a zone. Suffixes like "Urban", "Rural" and
+ * "Suburban" are dropped so Mumbai Suburban becomes Mumbai rather than a name
+ * nobody writes as their city.
+ */
+const PIN_API = 'https://api.postalpincode.in/pincode';
+
+async function postalCity(pincode: string): Promise<string> {
+  if (!/^\d{6}$/.test(pincode)) return '';
+  try {
+    const res = await fetch(`${PIN_API}/${pincode}`, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) return '';
+    const body: any = await res.json();
+    const row = Array.isArray(body) ? body[0] : null;
+    const offices = Array.isArray(row?.PostOffice) ? row.PostOffice : [];
+
+    const counts = new Map<string, number>();
+    for (const office of offices) {
+      const district = firstString(office?.District).replace(/\s+(urban|rural|suburban)$/i, '');
+      if (!district) continue;
+      counts.set(district, (counts.get(district) || 0) + 1);
+    }
+
+    let best = '';
+    let bestCount = 0;
+    for (const [district, count] of counts) {
+      if (count > bestCount) {
+        best = district;
+        bestCount = count;
+      }
+    }
+    return best;
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * The city behind a PIN code, from Photon's forward search.
+ *
+ * The reverse answer for a suburb frequently has no city at all, and what it
+ * does carry is the revenue taluk ("Bangalore South"). Searching the PIN
+ * instead returns the shops, banks and offices filed under that postcode, each
+ * stamped with its city -- which is the name a person would write. Only
+ * features on the same postcode are counted, and the most common name wins, so
+ * a single stray "Bangalore" cannot beat a majority of "Bengaluru".
+ */
+async function photonCity(pincode: string, state: string): Promise<string> {
+  if (!pincode) return '';
+  const features = await photonFeatures([pincode, state, 'India'].filter(Boolean).join(' '), 10);
+  if (!features) return '';
+
+  const counts = new Map<string, number>();
+  for (const feature of features) {
+    const p = feature?.properties;
+    if (!p || typeof p !== 'object') continue;
+    if (p.postcode && String(p.postcode).replace(/[^0-9]/g, '') !== pincode) continue;
+    const city = firstString(p.city);
+    if (!city) continue;
+    counts.set(city, (counts.get(city) || 0) + 1);
+  }
+
+  let best = '';
+  let bestCount = 0;
+  for (const [city, count] of counts) {
+    if (count > bestCount) {
+      best = city;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+async function photonSearch(query: string): Promise<GeocodeHit[] | null> {
+  const features = await photonFeatures(query);
+  if (!features) return null;
+
+  const hits: GeocodeHit[] = [];
+  for (const feature of features) {
+    const coords = feature?.geometry?.coordinates;
+    const longitude = toNumber(coords?.[0]);
+    const latitude = toNumber(coords?.[1]);
+    if (latitude === null || longitude === null || longitude < -180 || longitude > 180) continue;
+
+    const p = feature.properties && typeof feature.properties === 'object' ? feature.properties : {};
+    const parts = [p.name, p.city, p.state, p.country]
+      .map((v: unknown) => (typeof v === 'string' ? v.trim() : ''))
+      .filter((v: string, i: number, all: string[]) => v && all.indexOf(v) === i);
+
+    hits.push({
+      latitude,
+      longitude,
+      label: parts.join(', ') || query,
+      kind: firstString(p.osm_value, p.type, 'place'),
+    });
+  }
   return hits;
 }
 
@@ -287,59 +424,25 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
       ? toAddressParts(body.address, firstString(body.display_name))
       : null;
   // An empty answer is as useless as a failed one: the form would clear nothing
-  // and the user would see a pin with no address beside it.
-  let parts = nominatim && hasAddress(nominatim) ? nominatim : await fallbackReverse(latitude, longitude);
+  // and the user would see a pin with no address beside it. Nominatim refuses
+  // much datacentre traffic, so Photon answers for it.
+  let parts = nominatim && hasAddress(nominatim) ? nominatim : await photonReverse(latitude, longitude);
   if (!parts) return null;
-  // Photon knows the street but files the taluk as the city ("Bangalore South"
-  // for a point in Bengaluru). Fill the gaps from the second provider only when
-  // something is actually missing, so the common case is one request.
+  // Photon's reverse answer often stops at the taluk for a suburb ("Bangalore
+  // South" for a point in Bengaluru), so the city is asked for by PIN instead.
+  // Only when that fails does the district name stand in -- it is still a real
+  // place, and the box is editable.
   if (!parts.city) {
-    const wider = await bigDataCloudAddress(latitude, longitude);
-    if (wider) {
-      parts = {
-        ...parts,
-        address_line: parts.address_line || wider.city,
-        city: wider.city || parts.city,
-        state: parts.state || wider.state,
-        pincode: parts.pincode || wider.pincode,
-        label: parts.label || wider.city,
-      };
-    }
-    // Still nothing: the service that supplies city names is unreachable from
-    // this host. The district name at least puts a real place in the box, and
-    // the box is editable, which beats leaving it blank.
-    if (!parts.city && parts.county) parts = { ...parts, city: parts.county };
+    // Two attempts at the real city before settling for the district: the city
+    // named by businesses filed under the PIN, then India Post's own district
+    // for it. The OSM county is only the last resort -- it is a city zone
+    // ("Bangalore South"), never the city itself.
+    const city = (await photonCity(parts.pincode, parts.state)) || (await postalCity(parts.pincode));
+    if (city) parts = { ...parts, city };
+    else if (parts.county) parts = { ...parts, city: parts.county };
   }
   lookupSet(key, parts);
   return parts;
-}
-
-/**
- * A point -> address when Nominatim has nothing to say, best effort.
- *
- * The public Nominatim instance refuses much datacentre traffic, and a Render
- * dyno is exactly that: in production every lookup came back empty, so "Use my
- * location" dropped a pin and left the address boxes blank. Two keyless
- * services over the same OpenStreetMap data cover for it: Photon for the
- * street-level line (it carries house numbers and neighbourhoods) and
- * BigDataCloud for the city/state/PIN, which Photon often files under the
- * county instead. Either alone leaves a hole; together they fill all four.
- */
-async function fallbackReverse(latitude: number, longitude: number): Promise<AddressParts | null> {
-  const photon = await photonReverse(latitude, longitude);
-  if (photon) return photon;
-
-  const wider = await bigDataCloudAddress(latitude, longitude);
-  if (!wider) return null;
-  return {
-    // Nothing street-level survived, so the finest name available stands in for
-    // the address line rather than leaving the box empty.
-    address_line: wider.city,
-    city: wider.city,
-    state: wider.state,
-    pincode: wider.pincode,
-    label: wider.city,
-  };
 }
 
 /** True when a lookup actually named something, rather than returning {}. */
@@ -354,30 +457,6 @@ function hasAddress(a: AddressParts): boolean {
  * so its properties are folded into the Nominatim shape before parsing.
  */
 const PHOTON_REVERSE = 'https://photon.komoot.io/reverse';
-const BDC_ENDPOINT = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
-
-/** City/state/PIN for a point, keyless. `null` when the service is unreachable. */
-async function bigDataCloudAddress(latitude: number, longitude: number) {
-  try {
-    const res = await fetch(
-      `${BDC_ENDPOINT}?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
-      {
-        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      },
-    );
-    if (!res.ok) return null;
-    const body: any = await res.json();
-    const city = firstString(body?.city, body?.locality, body?.principalSubdivision);
-    return {
-      city,
-      state: firstString(body?.principalSubdivision),
-      pincode: firstString(body?.postcode).replace(/[^0-9]/g, '').slice(0, 6),
-    };
-  } catch {
-    return null;
-  }
-}
 
 async function photonReverse(latitude: number, longitude: number): Promise<AddressParts | null> {
   const url = `${PHOTON_REVERSE}?lat=${latitude}&lon=${longitude}&limit=1&lang=en`;

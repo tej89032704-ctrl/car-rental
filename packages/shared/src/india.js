@@ -70,6 +70,24 @@ for (const state of INDIA_STATES) {
   }
 }
 
+/**
+ * Older spellings for cities the state lists carry in their current form.
+ *
+ * Geocoders still return "Bangalore" and "Mysore" (India Post files the district
+ * that way), and those would sit in the City box looking nothing like the names
+ * this form suggests. Only exact matches are rewritten; anything else is left as
+ * typed.
+ */
+const CITY_ALIASES = new Map([
+  ['bangalore', 'Bengaluru'], ['mysore', 'Mysuru'], ['mangalore', 'Mangaluru'],
+  ['hubli', 'Hubballi'], ['belgaum', 'Belagavi'], ['gulbarga', 'Kalaburagi'],
+  ['bijapur', 'Vijayapura'], ['bellary', 'Ballari'], ['shimoga', 'Shivamogga'],
+  ['tumkur', 'Tumakuru'], ['chikmagalur', 'Chikkamagaluru'],
+  ['bombay', 'Mumbai'], ['madras', 'Chennai'], ['calcutta', 'Kolkata'],
+  ['cochin', 'Kochi'], ['trivandrum', 'Thiruvananthapuram'], ['pondicherry', 'Puducherry'],
+  ['baroda', 'Vadodara'], ['poona', 'Pune'], ['benares', 'Varanasi'],
+]);
+
 /** Cities to suggest: the chosen state's list, or the whole country. */
 export function citiesForState(state) {
   const match = STATE_BY_KEY.get(String(state || '').trim().toLowerCase());
@@ -89,7 +107,7 @@ export function canonicalCity(value, state) {
   const key = typed.toLowerCase();
   const inState = STATE_BY_KEY.get(String(state || '').trim().toLowerCase())
     ?.cities.find((c) => c.toLowerCase() === key);
-  return inState || CITY_BY_KEY.get(key) || typed;
+  return inState || CITY_BY_KEY.get(key) || CITY_ALIASES.get(key) || typed;
 }
 
 /** The state a city belongs to, when only one state claims that name. */
